@@ -1,22 +1,21 @@
 {
-  "name"          : "Good Enough Reccommendations (GER)",
-  "description"   : "Taking the '80% of people are happy with 20% of the requirements' philosophy to Reccommendations Engines. GER will probably work for you and return good enough reccommendations",
+  "name"          : "ger",
+  "description"   : "Good Enough Reccommendations (GER): Taking the '80% of people are happy with 20% of the requirements' philosophy to Reccommendations Engines. GER will probably work for you and return good enough reccommendations",
   "url"           : "https://github.com/grahamjenson/ger.git",
   "keywords"      : ["model", "promise", "backbone"],
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
   "dependencies"  : {
-    "then-redis": "0.3.12",
     "q": "1.0.1"
   },
   "devDependencies": {
-    "mocha": "1.13.0",
-    "chai": "1.8.1",
-    "sinon": "1.7.3",
-    "coffee-script": "1.6.1"
+    "mocha": "1.18.2",
+    "chai": "1.9.1",
+    "sinon": "1.9.1",
+    "coffee-script": "1.7.1"
   },
   "scripts": {
     "build": "./node_modules/.bin/coffee -c ger.coffee",
-    "test": "mocha --compilers coffee:coffee-script -C"
+    "test": "mocha --compilers coffee:coffee-script/register -C"
   },
   "main"          : "ger.js",
   "version"       : "0.0.1",
