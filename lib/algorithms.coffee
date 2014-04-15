@@ -6,8 +6,6 @@ GER_Algorithms =
     return q.fcall(->) 
 
 
-
-
 #AMD
 if (typeof define != 'undefined' && define.amd)
   define([], -> return GER_Algorithms)
