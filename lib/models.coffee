@@ -11,7 +11,16 @@ class KVStore
   get: (key) ->
     return  q.fcall(=> @store[key])
 
+
+class Set
+
+  add: (value) ->
+    return q.fcall(->)
+
+
+
 GER_Models.KVStore = KVStore
+GER_Models.Set = Set
 
 #AMD
 if (typeof define != 'undefined' && define.amd)
