@@ -1,14 +1,16 @@
 q = require 'q'
 
-GER_Algorithms =
+GER_Models= {}
 
-  event: (person, action, thing) ->
+class KVStore
+  set: (key, value) ->
     return q.fcall(->) 
-
+    
+GER_Models.KVStore = KVStore
 
 #AMD
 if (typeof define != 'undefined' && define.amd)
-  define([], -> return GER_Algorithms)
+  define([], -> return GER_Models)
 #Node
 else if (typeof module != 'undefined' && module.exports)
-    module.exports = GER_Algorithms;
+    module.exports = GER_Models;
