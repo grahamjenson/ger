@@ -19,7 +19,7 @@ describe 'store', ->
 
   it 'a value should be retrievable from the store with a key', (done) ->
     kv_store = new KVStore()
-    kv_store.set('key','value').then(=>
+    kv_store.set('key','value').then(->
       kv_store.get('key')
     )
     .then((value) -> value.should.equal 'value'; return)
@@ -34,3 +34,15 @@ describe 'set', ->
     set.add('value')
     .then(done , done)
 
+  it 'should contain the value', (done) ->
+    set = new Set()
+    set.add('value')
+    .then(-> set.contains('value'))
+    .then((value) -> value.should.equal true; return)
+    .then(done , done)
+
+  it 'should return false for values not in the set', (done) ->
+    set = new Set()
+    set.contains('value')
+    .then((value) -> value.should.equal false; return)
+    .then(done , done)
