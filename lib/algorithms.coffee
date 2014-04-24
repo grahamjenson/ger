@@ -1,9 +1,8 @@
 q = require 'q'
 
-GER_Algorithms =
+GER_Algorithms = {}
 
-  event: (person, action, thing) ->
-    return q.fcall(->) 
+
 
 
 #AMD
