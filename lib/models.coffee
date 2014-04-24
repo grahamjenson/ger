@@ -39,6 +39,15 @@ class Set
       q.all(p)
     )
     .then(-> nset)
+  
+  intersection: (set) ->
+    nset = new Set
+    q.all([ @_iter() , set._iter()])
+    .then((l) => 
+      p = (nset.add(v) for v in l[0].concat(l[1]) when (l[0].indexOf(v) != -1) && (l[1].indexOf(v) != -1)) 
+      q.all(p)
+    )
+    .then(-> nset)
 
   _iter: ->
     return q.fcall( => Object.keys(@store))

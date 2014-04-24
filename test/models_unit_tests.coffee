@@ -45,6 +45,18 @@ describe 'Set', ->
     .then((size) -> size.should.equal 1; return)
     .then(done , done)
 
+
+  it 'size should not change for same key', (done) ->
+    set = new Set()
+    set.size( (size) -> size.should.equal 0)
+    .then(-> set.add('value'))
+    .then(-> set.size())
+    .then((size) -> size.should.equal 1; return)
+    .then(-> set.add('value'))
+    .then(-> set.size())
+    .then((size) -> size.should.equal 1; return)
+    .then(done , done)  
+
   describe '#contains', ->
 
     it 'should contain the value', (done) ->
@@ -79,6 +91,27 @@ describe 'Set', ->
     set2 = new Set()
     q.all([set1.add('1'), set2.add('2')])
     .then(-> set1.union(set2))
-    .then((nset) -> nset.contains(['1','2']))
-    .then((value) -> value.should.equal true; return)
+    .then((nset) -> 
+      nset.contains(['1','2'])
+      .then((value) -> value.should.equal true)
+      .then(-> nset.size())
+      .then((size) -> size.should.equal 2)
+      .fail(done)
+      return
+    )
+    .then(done,done)
+
+  it 'should intersect with other sets to return a new set', (done) ->
+    set1 = new Set()
+    set2 = new Set()
+    q.all([set1.add('1'), set1.add('2'), set2.add('2'), set2.add('3')])
+    .then(-> set1.intersection(set2))
+    .then((nset) -> 
+      nset.contains(['2'])
+      .then((value) -> value.should.equal true)
+      .then(-> nset.size())
+      .then((size) -> size.should.equal 1)
+      .fail(done)
+      return
+    )
     .then(done,done)
