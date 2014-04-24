@@ -10,6 +10,7 @@
   "devDependencies": {
     "mocha": "1.18.2",
     "chai": "1.9.1",
+    "chai-as-promised": "4.1.1",
     "sinon": "1.9.1",
     "coffee-script": "1.7.1"
   },

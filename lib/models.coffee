@@ -3,8 +3,8 @@ q = require 'q'
 GER_Models= {}
 
 class KVStore
-  constructor: () ->
-    @store = {}
+  constructor: (ivals = {}) ->
+    @store = ivals
 
   set: (key, value) ->
     return q.fcall(=> @store[key] = value; return) 
@@ -21,8 +21,9 @@ class KVStore
     .then((k) -> k[0].intersection(k[1]))
     
 class Set
-  constructor: () ->
+  constructor: (ivals = []) ->
     @store = {}
+    (@store[iv] = true for iv in ivals)
 
   add: (value) ->
     return q.fcall(=> @store[value] = true; return) 

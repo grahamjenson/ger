@@ -1,4 +1,7 @@
-chai = require 'chai'  
+chai = require 'chai' 
+chaiAsPromised = require("chai-as-promised")
+chai.use(chaiAsPromised)
+
 should = chai.should()
 expect = chai.expect
 
@@ -14,18 +17,17 @@ describe 'KVStore', ->
   it 'should be instanciatable', ->
     kv_store = new KVStore()
 
-  it 'should set a value to a key, and return a promise', (done) ->
-    kv_store = new KVStore()
-    kv_store.set('key','value')
-    .then(done , done)
+  it 'should be init with init object', ->
+    kv_store = new KVStore({'x': '1', 'y': '2'})
+    kv_store.get('x').should.eventually.equal '1'
 
-  it 'a value should be retrievable from the store with a key', (done) ->
+  it 'should set a value to a key, and return a promise', ->
     kv_store = new KVStore()
-    kv_store.set('key','value').then(->
-      kv_store.get('key')
-    )
-    .then((value) -> value.should.equal 'value'; return)
-    .then(done , done)
+    kv_store.set('key','value').should.eventually.be.fulfilled
+
+  it 'a value should be retrievable from the store with a key', ->
+    kv_store = new KVStore({'key': 'value'})
+    kv_store.get('key').should.eventually.equal 'value'
 
   describe '#union', ->
     it 'should return a promise for the union of two stored sets', (done) ->
@@ -79,6 +81,12 @@ describe 'KVStore', ->
 describe 'Set', ->
   it 'should be instanciatable', ->
     set = new Set
+  
+  it 'should be initialisable with a list of items that will be added', (done) ->
+    set = new Set(['1','2'])
+    set.size()
+    .then((size) -> size.should.equal 2; return)
+    .then(done, done)
 
   it 'should add value and return a promise', (done) ->
     set = new Set()
@@ -121,16 +129,15 @@ describe 'Set', ->
       .then(done , done)
 
     it 'should return true if passed an array of contained items', (done) ->
-      set = new Set()
-      q.all([set.add('1'), set.add('2')])
-      .then( -> set.contains(['1','2']))
+      set = new Set(['1','2'])
+
+      set.contains(['1','2'])
       .then((value) -> value.should.equal true; return)
       .then(done,done)
 
     it 'should return false if one of the values passed to contains is not contained', (done) ->
-      set = new Set()
-      set.add('1')
-      .then( -> set.contains(['1','2']))
+      set = new Set(['1'])
+      set.contains(['1','2'])
       .then((value) -> value.should.equal false; return)
       .then(done,done)
 
