@@ -37,6 +37,14 @@ describe 'Set', ->
     set.add('value')
     .then(done , done)
 
+  it 'should have size', (done) ->
+    set = new Set()
+    set.size( (size) -> size.should.equal 0)
+    .then(-> set.add('value'))
+    .then(-> set.size())
+    .then((size) -> size.should.equal 1; return)
+    .then(done , done)
+
   describe '#contains', ->
 
     it 'should contain the value', (done) ->
@@ -74,4 +82,3 @@ describe 'Set', ->
     .then((nset) -> nset.contains(['1','2']))
     .then((value) -> value.should.equal true; return)
     .then(done,done)
-

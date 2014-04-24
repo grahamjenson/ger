@@ -21,6 +21,9 @@ class Set
   add: (value) ->
     return q.fcall(=> @store[value] = true; return) 
 
+  size: () ->
+    @_iter().then((keys) -> keys.length)
+
   contains: (value) ->
     if Array.isArray(value)
       q.all((@.contains(v) for v in value))
