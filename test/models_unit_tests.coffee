@@ -4,6 +4,8 @@ expect = chai.expect
 
 sinon = require 'sinon'
 
+q = require 'q'
+
 ger_models = require('../lib/models')
 KVStore = ger_models.KVStore
 Set = ger_models.Set
@@ -25,7 +27,8 @@ describe 'store', ->
     .then((value) -> value.should.equal 'value'; return)
     .then(done , done)
 
-describe 'set', ->
+
+describe 'Set', ->
   it 'should be instanciatable', ->
     set = new Set
 
@@ -34,15 +37,38 @@ describe 'set', ->
     set.add('value')
     .then(done , done)
 
-  it 'should contain the value', (done) ->
-    set = new Set()
-    set.add('value')
-    .then(-> set.contains('value'))
-    .then((value) -> value.should.equal true; return)
-    .then(done , done)
+  describe '#contains', ->
+    it 'should contain the value', (done) ->
+      set = new Set()
+      set.add('value')
+      .then(-> set.contains('value'))
+      .then((value) -> value.should.equal true; return)
+      .then(done , done)
 
-  it 'should return false for values not in the set', (done) ->
-    set = new Set()
-    set.contains('value')
-    .then((value) -> value.should.equal false; return)
-    .then(done , done)
+    it 'should return false for values not in the set', (done) ->
+      set = new Set()
+      set.contains('value')
+      .then((value) -> value.should.equal false; return)
+      .then(done , done)
+
+    it 'should return true if passed an array of contained items', (done) ->
+      set = new Set()
+      q.all([set.add('1'), set.add('2')])
+      .then( -> set.contains(['1','2']))
+      .then((value) -> value.should.equal true; return)
+      .then(done,done)
+
+    it 'should return false if one of the values passed to contains is not contained', (done) ->
+      set = new Set()
+      set.add('1')
+      .then( -> set.contains(['1','2']))
+      .then((value) -> value.should.equal false; return)
+      .then(done,done)
+
+  # it 'should union with other sets to return a new set', (done) ->
+  #   set1 = new Set()
+  #   set2 = new Set()
+  #   q.all([set1.add('1'), set2.add('2')])
+  #   .then(-> set1.union(set2))
+  #   .then((nset) -> nset.contains(['1','2']))
+  #   .then(done,done)

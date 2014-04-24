@@ -21,7 +21,11 @@ class Set
     return q.fcall(=> @store[value] = true; return) 
 
   contains: (value) ->
-    return q.fcall(=> !!@store[value]) 
+    if Array.isArray(value)
+      q.all((@.contains(v) for v in value))
+      .then((contains_list) -> return contains_list.reduce((x,y) -> x && y))
+    else
+      q.fcall(=> !!@store[value]) 
 
 GER_Models.KVStore = KVStore
 GER_Models.Set = Set
