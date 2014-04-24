@@ -10,7 +10,7 @@ ger_models = require('../lib/models')
 KVStore = ger_models.KVStore
 Set = ger_models.Set
 
-describe 'store', ->
+describe 'KVStore', ->
   it 'should be instanciatable', ->
     kv_store = new KVStore()
 
@@ -26,6 +26,29 @@ describe 'store', ->
     )
     .then((value) -> value.should.equal 'value'; return)
     .then(done , done)
+
+  describe '#union', ->
+    it 'should return a promise for the union of two stored sets', (done) ->
+      set1 = new Set
+      set2 = new Set
+      kv_store = new KVStore()
+
+      p = []
+      p.push kv_store.set('s1', set1)
+      p.push kv_store.set('s2', set2)
+      p.push set1.add('x')
+      p.push set2.add('y')
+
+      q.all(p)
+      .then(-> kv_store.union('s1','s2'))
+      .then((uset) -> 
+        uset.contains(['x','y'])
+        .then((v) -> v.should.equal true; uset.size())
+        .then((s) -> s.should.equal 2)
+        .fail(done)
+        return
+      )
+      .then(done, done)
 
 
 describe 'Set', ->
