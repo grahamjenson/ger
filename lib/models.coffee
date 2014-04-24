@@ -6,6 +6,7 @@ class KVStore
   constructor: () ->
     @store = {}
 
+
   set: (key, value) ->
     return q.fcall(=> @store[key] = value; return) 
   
@@ -26,6 +27,18 @@ class Set
       .then((contains_list) -> return contains_list.reduce((x,y) -> x && y))
     else
       q.fcall(=> !!@store[value]) 
+
+  union: (set) ->
+    nset = new Set
+    q.all([ @_iter() , set._iter()])
+    .then((l) -> 
+      p = (nset.add(v) for v in l[0].concat(l[1])) 
+      q.all(p)
+    )
+    .then(-> nset)
+
+  _iter: ->
+    return q.fcall( => Object.keys(@store))
 
 GER_Models.KVStore = KVStore
 GER_Models.Set = Set

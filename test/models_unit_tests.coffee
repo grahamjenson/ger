@@ -38,6 +38,7 @@ describe 'Set', ->
     .then(done , done)
 
   describe '#contains', ->
+
     it 'should contain the value', (done) ->
       set = new Set()
       set.add('value')
@@ -65,10 +66,12 @@ describe 'Set', ->
       .then((value) -> value.should.equal false; return)
       .then(done,done)
 
-  # it 'should union with other sets to return a new set', (done) ->
-  #   set1 = new Set()
-  #   set2 = new Set()
-  #   q.all([set1.add('1'), set2.add('2')])
-  #   .then(-> set1.union(set2))
-  #   .then((nset) -> nset.contains(['1','2']))
-  #   .then(done,done)
+  it 'should union with other sets to return a new set', (done) ->
+    set1 = new Set()
+    set2 = new Set()
+    q.all([set1.add('1'), set2.add('2')])
+    .then(-> set1.union(set2))
+    .then((nset) -> nset.contains(['1','2']))
+    .then((value) -> value.should.equal true; return)
+    .then(done,done)
+
