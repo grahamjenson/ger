@@ -16,6 +16,10 @@ class KVStore
     q.all([@.get(key1), @.get(key2)])
     .then((k) -> k[0].union(k[1]))
 
+  intersection: (key1, key2) ->
+    q.all([@.get(key1), @.get(key2)])
+    .then((k) -> k[0].intersection(k[1]))
+    
 class Set
   constructor: () ->
     @store = {}

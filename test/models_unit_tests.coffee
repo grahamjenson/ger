@@ -49,6 +49,31 @@ describe 'KVStore', ->
         return
       )
       .then(done, done)
+  
+  describe '#intersection', ->
+    it 'should return a promise for the intersection of two stored sets', (done) ->
+      set1 = new Set
+      set2 = new Set
+      kv_store = new KVStore()
+
+      p = []
+      p.push kv_store.set('s1', set1)
+      p.push kv_store.set('s2', set2)
+      p.push set1.add('w')
+      p.push set1.add('x')
+      p.push set2.add('x')
+      p.push set2.add('y')
+
+      q.all(p)
+      .then(-> kv_store.intersection('s1','s2'))
+      .then((uset) -> 
+        uset.contains(['x'])
+        .then((v) -> v.should.equal true; uset.size())
+        .then((s) -> s.should.equal 1)
+        .fail(done)
+        return
+      )
+      .then(done, done)
 
 
 describe 'Set', ->
