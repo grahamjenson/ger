@@ -15,3 +15,12 @@ describe 'store', ->
     kv_store = new KVStore()
     kv_store.set('key','value')
     .then(done , done)
+
+  it 'a value should be retrievable from the store with a key', (done) ->
+    kv_store = new KVStore()
+    kv_store.set('key','value').then(=>
+      kv_store.get('key')
+    )
+    .then((value) -> value.should.equal 'value'; return)
+    .then(done , done)
+

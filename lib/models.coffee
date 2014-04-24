@@ -3,9 +3,14 @@ q = require 'q'
 GER_Models= {}
 
 class KVStore
+  store: {}
+
   set: (key, value) ->
-    return q.fcall(->) 
-    
+    return q.fcall(=> @store[key] = value; return) 
+  
+  get: (key) ->
+    return  q.fcall(=> @store[key])
+
 GER_Models.KVStore = KVStore
 
 #AMD
