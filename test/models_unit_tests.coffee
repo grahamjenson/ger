@@ -30,143 +30,86 @@ describe 'KVStore', ->
     kv_store.get('key').should.eventually.equal 'value'
 
   describe '#union', ->
-    it 'should return a promise for the union of two stored sets', (done) ->
-      set1 = new Set
-      set2 = new Set
-      kv_store = new KVStore()
-
-      p = []
-      p.push kv_store.set('s1', set1)
-      p.push kv_store.set('s2', set2)
-      p.push set1.add('x')
-      p.push set2.add('y')
-
-      q.all(p)
-      .then(-> kv_store.union('s1','s2'))
+    it 'should return a promise for the union of two stored sets', ->
+      set1 = new Set(['x'])
+      set2 = new Set(['y'])
+      kv_store = new KVStore({'s1': set1, 's2': set2})
+      kv_store.union('s1','s2')
       .then((uset) -> 
-        uset.contains(['x','y'])
-        .then((v) -> v.should.equal true; uset.size())
-        .then((s) -> s.should.equal 2)
-        .fail(done)
-        return
+        uset.contains(['x','y']).should.equal true
+        uset.size().should.equal 2
       )
-      .then(done, done)
   
   describe '#intersection', ->
-    it 'should return a promise for the intersection of two stored sets', (done) ->
-      set1 = new Set
-      set2 = new Set
-      kv_store = new KVStore()
+    it 'should return a promise for the intersection of two stored sets', ->
+      set1 = new Set(['w','x'])
+      set2 = new Set(['x','y'])
+      kv_store = new KVStore({'s1': set1, 's2': set2})
 
-      p = []
-      p.push kv_store.set('s1', set1)
-      p.push kv_store.set('s2', set2)
-      p.push set1.add('w')
-      p.push set1.add('x')
-      p.push set2.add('x')
-      p.push set2.add('y')
-
-      q.all(p)
-      .then(-> kv_store.intersection('s1','s2'))
+      kv_store.intersection('s1','s2')
       .then((uset) -> 
-        uset.contains(['x'])
-        .then((v) -> v.should.equal true; uset.size())
-        .then((s) -> s.should.equal 1)
-        .fail(done)
-        return
+        uset.contains(['x']).should.equal true
+        uset.size().should.equal 1
       )
-      .then(done, done)
-
 
 describe 'Set', ->
   it 'should be instanciatable', ->
     set = new Set
   
-  it 'should be initialisable with a list of items that will be added', (done) ->
+  it 'should be initialisable with a list of items that will be added', ->
     set = new Set(['1','2'])
-    set.size()
-    .then((size) -> size.should.equal 2; return)
-    .then(done, done)
+    set.size().should.equal 2
 
-  it 'should add value and return a promise', (done) ->
+  it 'should add value', ->
     set = new Set()
     set.add('value')
-    .then(done , done)
 
-  it 'should have size', (done) ->
+  it 'should have size',  ->
     set = new Set()
-    set.size( (size) -> size.should.equal 0)
-    .then(-> set.add('value'))
-    .then(-> set.size())
-    .then((size) -> size.should.equal 1; return)
-    .then(done , done)
+    set.size().should.equal 0
+    set.add('value')
+    set.size().should.equal 1
 
 
-  it 'size should not change for same key', (done) ->
+  it 'size should not change for same key', ->
     set = new Set()
-    set.size( (size) -> size.should.equal 0)
-    .then(-> set.add('value'))
-    .then(-> set.size())
-    .then((size) -> size.should.equal 1; return)
-    .then(-> set.add('value'))
-    .then(-> set.size())
-    .then((size) -> size.should.equal 1; return)
-    .then(done , done)  
+    set.size().should.equal 0
+    set.add('value')
+    set.size().should.equal 1
+    set.add('value')
+    set.size().should.equal 1
 
   describe '#contains', ->
 
-    it 'should contain the value', (done) ->
+    it 'should contain the value', ->
       set = new Set()
       set.add('value')
-      .then(-> set.contains('value'))
-      .then((value) -> value.should.equal true; return)
-      .then(done , done)
+      set.contains('value').should.equal true
 
-    it 'should return false for values not in the set', (done) ->
+    it 'should return false for values not in the set', ->
       set = new Set()
-      set.contains('value')
-      .then((value) -> value.should.equal false; return)
-      .then(done , done)
+      set.contains('value').should.equal false
 
-    it 'should return true if passed an array of contained items', (done) ->
+    it 'should return true if passed an array of contained items', ->
       set = new Set(['1','2'])
 
-      set.contains(['1','2'])
-      .then((value) -> value.should.equal true; return)
-      .then(done,done)
+      set.contains(['1','2']).should.equal true
 
-    it 'should return false if one of the values passed to contains is not contained', (done) ->
+    it 'should return false if one of the values passed to contains is not contained', ->
       set = new Set(['1'])
-      set.contains(['1','2'])
-      .then((value) -> value.should.equal false; return)
-      .then(done,done)
+      set.contains(['1','2']).should.equal false
 
-  it 'should union with other sets to return a new set', (done) ->
-    set1 = new Set()
-    set2 = new Set()
-    q.all([set1.add('1'), set2.add('2')])
-    .then(-> set1.union(set2))
-    .then((nset) -> 
-      nset.contains(['1','2'])
-      .then((value) -> value.should.equal true)
-      .then(-> nset.size())
-      .then((size) -> size.should.equal 2)
-      .fail(done)
-      return
-    )
-    .then(done,done)
+  it 'should union with other sets to return a new set', ->
+    set1 = new Set(['1'])
+    set2 = new Set(['2'])
+    uset = set1.union(set2)
+    uset.contains(['1','2']).should.equal true
+    uset.size().should.equal 2
 
-  it 'should intersect with other sets to return a new set', (done) ->
-    set1 = new Set()
-    set2 = new Set()
-    q.all([set1.add('1'), set1.add('2'), set2.add('2'), set2.add('3')])
-    .then(-> set1.intersection(set2))
-    .then((nset) -> 
-      nset.contains(['2'])
-      .then((value) -> value.should.equal true)
-      .then(-> nset.size())
-      .then((size) -> size.should.equal 1)
-      .fail(done)
-      return
-    )
-    .then(done,done)
+  it 'should intersect with other sets to return a new set', ->
+    set1 = new Set(['1','2'])
+    set2 = new Set(['2','3'])
+    uset = set1.intersection(set2)
+    uset.contains(['2']).should.equal true
+    uset.size().should.equal 1
+

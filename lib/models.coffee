@@ -14,50 +14,41 @@ class KVStore
 
   union: (key1, key2) ->
     q.all([@.get(key1), @.get(key2)])
-    .then((k) -> k[0].union(k[1]))
+    .spread((set1, set2) -> set1.union(set2))
 
   intersection: (key1, key2) ->
     q.all([@.get(key1), @.get(key2)])
-    .then((k) -> k[0].intersection(k[1]))
+    .spread((set1, set2) -> set1.intersection(set2))
     
+
 class Set
   constructor: (ivals = []) ->
     @store = {}
     (@store[iv] = true for iv in ivals)
 
   add: (value) ->
-    return q.fcall(=> @store[value] = true; return) 
+    @store[value] = true
 
   size: () ->
-    @_iter().then((keys) -> keys.length)
+    @_iter().length
 
   contains: (value) ->
     if Array.isArray(value)
-      q.all((@.contains(v) for v in value))
-      .then((contains_list) -> return contains_list.reduce((x,y) -> x && y))
+      (@.contains(v) for v in value).reduce((x,y) -> x && y)
     else
-      q.fcall(=> !!@store[value]) 
+      !!@store[value]
 
   union: (set) ->
-    nset = new Set
-    q.all([ @_iter() , set._iter()])
-    .then((l) -> 
-      p = (nset.add(v) for v in l[0].concat(l[1]))
-      q.all(p)
-    )
-    .then(-> nset)
+    new Set( (v for v in @_iter().concat(set._iter())) )
   
   intersection: (set) ->
-    nset = new Set
-    q.all([ @_iter() , set._iter()])
-    .then((l) => 
-      p = (nset.add(v) for v in l[0].concat(l[1]) when (l[0].indexOf(v) != -1) && (l[1].indexOf(v) != -1)) 
-      q.all(p)
-    )
-    .then(-> nset)
+    s1 = @_iter()
+    s2 = set._iter()
+    new Set(  (v for v in s1.concat(s2) when (s1.indexOf(v) != -1) && (s2.indexOf(v) != -1))  )
 
   _iter: ->
-    return q.fcall( => Object.keys(@store))
+    return Object.keys(@store)
+
 
 
 GER_Models.KVStore = KVStore
