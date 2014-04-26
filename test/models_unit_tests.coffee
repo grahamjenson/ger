@@ -118,3 +118,12 @@ describe 'OrderedSet', ->
     it 'should have add with score', ->
       set = new OrderedSet
       set.add('1',1)
+
+    it 'should return members in order of score', ->
+      set = new OrderedSet
+      set.add('a',1)
+      set.add('b',2)
+      members = set.members()
+      members[0].should.equal 'b'
+      members[0].should.equal 'b'
+      

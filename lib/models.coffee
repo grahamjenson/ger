@@ -2,6 +2,21 @@ q = require 'q'
 
 GER_Models= {}
 
+#Meant to be an in memory stub of redis
+# client.sinter
+# client.sunion
+# client.scard
+# client.smembers
+# client.sunionstore
+# client.sdiff
+# client.del
+# client.zadd
+# client.zscore
+# client.zrevrange
+# client.zrange
+# client.zremrangebyrank
+# client.zcard
+
 class KVStore
   constructor: (ivals = {}) ->
     @store = ivals
@@ -24,10 +39,10 @@ class KVStore
 class Set
   constructor: (ivals = []) ->
     @store = {}
-    (@store[iv] = true for iv in ivals)
+    (@store[iv] = 1 for iv in ivals)
 
   add: (value) ->
-    @store[value] = true
+    @store[value] = 1
 
   size: () ->
     @members().length
@@ -53,6 +68,9 @@ class Set
 class OrderedSet extends Set
   add: (value, score) ->
       @store[value] = score
+
+  members: -> 
+    (m[1] for m in ([v , k] for k , v of @store).sort( (x) -> x[0]))
 
 GER_Models.KVStore = KVStore
 GER_Models.Set = Set
