@@ -12,6 +12,7 @@ q = require 'q'
 ger_models = require('../lib/models')
 KVStore = ger_models.KVStore
 Set = ger_models.Set
+OrderedSet = ger_models.OrderedSet
 
 describe 'KVStore', ->
   it 'should be instanciatable', ->
@@ -113,3 +114,7 @@ describe 'Set', ->
     uset.contains(['2']).should.equal true
     uset.size().should.equal 1
 
+describe 'OrderedSet', ->
+    it 'should have add with score', ->
+      set = new OrderedSet
+      set.add('1',1)

@@ -30,7 +30,7 @@ class Set
     @store[value] = true
 
   size: () ->
-    @_iter().length
+    @members().length
 
   contains: (value) ->
     if Array.isArray(value)
@@ -39,20 +39,24 @@ class Set
       !!@store[value]
 
   union: (set) ->
-    new Set( (v for v in @_iter().concat(set._iter())) )
+    new Set( (v for v in @members().concat(set.members())) )
   
   intersection: (set) ->
-    s1 = @_iter()
-    s2 = set._iter()
+    s1 = @members()
+    s2 = set.members()
     new Set(  (v for v in s1.concat(s2) when (s1.indexOf(v) != -1) && (s2.indexOf(v) != -1))  )
 
-  _iter: ->
+  members: ->
     return Object.keys(@store)
 
 
+class OrderedSet extends Set
+  add: (value, score) ->
+      @store[value] = score
 
 GER_Models.KVStore = KVStore
 GER_Models.Set = Set
+GER_Models.OrderedSet = OrderedSet
 
 #AMD
 if (typeof define != 'undefined' && define.amd)
