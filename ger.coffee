@@ -3,7 +3,9 @@ q = require 'q'
 
 class GER
   event: (person, action, thing) ->
-    return q.fcall(->) 
+    q.all([
+      @add_action(action)
+      ])
 
   similarity: (p1, p2) ->
     #return a value of a persons similarity
@@ -12,14 +14,14 @@ class GER
     #return a list of similar people, weighted breadth first search till some number is found
 
   update_reccommendations: (person) ->
-    
+
   predict: (person) ->
     #return list of things
 
   actions: ->
     #return a list of actions
 
-  add_action: (action, weight = 1) ->
+  add_action: (action) ->
     #add action with weight
 
 RET = {}
