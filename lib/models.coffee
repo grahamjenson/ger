@@ -1,40 +1,6 @@
 q = require 'q'
 
-GER_Models= {}
-
-#Meant to be an in memory stub of redis
-# client.sinter
-# client.sunion
-# client.scard
-# client.smembers
-# client.sunionstore
-# client.sdiff
-# client.del
-# client.zadd
-# client.zscore
-# client.zrevrange
-# client.zrange
-# client.zremrangebyrank
-# client.zcard
-
-class KVStore
-  constructor: (ivals = {}) ->
-    @store = ivals
-
-  set: (key, value) ->
-    return q.fcall(=> @store[key] = value; return) 
-  
-  get: (key) ->
-    return  q.fcall(=> @store[key])
-
-  union: (key1, key2) ->
-    q.all([@.get(key1), @.get(key2)])
-    .spread((set1, set2) -> set1.union(set2))
-
-  intersection: (key1, key2) ->
-    q.all([@.get(key1), @.get(key2)])
-    .spread((set1, set2) -> set1.intersection(set2))
-    
+GER_Models = {}
 
 class Set
   constructor: (ivals = []) ->
@@ -72,7 +38,7 @@ class OrderedSet extends Set
   members: -> 
     (m[1] for m in ([v , k] for k , v of @store).sort( (x) -> x[0]))
 
-GER_Models.KVStore = KVStore
+
 GER_Models.Set = Set
 GER_Models.OrderedSet = OrderedSet
 

@@ -1,7 +1,14 @@
 q = require 'q'
 
+Store = require('./lib/store')
 
 class GER
+  constructor: () ->
+    @store = new Store
+
+  store: ->
+    @store
+
   event: (person, action, thing) ->
     q.all([
       @add_action(action)

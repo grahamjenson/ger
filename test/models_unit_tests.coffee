@@ -10,48 +10,8 @@ sinon = require 'sinon'
 q = require 'q'
 
 ger_models = require('../lib/models')
-KVStore = ger_models.KVStore
 Set = ger_models.Set
 OrderedSet = ger_models.OrderedSet
-
-describe 'KVStore', ->
-  it 'should be instanciatable', ->
-    kv_store = new KVStore()
-
-  it 'should be init with init object', ->
-    kv_store = new KVStore({'x': '1', 'y': '2'})
-    kv_store.get('x').should.eventually.equal '1'
-
-  it 'should set a value to a key, and return a promise', ->
-    kv_store = new KVStore()
-    kv_store.set('key','value').should.eventually.be.fulfilled
-
-  it 'a value should be retrievable from the store with a key', ->
-    kv_store = new KVStore({'key': 'value'})
-    kv_store.get('key').should.eventually.equal 'value'
-
-  describe '#union', ->
-    it 'should return a promise for the union of two stored sets', ->
-      set1 = new Set(['x'])
-      set2 = new Set(['y'])
-      kv_store = new KVStore({'s1': set1, 's2': set2})
-      kv_store.union('s1','s2')
-      .then((uset) -> 
-        uset.contains(['x','y']).should.equal true
-        uset.size().should.equal 2
-      )
-  
-  describe '#intersection', ->
-    it 'should return a promise for the intersection of two stored sets', ->
-      set1 = new Set(['w','x'])
-      set2 = new Set(['x','y'])
-      kv_store = new KVStore({'s1': set1, 's2': set2})
-
-      kv_store.intersection('s1','s2')
-      .then((uset) -> 
-        uset.contains(['x']).should.equal true
-        uset.size().should.equal 1
-      )
 
 describe 'Set', ->
   it 'should be instanciatable', ->
@@ -126,4 +86,3 @@ describe 'OrderedSet', ->
       members = set.members()
       members[0].should.equal 'b'
       members[0].should.equal 'b'
-      
