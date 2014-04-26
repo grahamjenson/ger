@@ -7,6 +7,7 @@ sinon = require 'sinon'
 Store = require('../lib/store')
 GER_Models = require('../lib/models')
 Set = GER_Models.Set
+SortedSet = GER_Models.SortedSet
 
 q = require 'q'
 
@@ -25,6 +26,16 @@ describe 'Store', ->
   it 'a value should be retrievable from the store with a key', ->
     store = new Store({'key': 'value'})
     store.get('key').should.eventually.equal 'value'
+
+
+  describe '#add_to_sorted_set', ->
+    it 'should add a value to a set', ->
+      ss = new SortedSet()
+      store = new Store({'s1': ss})
+      store.add_to_sorted_set('s1', 'i1')
+      .then( -> ss.contains('i1').should.equal true )
+
+
 
   describe '#union', ->
     it 'should return a promise for the union of two stored sets', ->
@@ -49,8 +60,10 @@ describe 'Store', ->
         uset.size().should.equal 1
       )
 
-  it 'should take two keys to sets and return a number', ->
-    store = new Store
-    sinon.stub(store, 'union', (s1,s2) -> new Set(['1','2','3','4']))
-    sinon.stub(store, 'intersection', (s1,s2) -> new Set(['2','3']))
-    store.jaccard_metric('s1','s2').should.eventually.equal .5
+  describe 'jaccard metric', ->
+    it 'should take two keys to sets and return a number', ->
+      store = new Store
+      sinon.stub(store, 'union', (s1,s2) -> new Set(['1','2','3','4']))
+      sinon.stub(store, 'intersection', (s1,s2) -> new Set(['2','3']))
+      store.jaccard_metric('s1','s2').should.eventually.equal .5
+

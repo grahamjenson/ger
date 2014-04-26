@@ -31,7 +31,7 @@ class Set
     return Object.keys(@store)
 
 
-class OrderedSet extends Set
+class SortedSet extends Set
   add: (value, score) ->
       @store[value] = score
 
@@ -40,7 +40,7 @@ class OrderedSet extends Set
 
 
 GER_Models.Set = Set
-GER_Models.OrderedSet = OrderedSet
+GER_Models.SortedSet = SortedSet
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

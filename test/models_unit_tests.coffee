@@ -11,7 +11,7 @@ q = require 'q'
 
 ger_models = require('../lib/models')
 Set = ger_models.Set
-OrderedSet = ger_models.OrderedSet
+SortedSet = ger_models.SortedSet
 
 describe 'Set', ->
   it 'should be instanciatable', ->
@@ -74,13 +74,13 @@ describe 'Set', ->
     uset.contains(['2']).should.equal true
     uset.size().should.equal 1
 
-describe 'OrderedSet', ->
+describe 'SortedSet', ->
     it 'should have add with score', ->
-      set = new OrderedSet
+      set = new SortedSet
       set.add('1',1)
 
     it 'should return members in order of score', ->
-      set = new OrderedSet
+      set = new SortedSet
       set.add('a',1)
       set.add('b',2)
       members = set.members()

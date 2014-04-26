@@ -16,3 +16,4 @@ describe 'event', ->
     sinon.stub(ger, 'add_action')
     ger.event('person','action','thing')
     sinon.assert.calledOnce(ger.add_action)
+

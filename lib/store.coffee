@@ -25,6 +25,10 @@ class Store
   get: (key) ->
     return  q.fcall(=> @store[key])
 
+  add_to_sorted_set: (key, value, score=1) ->
+    #redis.zadd
+    q.fcall(=> @store[key].add(value,score); return)
+
   union: (key1, key2) ->
     q.all([@.get(key1), @.get(key2)])
     .spread((set1, set2) -> set1.union(set2))
