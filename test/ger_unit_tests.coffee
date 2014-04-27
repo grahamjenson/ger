@@ -5,6 +5,35 @@ expect = chai.expect
 sinon = require 'sinon'
 
 GER = require('../ger').GER
+q = require 'q'
+
+describe '#similar_people_for_action', ->
+  it 'should take a person and find similar people for an action', ->
+    ger = new GER
+    sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
+    sinon.stub(ger, 'get_action_thing_set', -> q.fcall(-> ['person2']))
+    ger.similar_people_for_action('person1','action')
+    .then((people) -> 
+      ('person2' in people).should.equal true; 
+      people.length.should.equal 1
+    )
+
+  it 'should remove duplicate people', ->
+    ger = new GER
+    sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
+    sinon.stub(ger, 'get_action_thing_set', -> q.fcall(-> ['person2', 'person2']))
+    ger.similar_people_for_action('person1','action')
+    .then((people) -> 
+      ('person2' in people).should.equal true; 
+      people.length.should.equal 1
+    )
+
+describe '#get_action_thing_set', ->
+  it 'should return a promise for the action things set', ->
+    ger = new GER
+    sinon.stub(ger.store, 'set_members')
+    ger.get_person_action_set('action','thing')
+    sinon.assert.calledOnce(ger.store.set_members)
 
 describe '#get_person_action_set', ->
   it 'should return a promise for the persons action set', ->
@@ -13,8 +42,6 @@ describe '#get_person_action_set', ->
     ger.get_person_action_set('person','action')
     sinon.assert.calledOnce(ger.store.set_members)
 
-describe '#similar_people', ->
-  it 'should take a person and find similar people for an action', ->
 
 
 describe '#event', ->

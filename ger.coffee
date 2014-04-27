@@ -2,6 +2,19 @@ q = require 'q'
 
 Store = require('./lib/store')
 
+Utils =
+  flatten: (arr) ->
+    arr.reduce ((xs, el) ->
+      if Array.isArray el
+        xs.concat Utils.flatten el
+      else
+        xs.concat [el]), []
+
+  unique : (arr)->
+    output = {}
+    output[arr[key]] = arr[key] for key in [0...arr.length]
+    value for key, value of output
+
 KeyManager =
   action_set_key : ->
     'action_set'
@@ -41,12 +54,20 @@ class GER
   get_person_action_set: (person, action) ->
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
+  get_action_thing_set: (action,thing) ->
+    @store.set_members(KeyManager.action_thing_set_key(action, thing))
+
   similarity: (person1, person2) ->
     #return a value of a persons similarity
 
-  similar_people: (person, action) ->
-    #return a list of similar people, weighted breadth first search till some number is found
-    LIMIT = 5
+  similar_people_for_action: (person, action) ->
+    #return a list of similar people, later will be breadth first search till some number is found
+    @one_step_of_similar_people(person, action)
+
+  one_step_of_similar_people: (person, action) ->
+    @get_person_action_set(person, action)
+    .then( (things) => q.all((@get_action_thing_set(action, thing) for thing in things)))
+    .then( (people) => Utils.unique(Utils.flatten(people)))
 
   update_reccommendations: (person) ->
 

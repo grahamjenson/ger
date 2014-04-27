@@ -14,6 +14,7 @@
 # client.zcard
 
 q = require 'q'
+
 GER_Models = require './models'
 SortedSet = GER_Models.SortedSet
 Set = GER_Models.Set
