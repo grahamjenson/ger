@@ -28,6 +28,16 @@ describe '#similar_people_for_action', ->
       people.length.should.equal 1
     )
 
+  it 'should remove the passed person', ->
+    ger = new GER
+    sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
+    sinon.stub(ger, 'get_action_thing_set', -> q.fcall(-> ['person2', 'person1']))
+    ger.similar_people_for_action('person1','action')
+    .then((people) -> 
+      ('person2' in people).should.equal true; 
+      people.length.should.equal 1
+    )
+
 describe '#get_action_thing_set', ->
   it 'should return a promise for the action things set', ->
     ger = new GER

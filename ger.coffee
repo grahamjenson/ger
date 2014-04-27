@@ -67,7 +67,9 @@ class GER
   one_step_of_similar_people: (person, action) ->
     @get_person_action_set(person, action)
     .then( (things) => q.all((@get_action_thing_set(action, thing) for thing in things)))
-    .then( (people) => Utils.unique(Utils.flatten(people)))
+    .then( (people) => Utils.flatten(people)) #flatten list
+    .then( (people) => people.filter (s_person) -> s_person isnt person) #remove original person
+    .then( (people) => Utils.unique(people)) #return unique list
 
   update_reccommendations: (person) ->
 
