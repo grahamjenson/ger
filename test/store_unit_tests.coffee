@@ -85,6 +85,13 @@ describe 'Store', ->
         store.add_to_set('s1', 'i1')
         .then( -> store.contains('s1','i1').should.eventually.equal true )  
 
+    describe '#set_members', ->
+      it 'should return a list of members for key', ->
+        store = new Store()
+        store.add_to_set('s1', 'i1')
+        .then( -> store.set_members('s1'))
+        .then( (l) -> ('i1' in l).should.equal true)  
+
     describe '#contains', ->
       it 'should return true if element is a member', ->
         ss = new Set()

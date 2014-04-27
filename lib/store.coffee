@@ -29,7 +29,6 @@ class Store
   get: (key) ->
     return  q.fcall(=> @store[key])
 
-
   #SORTED SET CALLS
   incr_to_sorted_set: (key, value, score) ->
     #redis.zincrby
@@ -54,11 +53,17 @@ class Store
     if !(key of @store)
       @store[key] = new Set()
 
+
   #SET METHODS
   add_to_set: (key,value) ->
     #redis.sadd
     @_check_set(key)
     q.fcall(=> @store[key].add(value); return)
+
+  set_members: (key) ->
+    if !(key of @store)
+      return []
+    q.fcall(=> @store[key].members())
 
   contains: (key,value) ->
     #redis.SISMEMBER

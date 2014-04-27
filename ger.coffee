@@ -38,11 +38,15 @@ class GER
       person
     )
 
-  similarity: (p1, p2) ->
+  get_person_action_set: (person, action) ->
+    @store.set_members(KeyManager.person_action_set_key(person, action))
+
+  similarity: (person1, person2) ->
     #return a value of a persons similarity
 
-  similar_people: (person) ->
+  similar_people: (person, action) ->
     #return a list of similar people, weighted breadth first search till some number is found
+    LIMIT = 5
 
   update_reccommendations: (person) ->
 

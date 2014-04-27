@@ -6,7 +6,18 @@ sinon = require 'sinon'
 
 GER = require('../ger').GER
 
-describe 'event', ->
+describe '#get_person_action_set', ->
+  it 'should return a promise for the persons action set', ->
+    ger = new GER
+    sinon.stub(ger.store, 'set_members')
+    ger.get_person_action_set('person','action')
+    sinon.assert.calledOnce(ger.store.set_members)
+
+describe '#similar_people', ->
+  it 'should take a person and find similar people for an action', ->
+
+
+describe '#event', ->
   it 'should take a person action thing and return promise', ->
     ger = new GER
     ger.event('person','action','thing')
