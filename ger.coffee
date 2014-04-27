@@ -28,7 +28,8 @@ class GER
   actions: ->
     #return a list of actions
 
-  add_action: (action) ->
+  add_action: (action, score=1) ->
+    @store.add_to_sorted_set(action, score)
     #add action with weight
 
 RET = {}

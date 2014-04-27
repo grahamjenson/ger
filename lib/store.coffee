@@ -14,6 +14,8 @@
 # client.zcard
 
 q = require 'q'
+GER_Models = require './models'
+SortedSet = GER_Models.SortedSet
 
 class Store
   constructor: (ivals = {}) ->
@@ -27,7 +29,10 @@ class Store
 
   add_to_sorted_set: (key, value, score=1) ->
     #redis.zadd
-    q.fcall(=> @store[key].add(value,score); return)
+    if @store[key] == undefined
+      @store[key] = new SortedSet()
+
+    q.fcall(=> @store[key].add(value, score); return)
 
   union: (key1, key2) ->
     q.all([@.get(key1), @.get(key2)])

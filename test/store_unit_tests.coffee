@@ -35,7 +35,11 @@ describe 'Store', ->
       store.add_to_sorted_set('s1', 'i1')
       .then( -> ss.contains('i1').should.equal true )
 
-
+    it 'should create the sorted set if it does not exist', ->
+      store = new Store()
+      store.add_to_sorted_set('s1', 'i1')
+      .then(-> store.get('s1'))
+      .then( (ss) -> ss.contains('i1').should.equal true )
 
   describe '#union', ->
     it 'should return a promise for the union of two stored sets', ->

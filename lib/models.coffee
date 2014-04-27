@@ -36,8 +36,10 @@ class SortedSet extends Set
       @store[value] = score
 
   members: -> 
-    (m[1] for m in ([v , k] for k , v of @store).sort( (x) -> x[0]))
+    (m[1] for m in ([v , k] for k , v of @store).sort())
 
+  revmembers: ->
+    @members().reverse()
 
 GER_Models.Set = Set
 GER_Models.SortedSet = SortedSet

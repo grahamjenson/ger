@@ -81,8 +81,16 @@ describe 'SortedSet', ->
 
     it 'should return members in order of score', ->
       set = new SortedSet
-      set.add('a',1)
-      set.add('b',2)
+      set.add('a',2)
+      set.add('b',1)
       members = set.members()
       members[0].should.equal 'b'
+      members[1].should.equal 'a'
+
+    it 'should return revmembers in order of score', ->
+      set = new SortedSet
+      set.add('a',1)
+      set.add('b',2)
+      members = set.revmembers()
       members[0].should.equal 'b'
+      members[1].should.equal 'a'
