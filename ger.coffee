@@ -9,6 +9,9 @@ KeyManager =
   person_action_set_key: (person, action)->
     "#{person}:#{action}"
 
+  action_thing_set_key: (action,thing) ->
+    "#{action}:#{thing}"
+
 class GER
   constructor: () ->
     @store = new Store
@@ -19,14 +22,20 @@ class GER
   event: (person, action, thing) ->
     q.all([
       @add_action(action),
-      @add_thing_to_person_action_set(person,action,thing)
+      @add_thing_to_person_action_set(person,action,thing),
+      @add_person_to_action_thing_set(person,action,thing)
       ])
 
   add_thing_to_person_action_set: (person , action, thing) ->
-    @store.incr_to_sorted_set(
+    @store.add_to_set(
       KeyManager.person_action_set_key(person, action),
-      thing,
-      1
+      thing
+    )
+
+  add_person_to_action_thing_set: (person, action, thing) ->
+    @store.add_to_set(
+      KeyManager.action_thing_set_key(action, thing),
+      person
     )
 
   similarity: (p1, p2) ->

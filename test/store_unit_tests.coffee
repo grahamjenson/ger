@@ -72,6 +72,35 @@ describe 'Store', ->
         .then( (ss) -> ss.contains('i1').should.equal true )
 
   describe 'SET METHODS', ->
+    describe '#add_to_set', ->
+      it 'should add to the set', ->
+        ss = new Set()
+        ss.add('i1')
+        store = new Store({'s1': ss})
+        store.add_to_set('s1', 'i1')
+        .then( -> ss.contains('i1').should.equal true )   
+      
+      it 'should create a set if there is none', ->
+        store = new Store()
+        store.add_to_set('s1', 'i1')
+        .then( -> store.contains('s1','i1').should.eventually.equal true )  
+
+    describe '#contains', ->
+      it 'should return true if element is a member', ->
+        ss = new Set()
+        ss.add('i1')
+        store = new Store({'s1': ss})
+        store.contains('s1', 'i1').should.eventually.equal true
+      
+      it 'should return false if element is a not member', ->
+        ss = new Set()
+        store = new Store({'s1': ss})
+        store.contains('s1', 'i1').should.eventually.equal false
+
+      it 'should return false if no key', ->
+        store = new Store()
+        store.contains('s1', 'i1').should.eventually.equal false
+
     describe '#union', ->
       it 'should return a promise for the union of two stored sets', ->
         set1 = new Set(['x'])

@@ -16,8 +16,10 @@
 q = require 'q'
 GER_Models = require './models'
 SortedSet = GER_Models.SortedSet
+Set = GER_Models.Set
 
 class Store
+  #BASIC METHODS
   constructor: (ivals = {}) ->
     @store = ivals
 
@@ -26,6 +28,7 @@ class Store
   
   get: (key) ->
     return  q.fcall(=> @store[key])
+
 
   #SORTED SET CALLS
   incr_to_sorted_set: (key, value, score) ->
@@ -47,7 +50,22 @@ class Store
     if !(key of @store)
       @store[key] = new SortedSet()
 
+  _check_set: (key) ->
+    if !(key of @store)
+      @store[key] = new Set()
+
   #SET METHODS
+  add_to_set: (key,value) ->
+    #redis.sadd
+    @_check_set(key)
+    q.fcall(=> @store[key].add(value); return)
+
+  contains: (key,value) ->
+    #redis.SISMEMBER
+    if !(key of @store)
+      return q.fcall(-> false)
+    q.fcall(=> @store[key].contains(value))  
+
   union: (key1, key2) ->
     q.all([@.get(key1), @.get(key2)])
     .spread((set1, set2) -> set1.union(set2))
