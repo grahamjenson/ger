@@ -28,41 +28,72 @@ describe 'Store', ->
     store.get('key').should.eventually.equal 'value'
 
 
-  describe '#add_to_sorted_set', ->
-    it 'should add a value to a set', ->
-      ss = new SortedSet()
-      store = new Store({'s1': ss})
-      store.add_to_sorted_set('s1', 'i1')
-      .then( -> ss.contains('i1').should.equal true )
+  describe 'SORETED SET METHODS', ->
+    describe '#sorted_set_item_score', ->
+      it 'should return a promise for the score of the item', ->
+        ss = new SortedSet()
+        ss.add('i1',5)
+        store = new Store({'s1': ss})
+        store.sorted_set_item_score('s1', 'i1').should.eventually.equal 5
 
-    it 'should create the sorted set if it does not exist', ->
-      store = new Store()
-      store.add_to_sorted_set('s1', 'i1')
-      .then(-> store.get('s1'))
-      .then( (ss) -> ss.contains('i1').should.equal true )
+      it 'should return null if item does not exist', ->
+        ss = new SortedSet()
+        store = new Store({'s1': ss})
+        store.sorted_set_item_score('s1', 'i1').should.eventually.equal null
+      
+      it 'should return null if set does not exist', ->
+        store = new Store()
+        store.sorted_set_item_score('s1', 'i1').should.eventually.equal null
 
-  describe '#union', ->
-    it 'should return a promise for the union of two stored sets', ->
-      set1 = new Set(['x'])
-      set2 = new Set(['y'])
-      store = new Store({'s1': set1, 's2': set2})
-      store.union('s1','s2')
-      .then((uset) -> 
-        uset.contains(['x','y']).should.equal true
-        uset.size().should.equal 2
-      )
-  
-  describe '#intersection', ->
-    it 'should return a promise for the intersection of two stored sets', ->
-      set1 = new Set(['w','x'])
-      set2 = new Set(['x','y'])
-      store = new Store({'s1': set1, 's2': set2})
+    describe '#incr_to_sorted_set', ->
+      it 'should increment the score of a item by a number', ->
+        ss = new SortedSet()
+        ss.add('i1',5)
+        store = new Store({'s1': ss})
+        store.incr_to_sorted_set('s1', 'i1', 1)
+        .then( -> ss.score('i1').should.equal 6 )   
+      
+      it 'should create a set if there is none', ->
+        store = new Store()
+        store.incr_to_sorted_set('s1', 'i1', 1)
+        .then( -> store.sorted_set_item_score('s1','i1').should.eventually.equal 1 )  
 
-      store.intersection('s1','s2')
-      .then((uset) -> 
-        uset.contains(['x']).should.equal true
-        uset.size().should.equal 1
-      )
+    describe '#add_to_sorted_set', ->
+      it 'should add a value to a set', ->
+        ss = new SortedSet()
+        store = new Store({'s1': ss})
+        store.add_to_sorted_set('s1', 'i1')
+        .then( -> ss.contains('i1').should.equal true )
+
+      it 'should create the sorted set if it does not exist', ->
+        store = new Store()
+        store.add_to_sorted_set('s1', 'i1')
+        .then(-> store.get('s1'))
+        .then( (ss) -> ss.contains('i1').should.equal true )
+
+  describe 'SET METHODS', ->
+    describe '#union', ->
+      it 'should return a promise for the union of two stored sets', ->
+        set1 = new Set(['x'])
+        set2 = new Set(['y'])
+        store = new Store({'s1': set1, 's2': set2})
+        store.union('s1','s2')
+        .then((uset) -> 
+          uset.contains(['x','y']).should.equal true
+          uset.size().should.equal 2
+        )
+    
+    describe '#intersection', ->
+      it 'should return a promise for the intersection of two stored sets', ->
+        set1 = new Set(['w','x'])
+        set2 = new Set(['x','y'])
+        store = new Store({'s1': set1, 's2': set2})
+
+        store.intersection('s1','s2')
+        .then((uset) -> 
+          uset.contains(['x']).should.equal true
+          uset.size().should.equal 1
+        )
 
   describe 'jaccard metric', ->
     it 'should take two keys to sets and return a number', ->

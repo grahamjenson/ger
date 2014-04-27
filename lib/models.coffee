@@ -41,6 +41,17 @@ class SortedSet extends Set
   revmembers: ->
     @members().reverse()
 
+  score: (value) ->
+    if !(value of @store)
+      return null
+    return @store[value]
+
+  increment: (value, score) ->
+    if !!@store[value]
+     @add(value, @score(value) + score)
+    else
+      @add(value, score)
+
 GER_Models.Set = Set
 GER_Models.SortedSet = SortedSet
 

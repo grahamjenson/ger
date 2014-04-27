@@ -94,3 +94,20 @@ describe 'SortedSet', ->
       members = set.revmembers()
       members[0].should.equal 'b'
       members[1].should.equal 'a'
+
+    it 'should have a score', ->
+      set = new SortedSet
+      set.add('b',2)
+      set.score('b').should.equal 2
+    describe '#increment', ->
+      it 'should increment values', ->
+        set = new SortedSet
+        set.add('b',2)
+        set.increment('b',2)
+        set.score('b').should.equal 4
+
+      it 'should add values if they dont exist', ->
+        set = new SortedSet
+        set.increment('b',2)
+        set.score('b').should.equal 2
+
