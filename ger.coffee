@@ -11,8 +11,11 @@ class GER
 
   event: (person, action, thing) ->
     q.all([
-      @add_action(action)
+      @add_action(action),
+      @add_thing_to_person_action_set(person,action,thing)
       ])
+
+  add_thing_to_person_action_set: (person , action, thing) ->
 
   similarity: (p1, p2) ->
     #return a value of a persons similarity
