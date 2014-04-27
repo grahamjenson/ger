@@ -2,6 +2,13 @@ q = require 'q'
 
 Store = require('./lib/store')
 
+KeyManager =
+  action_set_key : ->
+    'action_set'
+
+  person_action_set_key: (person, action)->
+    "#{person}:#{action}"
+
 class GER
   constructor: () ->
     @store = new Store
@@ -16,6 +23,11 @@ class GER
       ])
 
   add_thing_to_person_action_set: (person , action, thing) ->
+    @store.incr_to_sorted_set(
+      KeyManager.person_action_set_key(person, action),
+      thing,
+      1
+    )
 
   similarity: (p1, p2) ->
     #return a value of a persons similarity
@@ -32,7 +44,11 @@ class GER
     #return a list of actions
 
   add_action: (action, score=1) ->
-    @store.add_to_sorted_set(action, score)
+    @store.add_to_sorted_set(
+      KeyManager.action_set_key(), 
+      action, 
+      score
+    )
     #add action with weight
 
 RET = {}

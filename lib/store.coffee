@@ -27,6 +27,8 @@ class Store
   get: (key) ->
     return  q.fcall(=> @store[key])
 
+  incr_to_sorted_set: (key, value, score) ->
+    
   add_to_sorted_set: (key, value, score=1) ->
     #redis.zadd
     if @store[key] == undefined

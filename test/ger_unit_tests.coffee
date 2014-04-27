@@ -27,10 +27,24 @@ describe 'event', ->
     ger.event('person','action','thing')
     sinon.assert.calledOnce(ger.add_thing_to_person_action_set)
 
+
+describe 'add_thing_to_person_action_set', ->
+  it 'should add thing to person action set in store, incrememnting by the number of times it occured', ->
+    ger = new GER
+
+    sinon.stub(ger.store, 'incr_to_sorted_set', (key, thing, score) -> 
+      thing.should.equal 'thing'
+      score.should.equal 1
+    )
+
+    ger.add_thing_to_person_action_set('person', 'action', 'thing')
+
+    sinon.assert.calledOnce(ger.store.incr_to_sorted_set)
+
 describe 'add_action', ->
   it 'should add the action with a weight to a sorted set', ->
     ger = new GER
-    sinon.stub(ger.store, 'add_to_sorted_set', (action, score) -> 
+    sinon.stub(ger.store, 'add_to_sorted_set', (key, action, score) -> 
       action.should.equal 'view'
       score.should.equal 5
     )
