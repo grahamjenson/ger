@@ -57,8 +57,17 @@ class GER
   get_action_thing_set: (action,thing) ->
     @store.set_members(KeyManager.action_thing_set_key(action, thing))
 
+  get_action_set: ->
+    @store.set_members(KeyManager.action_set_key())
+
   similarity: (person1, person2) ->
     #return a value of a persons similarity
+
+  similar_people: (person) ->
+    @get_action_set()
+    .then((actions) => q.all( (@similar_people_for_action(person, action) for action in actions) ) )
+    .then( (people) => Utils.flatten(people)) #flatten list
+    .then( (people) => Utils.unique(people)) #return unique list
 
   similar_people_for_action: (person, action) ->
     #return a list of similar people, later will be breadth first search till some number is found

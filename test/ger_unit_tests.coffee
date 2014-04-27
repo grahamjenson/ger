@@ -7,6 +7,21 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe "#similar_people", ->
+  it 'should compile a list of similar people for all actions', ->
+    ger = new GER
+    sinon.stub(ger, 'get_action_set', -> q.fcall(-> ['view']))
+    sinon.stub(ger, 'similar_people_for_action', (person,action) ->
+      person.should.equal 'person1'
+      action.should.equal 'view' 
+      q.fcall(-> ['person2'])
+    )
+    ger.similar_people('person1')
+    .then((people) -> 
+      ('person2' in people).should.equal true; 
+      people.length.should.equal 1
+    )
+
 describe '#similar_people_for_action', ->
   it 'should take a person and find similar people for an action', ->
     ger = new GER
@@ -37,6 +52,13 @@ describe '#similar_people_for_action', ->
       ('person2' in people).should.equal true; 
       people.length.should.equal 1
     )
+
+describe "#get_action_set", ->
+  it 'should return a promise for the action things set', ->
+    ger = new GER
+    sinon.stub(ger.store, 'set_members')
+    ger.get_action_set('action','thing')
+    sinon.assert.calledOnce(ger.store.set_members)
 
 describe '#get_action_thing_set', ->
   it 'should return a promise for the action things set', ->
