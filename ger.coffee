@@ -70,7 +70,7 @@ class GER
     #TODO expencive call, could be cached for a few days as ordered set
     @similar_people(person)
     .then( (people) => q.all( (q.all([p, @similarity(person, p)]) for p in people)) )
-    .then( (sim_people) => ({person: p[0], score: p[1]} for p in sim_people.sort((x) -> x[1] )) )
+    .then( (score_people) => ({person: p[0], score: p[1]} for p in score_people.sort((x) -> x[1] )) )
             
   similarity: (person1, person2) ->
     #return a value of a persons similarity
@@ -96,15 +96,20 @@ class GER
     .then( (people) => people.filter (s_person) -> s_person isnt person) #remove original person
     .then( (people) => Utils.unique(people)) #return unique list
 
-  items_a_person_hasnt_actioned_people_have: (person, action, people) ->
+  things_a_person_hasnt_actioned_that_other_people_have: (person, action, people) ->
     tempset = KeyManager.generate_temp_key()
     @store.union_store(tempset, (KeyManager.person_action_set_key(p, action) for p in people))
     .then( => @store.diff([tempset, KeyManager.person_action_set_key(person, action)]))
     .then( (values) => @store.del(tempset); values)
 
+  weighted_probability_to_action_thing_by_people: (thing, action, people_scores) ->
+    # people_scores {p1: 1, p2: 3}
+    q.all( (q.all([p, @store.contains(KeyManager.person_action_set_key(ps.person, action), thing)]) for ps in people_scores) )
+    .then( (person_item_contains) -> (pic[0] for pic in person_item_contains when pic[1]))
+    .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y ))
+
   reccommendations_for_action: (person, action) ->
     #return list of things
-
 
   actions: ->
     #return a list of actions

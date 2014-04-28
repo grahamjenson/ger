@@ -7,12 +7,15 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
-describe '#items_a_person_hasnt_actioned_people_have', ->
+describe '#weighted_probability_to_action_thing_by_people', ->
+  it 'should return a weight an item will people', ->
+
+describe '#things_a_person_hasnt_actioned_that_other_people_have', ->
   it 'should return a list of items that have not been acted on but have by other people', ->
     ger = new GER
     sinon.stub(ger.store,'union_store', -> q.fcall( -> 3))
     sinon.stub(ger.store,'diff', -> q.fcall( -> ['i1','i2']))
-    ger.items_a_person_hasnt_actioned_people_have('p1', 'viewed', ['p2','p3'])
+    ger.things_a_person_hasnt_actioned_that_other_people_have('p1', 'viewed', ['p2','p3'])
     .then((items) ->
       ('i1' in items).should.equal true
       ('i2' in items).should.equal true

@@ -7,7 +7,7 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
-describe 'items_a_person_hasnt_actioned_people_have', ->
+describe 'things_a_person_hasnt_actioned_that_other_people_have', ->
   it 'should take a person action thing and return promise', ->
     ger = new GER
     q.all([
@@ -20,7 +20,7 @@ describe 'items_a_person_hasnt_actioned_people_have', ->
       ger.event('p3','action1','a'),
       ger.event('p3','action1','d')
     ])
-    .then(-> ger.items_a_person_hasnt_actioned_people_have('p1', 'action1', ['p2','p3']))
+    .then(-> ger.things_a_person_hasnt_actioned_that_other_people_have('p1', 'action1', ['p2','p3']))
     .then((items) ->
       ('c' in items).should.equal true
       ('d' in items).should.equal true
