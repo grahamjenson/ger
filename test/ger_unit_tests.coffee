@@ -7,6 +7,25 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe '#ordered_similar_people', ->
+  it 'should return a list of similar people ordered by similarity', ->
+    ger = new GER
+    sinon.stub(ger, 'similar_people', -> q.fcall(-> ['p2', 'p3']))
+    sinon.stub(ger, 'similarity', (person1, person2) ->
+      person1.should.equal 'p1'
+      if person2 == 'p2'
+        return q.fcall(-> 0.3)
+      else if person2 == 'p3'
+        q.fcall(-> 0.4)
+      else 
+        throw 'bad person'
+    )
+    ger.ordered_similar_people('p1')
+    .then((people) -> 
+      people[0].should.equal 'p3'
+      people[1].should.equal 'p2'
+    )
+
 describe '#similarity', ->
   it 'should find the similarity people by looking at their jaccard distance', ->
     ger = new GER

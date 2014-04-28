@@ -60,6 +60,12 @@ class GER
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())
 
+  ordered_similar_people: (person) ->
+    @similar_people(person)
+    .then( (people) => q.all( (q.all([@similarity(person, p), p]) for p in people)) )
+    .then( (sim_people) => (p[1] for p in sim_people.sort((x) -> x[0] )) )
+    .then( (people) ->  people)
+            
   similarity: (person1, person2) ->
     #return a value of a persons similarity
     @get_action_set()
@@ -77,9 +83,6 @@ class GER
 
   similar_people_for_action: (person, action) ->
     #return a list of similar people, later will be breadth first search till some number is found
-    @one_step_of_similar_people(person, action)
-
-  one_step_of_similar_people: (person, action) ->
     @get_person_action_set(person, action)
     .then( (things) => q.all((@get_action_thing_set(action, thing) for thing in things)))
     .then( (people) => Utils.flatten(people)) #flatten list
@@ -88,7 +91,8 @@ class GER
 
   update_reccommendations: (person) ->
 
-  predict: (person) ->
+  predict: (person, action) ->
+
     #return list of things
 
   actions: ->
