@@ -114,9 +114,10 @@ describe 'Store', ->
         set2 = new Set(['y'])
         store = new Store({'s1': set1, 's2': set2})
         store.union('s1','s2')
-        .then((uset) -> 
-          uset.contains(['x','y']).should.equal true
-          uset.size().should.equal 2
+        .then((ulist) ->
+          ('x' in ulist).should.equal true
+          ('y' in ulist).should.equal true
+          ulist.length.should.equal 2
         )
     
     describe '#intersection', ->
@@ -126,15 +127,15 @@ describe 'Store', ->
         store = new Store({'s1': set1, 's2': set2})
 
         store.intersection('s1','s2')
-        .then((uset) -> 
-          uset.contains(['x']).should.equal true
-          uset.size().should.equal 1
+        .then((ulist) -> 
+          ('x' in ulist).should.equal true
+          ulist.length.should.equal 1
         )
 
   describe 'jaccard metric', ->
     it 'should take two keys to sets and return a number', ->
       store = new Store
-      sinon.stub(store, 'union', (s1,s2) -> new Set(['1','2','3','4']))
-      sinon.stub(store, 'intersection', (s1,s2) -> new Set(['2','3']))
+      sinon.stub(store, 'union', (s1,s2) -> ['1','2','3','4'])
+      sinon.stub(store, 'intersection', (s1,s2) -> ['2','3'])
       store.jaccard_metric('s1','s2').should.eventually.equal .5
 

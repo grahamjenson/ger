@@ -30,6 +30,9 @@ class Store
   get: (key) ->
     return  q.fcall(=> @store[key])
 
+  del: (key) ->
+
+
   #SORTED SET CALLS
   incr_to_sorted_set: (key, value, score) ->
     #redis.zincrby
@@ -72,18 +75,22 @@ class Store
       return q.fcall(-> false)
     q.fcall(=> @store[key].contains(value))  
 
+  
   union: (key1, key2) ->
-    q.all([@.get(key1), @.get(key2)])
-    .spread((set1, set2) -> set1.union(set2))
+    q.fcall( =>  @_union(key1, key2).members())
 
   intersection: (key1, key2) ->
-    q.all([@.get(key1), @.get(key2)])
-    .spread((set1, set2) -> set1.intersection(set2))
+    q.fcall( => @_intersection(key1, key2).members())
+
+  _union: (key1, key2) ->
+    @store[key1].union(@store[key2])
+
+  _intersection: (key1, key2) ->
+    @store[key1].intersection(@store[key2])
 
   jaccard_metric: (s1,s2) ->
     q.all([@intersection(s1,s2), @union(s1,s2)])
-    .spread((int_set, uni_set) -> [int_set.size(), uni_set.size()])
-    .spread((int_size,uni_size) -> int_size/uni_size)
+    .spread((int_set, uni_set) -> int_set.length / uni_set.length)
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

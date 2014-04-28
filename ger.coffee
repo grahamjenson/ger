@@ -92,7 +92,7 @@ class GER
 
   reccommendations_for_action: (person, action) ->
     #return list of things
-
+    
 
   actions: ->
     #return a list of actions
