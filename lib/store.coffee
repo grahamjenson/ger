@@ -31,7 +31,7 @@ class Store
     return  q.fcall(=> @store[key])
 
   del: (key) ->
-
+    return  q.fcall(=> value = @store[key]; delete(@store[key]); value)
 
   #SORTED SET CALLS
   incr_to_sorted_set: (key, value, score) ->
@@ -75,21 +75,29 @@ class Store
       return q.fcall(-> false)
     q.fcall(=> @store[key].contains(value))  
 
-  
-  union: (key1, key2) ->
-    q.fcall( =>  @_union(key1, key2).members())
+  union_store: (store_key, keys) ->
+    q.fcall( => un = @_union(keys); @store[store_key] = un; return un.size())
 
-  intersection: (key1, key2) ->
-    q.fcall( => @_intersection(key1, key2).members())
+  diff: (keys) ->
+    q.fcall( => @_diff(keys).members())
 
-  _union: (key1, key2) ->
-    @store[key1].union(@store[key2])
+  union: (keys) ->
+    q.fcall( => @_union(keys).members())
 
-  _intersection: (key1, key2) ->
-    @store[key1].intersection(@store[key2])
+  intersection: (keys) ->
+    q.fcall( => @_intersection(keys).members())
+
+  _diff: (keys) ->
+    (@store[k] for k in keys).reduce((s1,s2) -> s1.diff(s2))
+
+  _union: (keys) ->
+    (@store[k] for k in keys).reduce((s1,s2) -> s1.union(s2))
+
+  _intersection: (keys) ->
+    (@store[k] for k in keys).reduce((s1,s2) -> s1.intersection(s2))
 
   jaccard_metric: (s1,s2) ->
-    q.all([@intersection(s1,s2), @union(s1,s2)])
+    q.all([@intersection([s1,s2]), @union([s1,s2])])
     .spread((int_set, uni_set) -> int_set.length / uni_set.length)
 
 #AMD

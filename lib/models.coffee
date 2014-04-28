@@ -26,6 +26,11 @@ class Set
     s1 = @members()
     s2 = set.members()
     new Set(  (v for v in s1.concat(s2) when (s1.indexOf(v) != -1) && (s2.indexOf(v) != -1))  )
+  
+  diff: (set) ->
+    s1 = @members()
+    s2 = set.members()
+    new Set( (v for v in s1.concat(s2) when (s1.indexOf(v) != -1) && (s2.indexOf(v) == -1))  )
 
   members: ->
     return Object.keys(@store)

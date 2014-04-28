@@ -74,6 +74,13 @@ describe 'Set', ->
     uset.contains(['2']).should.equal true
     uset.size().should.equal 1
 
+  it 'should different with other sets to return a new set', ->
+    set1 = new Set(['1','3', '4'])
+    set2 = new Set(['1','2'])
+    uset = set1.diff(set2)
+    uset.contains(['3', '4']).should.equal true
+    uset.size().should.equal 2
+
 describe 'SortedSet', ->
     it 'should have add with score', ->
       set = new SortedSet

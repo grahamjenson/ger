@@ -25,6 +25,12 @@ KeyManager =
   action_thing_set_key: (action,thing) ->
     "#{action}:#{thing}"
 
+  generate_temp_key: ->
+    length = 8
+    id = ""
+    id += Math.random().toString(36).substr(2) while id.length < length
+    id.substr 0, length
+
 class GER
   constructor: () ->
     @store = new Store
@@ -90,9 +96,15 @@ class GER
     .then( (people) => people.filter (s_person) -> s_person isnt person) #remove original person
     .then( (people) => Utils.unique(people)) #return unique list
 
+  items_a_person_hasnt_actioned_people_have: (person, action, people) ->
+    tempset = KeyManager.generate_temp_key()
+    @store.union_store(tempset, (KeyManager.person_action_set_key(p, action) for p in people))
+    .then( => @store.diff([tempset, KeyManager.person_action_set_key(person, action)]))
+    .then( (values) => @store.del(tempset); values)
+
   reccommendations_for_action: (person, action) ->
     #return list of things
-    
+
 
   actions: ->
     #return a list of actions

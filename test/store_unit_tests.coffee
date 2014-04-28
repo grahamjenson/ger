@@ -27,6 +27,10 @@ describe 'Store', ->
     store = new Store({'key': 'value'})
     store.get('key').should.eventually.equal 'value'
 
+  it 'should be able to delete a key', ->
+    store = new Store({'key': 'value'})
+    store.del('key')
+    .then(-> store.contains('key').should.eventually.equal false)
 
   describe 'SORETED SET METHODS', ->
     describe '#sorted_set_item_score', ->
@@ -108,12 +112,38 @@ describe 'Store', ->
         store = new Store()
         store.contains('s1', 'i1').should.eventually.equal false
 
-    describe '#union', ->
-      it 'should return a promise for the union of two stored sets', ->
+    describe '#union_store', ->
+      it 'should return a promise for the union of two sets', ->
         set1 = new Set(['x'])
         set2 = new Set(['y'])
         store = new Store({'s1': set1, 's2': set2})
-        store.union('s1','s2')
+        store.union_store('tempkey', ['s1','s2'])
+        .then( -> store.set_members('tempkey'))
+        .then((ulist) ->
+          ('x' in ulist).should.equal true
+          ('y' in ulist).should.equal true
+          ulist.length.should.equal 2
+        )
+
+    
+    describe '#diff', ->
+      it 'should return a promise for the diff of two sets', ->
+        set1 = new Set(['1','3','4'])
+        set2 = new Set(['1','2'])
+        store = new Store({'s1': set1, 's2': set2})
+        store.diff(['s1','s2'])
+        .then((ulist) ->
+          ('3' in ulist).should.equal true
+          ('4' in ulist).should.equal true
+          ulist.length.should.equal 2
+        )
+
+    describe '#union', ->
+      it 'should return a promise for the union of two sets', ->
+        set1 = new Set(['x'])
+        set2 = new Set(['y'])
+        store = new Store({'s1': set1, 's2': set2})
+        store.union(['s1','s2'])
         .then((ulist) ->
           ('x' in ulist).should.equal true
           ('y' in ulist).should.equal true
@@ -126,7 +156,7 @@ describe 'Store', ->
         set2 = new Set(['x','y'])
         store = new Store({'s1': set1, 's2': set2})
 
-        store.intersection('s1','s2')
+        store.intersection(['s1','s2'])
         .then((ulist) -> 
           ('x' in ulist).should.equal true
           ulist.length.should.equal 1
