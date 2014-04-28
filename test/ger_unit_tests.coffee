@@ -7,6 +7,33 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe '#similarity', ->
+  it 'should find the similarity people by looking at their jaccard distance', ->
+    ger = new GER
+    sinon.stub(ger, 'get_action_set', -> q.fcall(-> ['view', 'buy']))
+    sinon.stub(ger, 'similarity_for_action', (person1, person2, action) ->
+      person1.should.equal 'p1'
+      person2.should.equal 'p2'
+      if action == 'view'
+        return q.fcall(-> 0.3)
+      else if action == 'buy'
+        q.fcall(-> 0.4)
+      else 
+        throw 'bad action'
+    )
+    ger.similarity('p1','p2')
+    .then((sim) -> 
+      sim.should.equal .7
+    )
+
+
+describe "#similarity_for_action", ->
+  it 'should find the similarity people by looking at their jaccard distance', ->
+    ger = new GER
+    sinon.stub(ger.store, 'jaccard_metric')
+    ger.similarity_for_action('person1', 'person2', 'action')
+    sinon.assert.calledOnce(ger.store.jaccard_metric) 
+
 describe "#similar_people", ->
   it 'should compile a list of similar people for all actions', ->
     ger = new GER

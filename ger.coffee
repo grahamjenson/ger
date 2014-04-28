@@ -62,6 +62,12 @@ class GER
 
   similarity: (person1, person2) ->
     #return a value of a persons similarity
+    @get_action_set()
+    .then((actions) => q.all( (@similarity_for_action(person1, person2, action) for action in actions) ) )
+    .then((sims) => sims.reduce (x,y) -> x + y )
+
+  similarity_for_action: (person1, person2, action) ->
+    @store.jaccard_metric(KeyManager.person_action_set_key(person1, action), KeyManager.person_action_set_key(person2, action))
 
   similar_people: (person) ->
     @get_action_set()
