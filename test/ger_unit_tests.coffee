@@ -22,8 +22,8 @@ describe '#ordered_similar_people', ->
     )
     ger.ordered_similar_people('p1')
     .then((people) -> 
-      people[0].should.equal 'p3'
-      people[1].should.equal 'p2'
+      people[0].person.should.equal 'p3'
+      people[1].person.should.equal 'p2'
     )
 
 describe '#similarity', ->

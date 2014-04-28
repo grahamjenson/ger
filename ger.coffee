@@ -61,11 +61,10 @@ class GER
     @store.set_members(KeyManager.action_set_key())
 
   ordered_similar_people: (person) ->
-    #TODO expencive call, could be cached for a few days
+    #TODO expencive call, could be cached for a few days as ordered set
     @similar_people(person)
-    .then( (people) => q.all( (q.all([@similarity(person, p), p]) for p in people)) )
-    .then( (sim_people) => (p[1] for p in sim_people.sort((x) -> x[0] )) )
-    .then( (people) ->  people)
+    .then( (people) => q.all( (q.all([p, @similarity(person, p)]) for p in people)) )
+    .then( (sim_people) => ({person: p[0], score: p[1]} for p in sim_people.sort((x) -> x[1] )) )
             
   similarity: (person1, person2) ->
     #return a value of a persons similarity
@@ -91,11 +90,9 @@ class GER
     .then( (people) => people.filter (s_person) -> s_person isnt person) #remove original person
     .then( (people) => Utils.unique(people)) #return unique list
 
-  update_reccommendations: (person) ->
-
-  predict: (person, action) ->
-
+  reccommendations_for_action: (person, action) ->
     #return list of things
+
 
   actions: ->
     #return a list of actions
