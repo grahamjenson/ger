@@ -61,6 +61,7 @@ class GER
     @store.set_members(KeyManager.action_set_key())
 
   ordered_similar_people: (person) ->
+    #TODO expencive call, could be cached for a few days
     @similar_people(person)
     .then( (people) => q.all( (q.all([@similarity(person, p), p]) for p in people)) )
     .then( (sim_people) => (p[1] for p in sim_people.sort((x) -> x[0] )) )
@@ -76,6 +77,7 @@ class GER
     @store.jaccard_metric(KeyManager.person_action_set_key(person1, action), KeyManager.person_action_set_key(person2, action))
 
   similar_people: (person) ->
+    #TODO adding weights to actions could reduce number of people returned
     @get_action_set()
     .then((actions) => q.all( (@similar_people_for_action(person, action) for action in actions) ) )
     .then( (people) => Utils.flatten(people)) #flatten list
