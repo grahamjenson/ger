@@ -7,7 +7,7 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
-describe 'similar users', ->
+describe 'similar people', ->
   it 'should take a person action thing and return promise', ->
     ger = new GER
     q.all([
@@ -18,4 +18,17 @@ describe 'similar users', ->
     .then((people) -> ('p2' in people).should.equal true)
 
 
+describe 'similarity between people', ->
+  it 'should take a person action thing and return promise', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','viewed','a'),
+      ger.event('p1', 'viewed', 'b'),
+      ger.event('p1', 'viewed', 'c'),
+      ger.event('p2','viewed','a'),
+      ger.event('p2','viewed','b'),
+      ger.event('p2','viewed','d')
+    ])
+    .then(-> ger.similarity('p1', 'p2'))
+    .then((sim) -> sim.should.equal .5)
 
