@@ -60,6 +60,9 @@ class GER
   get_person_action_set: (person, action) ->
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
+  has_person_actioned_thing: (person, action, thing) ->
+    @store.contains(KeyManager.person_action_set_key(person, action), thing)
+
   get_action_thing_set: (action,thing) ->
     @store.set_members(KeyManager.action_thing_set_key(action, thing))
 
@@ -103,10 +106,14 @@ class GER
     .then( (values) => @store.del(tempset); values)
 
   weighted_probability_to_action_thing_by_people: (thing, action, people_scores) ->
-    # people_scores {p1: 1, p2: 3}
-    q.all( (q.all([p, @store.contains(KeyManager.person_action_set_key(ps.person, action), thing)]) for ps in people_scores) )
+    # people_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
+    #returns the weighted probability that a group of people (with scores) actions the thing
+    #add all the scores together of the people who have actioned the thing 
+    #divide by total scores of all the people
+    total_scores = (p.score for p in people_scores).reduce( (x,y) -> x + y )
+    q.all( (q.all([ps, @has_person_actioned_thing(ps.person, action, thing)]) for ps in people_scores) )
     .then( (person_item_contains) -> (pic[0] for pic in person_item_contains when pic[1]))
-    .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y ))
+    .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y )/total_scores)
 
   reccommendations_for_action: (person, action) ->
     #return list of things

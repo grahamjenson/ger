@@ -7,8 +7,28 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe '#has_person_actioned_thing', ->
+  it 'should check store to see if a person contains a thing', ->
+    ger = new GER
+    sinon.stub(ger.store,'contains', (key,thing)-> thing.should.equal 'a')
+    ger.has_person_actioned_thing('p1','view','a')
+
 describe '#weighted_probability_to_action_thing_by_people', ->
   it 'should return a weight an item will people', ->
+    ger = new GER
+    sinon.stub(ger,'has_person_actioned_thing', (person,action,thing) -> 
+      action.should.equal 'view'
+      thing.should.equal 'i1'
+      if person == 'p1'
+        return q.fcall( -> true)
+      else if person == 'p2'
+        return q.fcall( -> false)
+      else
+        throw 'bad person'
+    )
+    people_scores = [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
+    ger.weighted_probability_to_action_thing_by_people('i1', 'view', people_scores).should.eventually.equal .25
+
 
 describe '#things_a_person_hasnt_actioned_that_other_people_have', ->
   it 'should return a list of items that have not been acted on but have by other people', ->
