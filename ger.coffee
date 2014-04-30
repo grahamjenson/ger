@@ -72,9 +72,15 @@ class GER
   ordered_similar_people: (person) ->
     #TODO expencive call, could be cached for a few days as ordered set
     @similar_people(person)
-    .then( (people) => q.all( (q.all([p, @similarity(person, p)]) for p in people)) )
-    .then( (score_people) => ({person: p[0], score: p[1]} for p in score_people.sort((x) -> x[1] )) )
-            
+    .then( (people) => @similarity_to_people(person,people) )
+    .then( (score_people) => 
+      sorted_people = score_people.sort((x, y) -> y[1] - x[1])
+      ({person: p[0], score: p[1]} for p in sorted_people) 
+    )
+  
+  similarity_to_people : (person, people) ->
+    q.all( (q.all([p, @similarity(person, p)]) for p in people) )
+
   similarity: (person1, person2) ->
     #return a value of a persons similarity
     @get_action_set()
@@ -115,16 +121,26 @@ class GER
     .then( (person_item_contains) -> (pic[0] for pic in person_item_contains when pic[1]))
     .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y )/total_scores)
 
+  weighted_probabilities_to_action_things_by_people: (things, action, people_scores) ->
+      q.all( (q.all([thing, @weighted_probability_to_action_thing_by_people(thing, action, people_scores)]) for thing in things) )
+
   reccommendations_for_action: (person, action) ->
     #returns a list of reccommended things
     #get a list of similar people with scores
     #get a list of items that those people have actioned, but person has not
     #weight the list of items
     #return list of items with weights
+    @ordered_similar_people(person)
+    .then((people_scores) =>
+      people = (ps.person for ps in people_scores) 
+      q.all([people_scores, @things_a_person_hasnt_actioned_that_other_people_have(person, action, people)])
+    )
+    .spread( ( people_scores, things) => @weighted_probabilities_to_action_things_by_people(things, action, people_scores))
+    .then( (score_things) =>
+      sorted_things = score_things.sort((x, y) -> y[1] - x[1])
+      ({thing: ts[0], score: ts[1]} for ts in  sorted_things) 
+    )
 
-
-  actions: ->
-    #return a list of actions
 
   add_action: (action, score=1) ->
     @store.add_to_sorted_set(

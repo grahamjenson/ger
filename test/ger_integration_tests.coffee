@@ -7,6 +7,45 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe 'reccommendations_for_action', ->
+  it 'should take a person and action to reccommend things', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','buy','a'),
+      ger.event('p1','view','a'),
+
+      ger.event('p2','view','a'),
+      ger.event('p2','buy','c'),
+      ger.event('p2','buy','d'),
+
+      ger.event('p3','view','a'),
+      ger.event('p3','buy','c')
+    ])
+    .then(-> ger.reccommendations_for_action('p1', 'buy'))
+    .then((item_scores) ->
+      item_scores[0].thing.should.equal 'c'
+      item_scores[1].thing.should.equal 'd'
+    )
+
+  it 'should take a person and action to reccommend things', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','view','a'),
+
+      ger.event('p2','view','a'),
+      ger.event('p2','view','c'),
+      ger.event('p2','view','d'),
+
+      ger.event('p3','view','a'),
+      ger.event('p3','view','c')
+    ])
+    .then(-> ger.reccommendations_for_action('p1', 'view'))
+    .then((item_scores) ->
+      item_scores[0].thing.should.equal 'c'
+      item_scores[1].thing.should.equal 'd'
+      
+    )
+
 describe 'things_a_person_hasnt_actioned_that_other_people_have', ->
   it 'should take a person action thing and return promise', ->
     ger = new GER

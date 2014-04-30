@@ -22,10 +22,10 @@ describe '#reccommendations_for_action', ->
     )
     ger.reccommendations_for_action('p1','view')
     .then( (thing_scores) -> 
-      thing_scores[0].thing.should eq 't2'
-      thing_scores[0].score.should eq .5
-      thing_scores[0].thing.should eq 't1'
-      thing_scores[0].score.should eq .2
+      thing_scores[0].thing.should.equal 't2'
+      thing_scores[0].score.should.equal .5
+      thing_scores[1].thing.should.equal 't1'
+      thing_scores[1].score.should.equal .2
     )
 
 describe '#has_person_actioned_thing', ->
