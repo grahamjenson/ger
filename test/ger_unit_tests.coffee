@@ -7,6 +7,27 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe '#reccommendations_for_action', ->
+  it 'should return a list of reccommended items', ->
+    ger = new GER
+    sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', score: 1}, {person: 'p2', score: 3}]))
+    sinon.stub(ger,'things_a_person_hasnt_actioned_that_other_people_have', -> q.fcall(-> ['t1','t2']))
+    sinon.stub(ger, 'weighted_probability_to_action_thing_by_people', (thing, action, people_scores) -> 
+      if thing == 't1'
+        return .2
+      else if thing == 't2'
+        return .5
+      else
+        throw 'bad thing'
+    )
+    ger.reccommendations_for_action('p1','view')
+    .then( (thing_scores) -> 
+      thing_scores[0].thing.should eq 't2'
+      thing_scores[0].score.should eq .5
+      thing_scores[0].thing.should eq 't1'
+      thing_scores[0].score.should eq .2
+    )
+
 describe '#has_person_actioned_thing', ->
   it 'should check store to see if a person contains a thing', ->
     ger = new GER

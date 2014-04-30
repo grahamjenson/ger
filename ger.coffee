@@ -116,7 +116,12 @@ class GER
     .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y )/total_scores)
 
   reccommendations_for_action: (person, action) ->
-    #return list of things
+    #returns a list of reccommended things
+    #get a list of similar people with scores
+    #get a list of items that those people have actioned, but person has not
+    #weight the list of items
+    #return list of items with weights
+
 
   actions: ->
     #return a list of actions
