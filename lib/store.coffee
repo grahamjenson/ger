@@ -69,8 +69,12 @@ class Store
       return []
     q.fcall(=> @store[key].members())
 
+  set_rev_members_with_score: (key) ->
+    q.fcall(=> @store[key].rev_members_with_scores())
+
   set_members_with_score: (key) ->
     q.fcall(=> @store[key].members_with_score())
+
   contains: (key,value) ->
     #redis.SISMEMBER
     if !(key of @store)

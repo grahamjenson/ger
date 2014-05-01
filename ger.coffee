@@ -70,7 +70,7 @@ class GER
     @store.set_members(KeyManager.action_set_key())
 
   get_action_set_with_scores: ->
-    @store.set_members_with_score(KeyManager.action_set_key())
+    @store.set_rev_members_with_score(KeyManager.action_set_key())
 
   ordered_similar_people: (person) ->
     #TODO expencive call, could be cached for a few days as ordered set

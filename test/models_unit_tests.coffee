@@ -107,11 +107,15 @@ describe 'SortedSet', ->
       set.add('b',2)
       set.score('b').should.equal 2
 
-    it 'should return hash of values for members_with_score', ->
+    it 'rev_members_with_scores should return ordered list of values with scores', ->
       set = new SortedSet
+      set.add('a',1)
       set.add('b',2)
-      mws = set.members_with_score()
-      mws['b'].should.equal 2
+      mws = set.rev_members_with_scores()
+      mws[0].key.should.equal 'b'
+      mws[0].score.should.equal 2
+      mws[1].key.should.equal 'a'
+      mws[1].score.should.equal 1
 
     describe '#increment', ->
       it 'should increment values', ->

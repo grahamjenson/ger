@@ -38,13 +38,19 @@ class Set
 
 class SortedSet extends Set
   add: (value, score) ->
-      @store[value] = score
+    @store[value] = score
+
+  sorted_member_score_list: ->
+    ({key: k, score: v} for k , v of @store).sort((x, y) -> x.score- y.score)
 
   members_with_score: ->
-    @store
+    @sorted_member_score_list()
+
+  rev_members_with_scores: ->
+    @members_with_score().reverse()
 
   members: -> 
-    (m[1] for m in ([v , k] for k , v of @store).sort())
+    (m.key for m in @sorted_member_score_list())
 
   revmembers: ->
     @members().reverse()
