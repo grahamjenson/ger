@@ -40,6 +40,9 @@ class SortedSet extends Set
   add: (value, score) ->
       @store[value] = score
 
+  members_with_score: ->
+    @store
+
   members: -> 
     (m[1] for m in ([v , k] for k , v of @store).sort())
 

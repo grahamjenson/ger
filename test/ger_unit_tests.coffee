@@ -7,6 +7,12 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe '#get_action_set_with_scores', ->
+  it 'should return the actions with the scores', ->
+    ger = new GER
+    sinon.stub(ger.store,'set_members_with_score', -> return q.fcall(-> true))
+    ger.get_action_set_with_scores().should.eventually.equal true
+
 describe '#reccommendations_for_action', ->
   it 'should return a list of reccommended items', ->
     ger = new GER

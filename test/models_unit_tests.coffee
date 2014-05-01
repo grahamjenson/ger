@@ -106,6 +106,13 @@ describe 'SortedSet', ->
       set = new SortedSet
       set.add('b',2)
       set.score('b').should.equal 2
+
+    it 'should return hash of values for members_with_score', ->
+      set = new SortedSet
+      set.add('b',2)
+      mws = set.members_with_score()
+      mws['b'].should.equal 2
+
     describe '#increment', ->
       it 'should increment values', ->
         set = new SortedSet

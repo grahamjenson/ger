@@ -89,6 +89,13 @@ describe 'Store', ->
         store.add_to_set('s1', 'i1')
         .then( -> store.contains('s1','i1').should.eventually.equal true )  
 
+    describe '#set_members_with_score', ->
+      it 'should return a list of members for key with their scores', ->
+        store = new Store()
+        store.add_to_sorted_set('s1', 'i1', 2)
+        .then( -> store.set_members_with_score('s1'))
+        .then( (members_with_scores) -> members_with_scores['i1'].should.equal 2)  
+
     describe '#set_members', ->
       it 'should return a list of members for key', ->
         store = new Store()
