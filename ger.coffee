@@ -86,12 +86,14 @@ class GER
 
   similarity: (person1, person2) ->
     #return a value of a persons similarity
-    @get_action_set()
-    .then((actions) => q.all( (@similarity_for_action(person1, person2, action) for action in actions) ) )
+    @get_action_set_with_scores()
+    .then((actions) => q.all( (@similarity_for_action(person1, person2, action.key, action.score) for action in actions) ) )
     .then((sims) => sims.reduce (x,y) -> x + y )
 
-  similarity_for_action: (person1, person2, action) ->
-    @store.jaccard_metric(KeyManager.person_action_set_key(person1, action), KeyManager.person_action_set_key(person2, action))
+
+  similarity_for_action: (person1, person2, action_key, action_score) ->
+    @store.jaccard_metric(KeyManager.person_action_set_key(person1, action_key), KeyManager.person_action_set_key(person2, action_key))
+    .then( (jm) -> jm * action_score)
 
   similar_people: (person) ->
     #TODO adding weights to actions could reduce number of people returned
