@@ -148,7 +148,7 @@ class GER
 
 
   add_action: (action) ->
-    @store.sorted_set_item_score()
+    @store.sorted_set_item_score(KeyManager.action_set_key(), action)
     .then((existing_score) =>
       @store.add_to_sorted_set( KeyManager.action_set_key(), action) if existing_score == null
     )

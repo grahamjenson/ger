@@ -110,3 +110,21 @@ describe 'similarity between people', ->
     .then(-> ger.similarity('p1', 'p2'))
     .then((sim) -> sim.should.equal .5)
 
+ it 'should take into consideration the weights of the ', ->
+    ger = new GER
+    q.all([
+      ger.set_action_weight('view', 1),
+      ger.set_action_weight('buy', 10),
+
+      ger.event('p1', 'buy', 'a'),
+      ger.event('p1', 'buy', 'b'),
+      ger.event('p1', 'buy', 'c'),
+      ger.event('p1', 'buy', 'd'),
+      ger.event('p2', 'buy', 'a'),
+
+      ger.event('p1', 'view','a'),
+      ger.event('p1', 'view','b'),
+      ger.event('p2', 'view','a'),
+    ])
+    .then(-> ger.similarity('p1', 'p2'))
+    .then((sim) -> sim.should.equal 3)
