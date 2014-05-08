@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "./node_modules/.bin/coffee -c ger.coffee",
-    "test": "mocha --compilers coffee:coffee-script/register -C"
+    "test": "mocha"
   },
   "main"          : "ger.js",
   "version"       : "0.0.1",
