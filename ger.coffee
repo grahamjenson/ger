@@ -147,8 +147,11 @@ class GER
     )
 
 
+  
+
+
   add_action: (action) ->
-    @store.sorted_set_item_score(KeyManager.action_set_key(), action)
+    @get_action_weight(action)
     .then((existing_score) =>
       @store.add_to_sorted_set( KeyManager.action_set_key(), action) if existing_score == null
     )
@@ -156,7 +159,9 @@ class GER
   set_action_weight: (action, score) ->
     @store.add_to_sorted_set(KeyManager.action_set_key(), action, score)
 
-
+  get_action_weight: (action) ->
+    @store.sorted_set_item_score(KeyManager.action_set_key(), action)
+    
 RET = {}
 
 RET.GER = GER

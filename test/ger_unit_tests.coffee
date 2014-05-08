@@ -1,6 +1,7 @@
 chai = require 'chai'  
 should = chai.should()
-expect = chai.expect
+chaiAsPromised = require("chai-as-promised")
+chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
@@ -254,7 +255,6 @@ describe 'add_action', ->
     sinon.stub(ger.store, 'add_to_sorted_set')
     ger.add_action('view')
     .then(-> sinon.assert.notCalled(ger.store.add_to_sorted_set))
-    
 
 
 describe 'set_action_weight', ->

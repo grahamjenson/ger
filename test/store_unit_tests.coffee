@@ -1,6 +1,7 @@
 chai = require 'chai'  
 should = chai.should()
-expect = chai.expect
+chaiAsPromised = require("chai-as-promised")
+chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 

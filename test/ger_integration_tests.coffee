@@ -1,6 +1,7 @@
 chai = require 'chai'  
 should = chai.should()
-expect = chai.expect
+chaiAsPromised = require("chai-as-promised")
+chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
@@ -128,3 +129,28 @@ describe 'similarity between people', ->
     ])
     .then(-> ger.similarity('p1', 'p2'))
     .then((sim) -> sim.should.equal 3)
+
+describe 'setting action weights', ->
+  it 'should add the action with a weight to a sorted set', ->
+    ger = new GER
+    ger.set_action_weight('buy', 10)
+    .then(-> ger.get_action_weight('buy'))
+    .then((weight) -> weight.should.equal 10)
+
+  it 'should default the action weight to 1', ->
+    ger = new GER
+    ger.add_action('buy')
+    .then(-> ger.get_action_weight('buy'))
+    .then((weight) -> weight.should.equal 1)
+    .then(-> ger.set_action_weight('buy', 10))
+    .then(-> ger.get_action_weight('buy'))
+    .then((weight) -> weight.should.equal 10)
+
+  it 'add_action should not override set_action_weight s', ->
+    ger = new GER
+    ger.set_action_weight('buy', 10)
+    .then(-> ger.get_action_weight('buy'))
+    .then((weight) -> weight.should.equal 10)
+    .then(-> ger.add_action('buy'))
+    .then(-> ger.get_action_weight('buy'))
+    .then((weight) -> weight.should.equal 10)
