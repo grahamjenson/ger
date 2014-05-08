@@ -31,69 +31,70 @@ describe 'Store', ->
   it 'should be able to delete a key', ->
     store = new Store({'key': 'value'})
     store.del('key')
-    .then(-> store.contains('key').should.eventually.equal false)
+    .then(-> store.set_contains('key').should.eventually.equal false)
 
   describe 'SORETED SET METHODS', ->
-    describe '#sorted_set_item_score', ->
+    describe '#sorted_set_score', ->
       it 'should return a promise for the score of the item', ->
         ss = new SortedSet()
         ss.add('i1',5)
         store = new Store({'s1': ss})
-        store.sorted_set_item_score('s1', 'i1').should.eventually.equal 5
+        store.sorted_set_score('s1', 'i1').should.eventually.equal 5
 
       it 'should return null if item does not exist', ->
         ss = new SortedSet()
         store = new Store({'s1': ss})
-        store.sorted_set_item_score('s1', 'i1').should.eventually.equal null
+        store.sorted_set_score('s1', 'i1').should.eventually.equal null
       
       it 'should return null if set does not exist', ->
         store = new Store()
-        store.sorted_set_item_score('s1', 'i1').should.eventually.equal null
+        store.sorted_set_score('s1', 'i1').should.eventually.equal null
 
-    describe '#incr_to_sorted_set', ->
+    describe '#sorted_set_incr', ->
       it 'should increment the score of a item by a number', ->
         ss = new SortedSet()
         ss.add('i1',5)
         store = new Store({'s1': ss})
-        store.incr_to_sorted_set('s1', 'i1', 1)
+        store.sorted_set_incr('s1', 'i1', 1)
         .then( -> ss.score('i1').should.equal 6 )   
       
       it 'should create a set if there is none', ->
         store = new Store()
-        store.incr_to_sorted_set('s1', 'i1', 1)
-        .then( -> store.sorted_set_item_score('s1','i1').should.eventually.equal 1 )  
+        store.sorted_set_incr('s1', 'i1', 1)
+        .then( -> store.sorted_set_score('s1','i1').should.eventually.equal 1 )  
 
-    describe '#add_to_sorted_set', ->
+    describe '#sorted_set_add', ->
       it 'should add a value to a set', ->
         ss = new SortedSet()
         store = new Store({'s1': ss})
-        store.add_to_sorted_set('s1', 'i1')
+        store.sorted_set_add('s1', 'i1')
         .then( -> ss.contains('i1').should.equal true )
 
       it 'should create the sorted set if it does not exist', ->
         store = new Store()
-        store.add_to_sorted_set('s1', 'i1')
+        store.sorted_set_add('s1', 'i1')
         .then(-> store.get('s1'))
         .then( (ss) -> ss.contains('i1').should.equal true )
 
   describe 'SET METHODS', ->
-    describe '#add_to_set', ->
+    describe '#set_add', ->
       it 'should add to the set', ->
         ss = new Set()
         ss.add('i1')
         store = new Store({'s1': ss})
-        store.add_to_set('s1', 'i1')
+        store.set_add('s1', 'i1')
         .then( -> ss.contains('i1').should.equal true )   
       
       it 'should create a set if there is none', ->
         store = new Store()
-        store.add_to_set('s1', 'i1')
-        .then( -> store.contains('s1','i1').should.eventually.equal true )  
+        store.set_add('s1', 'i1')
+        .then( -> store.set_contains('s1','i1').should.eventually.equal true )  
+
 
     describe '#set_members_with_score', ->
       it 'should return a list of members for key with their scores', ->
         store = new Store()
-        store.add_to_sorted_set('s1', 'i1', 2)
+        store.sorted_set_add('s1', 'i1', 2)
         .then( -> store.set_members_with_score('s1'))
         .then( (members_with_scores) -> 
           members_with_scores[0].key.should.equal 'i1'
@@ -103,7 +104,7 @@ describe 'Store', ->
     describe '#set_members', ->
       it 'should return a list of members for key', ->
         store = new Store()
-        store.add_to_set('s1', 'i1')
+        store.set_add('s1', 'i1')
         .then( -> store.set_members('s1'))
         .then( (l) -> ('i1' in l).should.equal true)  
 
@@ -112,23 +113,23 @@ describe 'Store', ->
         ss = new Set()
         ss.add('i1')
         store = new Store({'s1': ss})
-        store.contains('s1', 'i1').should.eventually.equal true
+        store.set_contains('s1', 'i1').should.eventually.equal true
       
       it 'should return false if element is a not member', ->
         ss = new Set()
         store = new Store({'s1': ss})
-        store.contains('s1', 'i1').should.eventually.equal false
+        store.set_contains('s1', 'i1').should.eventually.equal false
 
       it 'should return false if no key', ->
         store = new Store()
-        store.contains('s1', 'i1').should.eventually.equal false
+        store.set_contains('s1', 'i1').should.eventually.equal false
 
-    describe '#union_store', ->
+    describe '#set_union_then_store', ->
       it 'should return a promise for the union of two sets', ->
         set1 = new Set(['x'])
         set2 = new Set(['y'])
         store = new Store({'s1': set1, 's2': set2})
-        store.union_store('tempkey', ['s1','s2'])
+        store.set_union_then_store('tempkey', ['s1','s2'])
         .then( -> store.set_members('tempkey'))
         .then((ulist) ->
           ('x' in ulist).should.equal true
@@ -142,7 +143,7 @@ describe 'Store', ->
         set1 = new Set(['1','3','4'])
         set2 = new Set(['1','2'])
         store = new Store({'s1': set1, 's2': set2})
-        store.diff(['s1','s2'])
+        store.set_diff(['s1','s2'])
         .then((ulist) ->
           ('3' in ulist).should.equal true
           ('4' in ulist).should.equal true
@@ -154,7 +155,7 @@ describe 'Store', ->
         set1 = new Set(['x'])
         set2 = new Set(['y'])
         store = new Store({'s1': set1, 's2': set2})
-        store.union(['s1','s2'])
+        store.set_union(['s1','s2'])
         .then((ulist) ->
           ('x' in ulist).should.equal true
           ('y' in ulist).should.equal true
@@ -167,7 +168,7 @@ describe 'Store', ->
         set2 = new Set(['x','y'])
         store = new Store({'s1': set1, 's2': set2})
 
-        store.intersection(['s1','s2'])
+        store.set_intersection(['s1','s2'])
         .then((ulist) -> 
           ('x' in ulist).should.equal true
           ulist.length.should.equal 1
@@ -176,7 +177,7 @@ describe 'Store', ->
   describe 'jaccard metric', ->
     it 'should take two keys to sets and return a number', ->
       store = new Store
-      sinon.stub(store, 'union', (s1,s2) -> ['1','2','3','4'])
-      sinon.stub(store, 'intersection', (s1,s2) -> ['2','3'])
-      store.jaccard_metric('s1','s2').should.eventually.equal .5
+      sinon.stub(store, 'set_union', (s1,s2) -> ['1','2','3','4'])
+      sinon.stub(store, 'set_intersection', (s1,s2) -> ['2','3'])
+      store.jaccard_metric('s1','s2').should.eventually.equal(.5)
 

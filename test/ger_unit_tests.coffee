@@ -38,7 +38,7 @@ describe '#reccommendations_for_action', ->
 describe '#has_person_actioned_thing', ->
   it 'should check store to see if a person contains a thing', ->
     ger = new GER
-    sinon.stub(ger.store,'contains', (key,thing)-> thing.should.equal 'a')
+    sinon.stub(ger.store,'set_contains', (key,thing)-> thing.should.equal 'a')
     ger.has_person_actioned_thing('p1','view','a')
 
 describe '#weighted_probability_to_action_thing_by_people', ->
@@ -61,8 +61,8 @@ describe '#weighted_probability_to_action_thing_by_people', ->
 describe '#things_a_person_hasnt_actioned_that_other_people_have', ->
   it 'should return a list of items that have not been acted on but have by other people', ->
     ger = new GER
-    sinon.stub(ger.store,'union_store', -> q.fcall( -> 3))
-    sinon.stub(ger.store,'diff', -> q.fcall( -> ['i1','i2']))
+    sinon.stub(ger.store,'set_union_then_store', -> q.fcall( -> 3))
+    sinon.stub(ger.store,'set_diff', -> q.fcall( -> ['i1','i2']))
     ger.things_a_person_hasnt_actioned_that_other_people_have('p1', 'viewed', ['p2','p3'])
     .then((items) ->
       ('i1' in items).should.equal true
@@ -224,45 +224,45 @@ describe '#event', ->
 describe 'add_thing_to_person_action_set', ->
   it 'should add thing to person action set in store, incrememnting by the number of times it occured', ->
     ger = new GER
-    sinon.stub(ger.store, 'add_to_set', (key, thing) -> 
+    sinon.stub(ger.store, 'set_add', (key, thing) -> 
       thing.should.equal 'thing'
     )
     ger.add_thing_to_person_action_set('person', 'action', 'thing')
-    sinon.assert.calledOnce(ger.store.add_to_set)
+    sinon.assert.calledOnce(ger.store.set_add)
 
 describe 'add_person_to_action_thing_set', ->
   it 'should add a person action set in store, incrememnting by the number of times it occured', ->
     ger = new GER
-    sinon.stub(ger.store, 'add_to_set', (key, thing) -> 
+    sinon.stub(ger.store, 'set_add', (key, thing) -> 
       thing.should.equal 'thing'
     )
     ger.add_thing_to_person_action_set('person', 'action', 'thing')
-    sinon.assert.calledOnce(ger.store.add_to_set)
+    sinon.assert.calledOnce(ger.store.set_add)
 
 describe 'add_action', ->
   it 'should add the action with a weight to a sorted set', ->
     ger = new GER
-    sinon.stub(ger.store, 'sorted_set_item_score', -> q.fcall(-> null))
-    sinon.stub(ger.store, 'add_to_sorted_set', (key, action) -> 
+    sinon.stub(ger.store, 'sorted_set_score', -> q.fcall(-> null))
+    sinon.stub(ger.store, 'sorted_set_add', (key, action) -> 
       action.should.equal 'view'
     )
     ger.add_action('view')
-    .then( -> sinon.assert.calledOnce(ger.store.add_to_sorted_set))
+    .then( -> sinon.assert.calledOnce(ger.store.sorted_set_add))
 
   it 'should not override the score if the action is already added', ->
     ger = new GER
-    sinon.stub(ger.store, 'sorted_set_item_score', -> q.fcall(-> 3))
-    sinon.stub(ger.store, 'add_to_sorted_set')
+    sinon.stub(ger.store, 'sorted_set_score', -> q.fcall(-> 3))
+    sinon.stub(ger.store, 'sorted_set_add')
     ger.add_action('view')
-    .then(-> sinon.assert.notCalled(ger.store.add_to_sorted_set))
+    .then(-> sinon.assert.notCalled(ger.store.sorted_set_add))
 
 
 describe 'set_action_weight', ->
   it 'will override an actions score', ->
     ger = new GER
-    sinon.stub(ger.store, 'add_to_sorted_set', (key, action, score) -> 
+    sinon.stub(ger.store, 'sorted_set_add', (key, action, score) -> 
       action.should.equal 'view'
       score.should.equal 5
     )
     ger.set_action_weight('view', 5)
-    sinon.assert.calledOnce(ger.store.add_to_sorted_set)
+    sinon.assert.calledOnce(ger.store.sorted_set_add)

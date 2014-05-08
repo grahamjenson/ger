@@ -46,13 +46,13 @@ class GER
       ])
 
   add_thing_to_person_action_set: (person , action, thing) ->
-    @store.add_to_set(
+    @store.set_add(
       KeyManager.person_action_set_key(person, action),
       thing
     )
 
   add_person_to_action_thing_set: (person, action, thing) ->
-    @store.add_to_set(
+    @store.set_add(
       KeyManager.action_thing_set_key(action, thing),
       person
     )
@@ -61,7 +61,7 @@ class GER
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
   has_person_actioned_thing: (person, action, thing) ->
-    @store.contains(KeyManager.person_action_set_key(person, action), thing)
+    @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
 
   get_action_thing_set: (action,thing) ->
     @store.set_members(KeyManager.action_thing_set_key(action, thing))
@@ -112,8 +112,8 @@ class GER
 
   things_a_person_hasnt_actioned_that_other_people_have: (person, action, people) ->
     tempset = KeyManager.generate_temp_key()
-    @store.union_store(tempset, (KeyManager.person_action_set_key(p, action) for p in people))
-    .then( => @store.diff([tempset, KeyManager.person_action_set_key(person, action)]))
+    @store.set_union_then_store(tempset, (KeyManager.person_action_set_key(p, action) for p in people))
+    .then( => @store.set_diff([tempset, KeyManager.person_action_set_key(person, action)]))
     .then( (values) => @store.del(tempset); values)
 
   weighted_probability_to_action_thing_by_people: (thing, action, people_scores) ->
@@ -147,21 +147,18 @@ class GER
     )
 
 
-  
-
-
   add_action: (action) ->
     @get_action_weight(action)
     .then((existing_score) =>
-      @store.add_to_sorted_set( KeyManager.action_set_key(), action) if existing_score == null
+      @store.sorted_set_add( KeyManager.action_set_key(), action) if existing_score == null
     )
   
   set_action_weight: (action, score) ->
-    @store.add_to_sorted_set(KeyManager.action_set_key(), action, score)
+    @store.sorted_set_add(KeyManager.action_set_key(), action, score)
 
   get_action_weight: (action) ->
-    @store.sorted_set_item_score(KeyManager.action_set_key(), action)
-    
+    @store.sorted_set_score(KeyManager.action_set_key(), action)
+
 RET = {}
 
 RET.GER = GER
