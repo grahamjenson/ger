@@ -241,10 +241,18 @@ describe 'add_person_to_action_thing_set', ->
 describe 'add_action', ->
   it 'should add the action with a weight to a sorted set', ->
     ger = new GER
+    sinon.stub(ger.store, 'sorted_set_item_score', -> q.fcall(-> null))
     sinon.stub(ger.store, 'add_to_sorted_set', (key, action, score) -> 
       action.should.equal 'view'
       score.should.equal 5
     )
     ger.add_action('view', 5)
-    sinon.assert.calledOnce(ger.store.add_to_sorted_set)
+    .then( -> sinon.assert.calledOnce(ger.store.add_to_sorted_set))
+
+  it 'should not override the score if the action is already added', ->
+    ger = new GER
+    sinon.stub(ger.store, 'sorted_set_item_score', -> q.fcall(-> 3))
+    sinon.stub(ger.store, 'add_to_sorted_set')
+    ger.add_action('view', 5)
+    sinon.assert.notCalled(ger.store.add_to_sorted_set)
 

@@ -148,12 +148,11 @@ class GER
 
 
   add_action: (action, score=1) ->
-    @store.add_to_sorted_set(
-      KeyManager.action_set_key(), 
-      action, 
-      score
+    @store.sorted_set_item_score()
+    .then((existing_score) =>
+        @store.add_to_sorted_set( KeyManager.action_set_key(), action, score) if existing_score == null
     )
-    #add action with weight
+    
 
 RET = {}
 
