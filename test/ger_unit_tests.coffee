@@ -202,7 +202,7 @@ describe '#event', ->
 
   it 'should add to the list of things the person has done', ->
     ger = new GER
-    sinon.stub(ger, 'add_thing_to_person_action_set', (person, action, thing) -> 
+    sinon.stub(ger, 'add_thing_to_person_action_set', (thing, action, person) -> 
       person.should.equal 'person'
       action.should.equal 'action'
       thing.should.equal 'thing'
@@ -226,7 +226,7 @@ describe 'add_thing_to_person_action_set', ->
     sinon.stub(ger.store, 'set_add', (key, thing) -> 
       thing.should.equal 'thing'
     )
-    ger.add_thing_to_person_action_set('person', 'action', 'thing')
+    ger.add_thing_to_person_action_set('thing', 'action', 'person')
     sinon.assert.calledOnce(ger.store.set_add)
 
 describe 'add_person_to_thing_action_set', ->
@@ -235,7 +235,7 @@ describe 'add_person_to_thing_action_set', ->
     sinon.stub(ger.store, 'set_add', (key, thing) -> 
       thing.should.equal 'thing'
     )
-    ger.add_thing_to_person_action_set('person', 'action', 'thing')
+    ger.add_thing_to_person_action_set('thing', 'action', 'person')
     sinon.assert.calledOnce(ger.store.set_add)
 
 describe 'add_action', ->

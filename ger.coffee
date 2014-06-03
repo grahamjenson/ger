@@ -22,7 +22,7 @@ KeyManager =
   person_action_set_key: (person, action)->
     "#{person}:#{action}"
 
-  thing_action_set_key: (action,thing) ->
+  thing_action_set_key: (thing, action) ->
     "#{thing}:#{action}"
 
   generate_temp_key: ->
@@ -41,11 +41,11 @@ class GER
   event: (person, action, thing) ->
     q.all([
       @add_action(action),
-      @add_thing_to_person_action_set(person,action,thing),
+      @add_thing_to_person_action_set(thing,action,person),
       @add_person_to_thing_action_set(person,action,thing)
       ])
 
-  add_thing_to_person_action_set: (person , action, thing) ->
+  add_thing_to_person_action_set: (thing, action, person) ->
     @store.set_add(
       KeyManager.person_action_set_key(person, action),
       thing
@@ -53,7 +53,7 @@ class GER
 
   add_person_to_thing_action_set: (person, action, thing) ->
     @store.set_add(
-      KeyManager.thing_action_set_key(action, thing),
+      KeyManager.thing_action_set_key(thing, action),
       person
     )
 
@@ -64,7 +64,7 @@ class GER
     @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
 
   get_thing_action_set: (action,thing) ->
-    @store.set_members(KeyManager.thing_action_set_key(action, thing))
+    @store.set_members(KeyManager.thing_action_set_key(thing, action))
 
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())
