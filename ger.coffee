@@ -147,6 +147,13 @@ class GER
     )
 
 
+  reccommendations_for_thing: (thing, action) ->
+    #returns a list of reccommended people that may action a thing
+    #get a list of similar things with scores
+    #get a list of people that have actioned those things, but not exactly actioned the thing (e.g. already 'bought' the 'thing')
+    #weight the list of people
+    #return list of people with weights
+
   add_action: (action) ->
     @get_action_weight(action)
     .then((existing_score) =>
