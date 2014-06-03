@@ -140,7 +140,7 @@ describe '#similar_people_for_action', ->
   it 'should take a person and find similar people for an action', ->
     ger = new GER
     sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger, 'get_action_thing_set', -> q.fcall(-> ['person2']))
+    sinon.stub(ger, 'get_thing_action_set', -> q.fcall(-> ['person2']))
     ger.similar_people_for_action('person1','action')
     .then((people) -> 
       ('person2' in people).should.equal true; 
@@ -150,7 +150,7 @@ describe '#similar_people_for_action', ->
   it 'should remove duplicate people', ->
     ger = new GER
     sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger, 'get_action_thing_set', -> q.fcall(-> ['person2', 'person2']))
+    sinon.stub(ger, 'get_thing_action_set', -> q.fcall(-> ['person2', 'person2']))
     ger.similar_people_for_action('person1','action')
     .then((people) -> 
       ('person2' in people).should.equal true; 
@@ -160,7 +160,7 @@ describe '#similar_people_for_action', ->
   it 'should remove the passed person', ->
     ger = new GER
     sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger, 'get_action_thing_set', -> q.fcall(-> ['person2', 'person1']))
+    sinon.stub(ger, 'get_thing_action_set', -> q.fcall(-> ['person2', 'person1']))
     ger.similar_people_for_action('person1','action')
     .then((people) -> 
       ('person2' in people).should.equal true; 
@@ -174,7 +174,7 @@ describe "#get_action_set", ->
     ger.get_action_set('action','thing')
     sinon.assert.calledOnce(ger.store.set_members)
 
-describe '#get_action_thing_set', ->
+describe '#get_thing_action_set', ->
   it 'should return a promise for the action things set', ->
     ger = new GER
     sinon.stub(ger.store, 'set_members')
@@ -187,7 +187,6 @@ describe '#get_person_action_set', ->
     sinon.stub(ger.store, 'set_members')
     ger.get_person_action_set('person','action')
     sinon.assert.calledOnce(ger.store.set_members)
-
 
 
 describe '#event', ->
@@ -213,13 +212,13 @@ describe '#event', ->
 
   it 'should add person to a list of people who did action to thing', ->
     ger = new GER
-    sinon.stub(ger, 'add_person_to_action_thing_set', (person, action, thing) -> 
+    sinon.stub(ger, 'add_person_to_thing_action_set', (person, action, thing) -> 
       person.should.equal 'person'
       action.should.equal 'action'
       thing.should.equal 'thing'
     )
     ger.event('person','action','thing')
-    sinon.assert.calledOnce(ger.add_person_to_action_thing_set)
+    sinon.assert.calledOnce(ger.add_person_to_thing_action_set)
 
 describe 'add_thing_to_person_action_set', ->
   it 'should add thing to person action set in store, incrememnting by the number of times it occured', ->
@@ -230,7 +229,7 @@ describe 'add_thing_to_person_action_set', ->
     ger.add_thing_to_person_action_set('person', 'action', 'thing')
     sinon.assert.calledOnce(ger.store.set_add)
 
-describe 'add_person_to_action_thing_set', ->
+describe 'add_person_to_thing_action_set', ->
   it 'should add a person action set in store, incrememnting by the number of times it occured', ->
     ger = new GER
     sinon.stub(ger.store, 'set_add', (key, thing) -> 

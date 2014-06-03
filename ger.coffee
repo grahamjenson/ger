@@ -22,8 +22,8 @@ KeyManager =
   person_action_set_key: (person, action)->
     "#{person}:#{action}"
 
-  action_thing_set_key: (action,thing) ->
-    "#{action}:#{thing}"
+  thing_action_set_key: (action,thing) ->
+    "#{thing}:#{action}"
 
   generate_temp_key: ->
     length = 8
@@ -42,7 +42,7 @@ class GER
     q.all([
       @add_action(action),
       @add_thing_to_person_action_set(person,action,thing),
-      @add_person_to_action_thing_set(person,action,thing)
+      @add_person_to_thing_action_set(person,action,thing)
       ])
 
   add_thing_to_person_action_set: (person , action, thing) ->
@@ -51,9 +51,9 @@ class GER
       thing
     )
 
-  add_person_to_action_thing_set: (person, action, thing) ->
+  add_person_to_thing_action_set: (person, action, thing) ->
     @store.set_add(
-      KeyManager.action_thing_set_key(action, thing),
+      KeyManager.thing_action_set_key(action, thing),
       person
     )
 
@@ -63,8 +63,8 @@ class GER
   has_person_actioned_thing: (person, action, thing) ->
     @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
 
-  get_action_thing_set: (action,thing) ->
-    @store.set_members(KeyManager.action_thing_set_key(action, thing))
+  get_thing_action_set: (action,thing) ->
+    @store.set_members(KeyManager.thing_action_set_key(action, thing))
 
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())
@@ -105,7 +105,7 @@ class GER
   similar_people_for_action: (person, action) ->
     #return a list of similar people, later will be breadth first search till some number is found
     @get_person_action_set(person, action)
-    .then( (things) => q.all((@get_action_thing_set(action, thing) for thing in things)))
+    .then( (things) => q.all((@get_thing_action_set(action, thing) for thing in things)))
     .then( (people) => Utils.flatten(people)) #flatten list
     .then( (people) => people.filter (s_person) -> s_person isnt person) #remove original person
     .then( (people) => Utils.unique(people)) #return unique list
