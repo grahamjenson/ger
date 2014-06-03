@@ -14,7 +14,7 @@ describe '#get_action_set_with_scores', ->
     sinon.stub(ger.store,'set_rev_members_with_score', -> return q.fcall(-> true))
     ger.get_action_set_with_scores().should.eventually.equal true
 
-describe '#reccommendations_for_action', ->
+describe '#reccommendations_for_person', ->
   it 'should return a list of reccommended items', ->
     ger = new GER
     sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', score: 1}, {person: 'p2', score: 3}]))
@@ -27,7 +27,7 @@ describe '#reccommendations_for_action', ->
       else
         throw 'bad thing'
     )
-    ger.reccommendations_for_action('p1','view')
+    ger.reccommendations_for_person('p1','view')
     .then( (thing_scores) -> 
       thing_scores[0].thing.should.equal 't2'
       thing_scores[0].score.should.equal .5

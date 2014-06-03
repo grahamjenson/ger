@@ -129,7 +129,7 @@ class GER
   weighted_probabilities_to_action_things_by_people: (things, action, people_scores) ->
       q.all( (q.all([thing, @weighted_probability_to_action_thing_by_people(thing, action, people_scores)]) for thing in things) )
 
-  reccommendations_for_action: (person, action) ->
+  reccommendations_for_person: (person, action) ->
     #returns a list of reccommended things
     #get a list of similar people with scores
     #get a list of items that those people have actioned, but person has not

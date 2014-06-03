@@ -8,7 +8,7 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
-describe 'reccommendations_for_action', ->
+describe 'reccommendations_for_person', ->
   it 'should take a person and action to reccommend things', ->
     ger = new GER
     q.all([
@@ -22,7 +22,7 @@ describe 'reccommendations_for_action', ->
       ger.event('p3','view','a'),
       ger.event('p3','buy','c')
     ])
-    .then(-> ger.reccommendations_for_action('p1', 'buy'))
+    .then(-> ger.reccommendations_for_person('p1', 'buy'))
     .then((item_scores) ->
       item_scores[0].thing.should.equal 'c'
       item_scores[1].thing.should.equal 'd'
@@ -40,7 +40,7 @@ describe 'reccommendations_for_action', ->
       ger.event('p3','view','a'),
       ger.event('p3','view','c')
     ])
-    .then(-> ger.reccommendations_for_action('p1', 'view'))
+    .then(-> ger.reccommendations_for_person('p1', 'view'))
     .then((item_scores) ->
       item_scores[0].thing.should.equal 'c'
       item_scores[1].thing.should.equal 'd'
