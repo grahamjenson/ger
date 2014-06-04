@@ -91,6 +91,48 @@ class GER
               temp
           )
 
+        @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"] = (object, action, objects) =>
+          tempset = KeyManager.generate_temp_key()
+          @store.set_union_then_store(tempset, (KeyManager["#{v.object}_action_set_key"](o, action) for o in objects))
+          .then( => @store.set_diff([tempset, KeyManager["#{v.object}_action_set_key"](object, action)]))
+          .then( (values) => @store.del(tempset); values)
+
+        @["has_#{v.object}_actioned_#{v.subject}"] = (object, action, subject) ->
+          @store.set_contains(KeyManager["#{v.object}_action_set_key"](object, action), subject)
+
+        @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"] = (subject, action, objects_scores) =>
+          # objects_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
+          #returns the weighted probability that a group of people (with scores) actions the thing
+          #add all the scores together of the people who have actioned the thing 
+          #divide by total scores of all the people
+          total_scores = (p.score for p in objects_scores).reduce( (x,y) -> x + y )
+          q.all( (q.all([ps, @["has_#{v.object}_actioned_#{v.subject}"](ps[v.object], action, subject)]) for ps in objects_scores) )
+          .then( (person_item_contains) -> (pic[0] for pic in person_item_contains when pic[1]))
+          .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y )/total_scores)
+
+        @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"] = (subjects, action, object_scores) =>
+          q.all( (q.all([subject, @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"](subject, action, object_scores)]) for subject in subjects) )
+
+        @["reccommendations_for_#{v.object}"] = (object, action) ->
+          #returns a list of reccommended things
+          #get a list of similar people with scores
+          #get a list of items that those people have actioned, but person has not
+          #weight the list of items
+          #return list of items with weights
+          @["ordered_similar_#{plural[v.object]}"](object)
+          .then((object_scores) =>
+            objects = (ps[v.object] for ps in object_scores) 
+            q.all([object_scores, @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"](object, action, objects)])
+          )
+          .spread( ( object_scores, subjects) => @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"](subjects, action, object_scores))
+          .then( (score_subjects) =>
+            sorted_subjects = score_subjects.sort((x, y) -> y[1] - x[1])
+            for ts in sorted_subjects
+              temp = {score: ts[1]}
+              temp[v.subject] = ts[0]
+              temp
+          )
+
   store: ->
     @store
 
@@ -101,59 +143,12 @@ class GER
       @add_person_to_thing_action_set(person,action,thing)
       ])
 
-  has_person_actioned_thing: (person, action, thing) ->
-    @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
-
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())
 
   get_action_set_with_scores: ->
     @store.set_rev_members_with_score(KeyManager.action_set_key())
 
-
-  things_a_person_hasnt_actioned_that_other_people_have: (person, action, people) ->
-    tempset = KeyManager.generate_temp_key()
-    @store.set_union_then_store(tempset, (KeyManager.person_action_set_key(p, action) for p in people))
-    .then( => @store.set_diff([tempset, KeyManager.person_action_set_key(person, action)]))
-    .then( (values) => @store.del(tempset); values)
-
-  weighted_probability_to_action_thing_by_people: (thing, action, people_scores) ->
-    # people_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
-    #returns the weighted probability that a group of people (with scores) actions the thing
-    #add all the scores together of the people who have actioned the thing 
-    #divide by total scores of all the people
-    total_scores = (p.score for p in people_scores).reduce( (x,y) -> x + y )
-    q.all( (q.all([ps, @has_person_actioned_thing(ps.person, action, thing)]) for ps in people_scores) )
-    .then( (person_item_contains) -> (pic[0] for pic in person_item_contains when pic[1]))
-    .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y )/total_scores)
-
-  weighted_probabilities_to_action_things_by_people: (things, action, people_scores) ->
-      q.all( (q.all([thing, @weighted_probability_to_action_thing_by_people(thing, action, people_scores)]) for thing in things) )
-
-  reccommendations_for_person: (person, action) ->
-    #returns a list of reccommended things
-    #get a list of similar people with scores
-    #get a list of items that those people have actioned, but person has not
-    #weight the list of items
-    #return list of items with weights
-    @ordered_similar_people(person)
-    .then((people_scores) =>
-      people = (ps.person for ps in people_scores) 
-      q.all([people_scores, @things_a_person_hasnt_actioned_that_other_people_have(person, action, people)])
-    )
-    .spread( ( people_scores, things) => @weighted_probabilities_to_action_things_by_people(things, action, people_scores))
-    .then( (score_things) =>
-      sorted_things = score_things.sort((x, y) -> y[1] - x[1])
-      ({thing: ts[0], score: ts[1]} for ts in  sorted_things) 
-    )
-
-
-  reccommendations_for_thing: (thing, action) ->
-    #returns a list of reccommended people that may action a thing
-    #get a list of similar things with scores
-    #get a list of people that have actioned those things, but not exactly actioned the thing (e.g. already 'bought' the 'thing')
-    #weight the list of people
-    #return list of people with weights
 
   add_action: (action) ->
     @get_action_weight(action)

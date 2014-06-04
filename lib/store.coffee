@@ -97,10 +97,25 @@ class Store
     (@store[k] for k in keys).reduce((s1,s2) -> s1.diff(s2))
 
   _union: (keys) ->
-    (@store[k] for k in keys).reduce((s1,s2) -> s1.union(s2))
+    keys.push('not_a_key_hack')
+    (@store[k] for k in keys).reduce((s1,s2) -> 
+      if s1? && s2?
+        s1.union(s2)
+      else if s1?
+        new Set(s1.members())
+      else if s2?
+        new Set(s2.members())
+      else
+        new Set()
+    )
 
   _intersection: (keys) ->
-    (@store[k] for k in keys).reduce((s1,s2) -> s1.intersection(s2))
+    (@store[k] for k in keys).reduce((s1,s2) -> 
+      if s1? && s2?
+        s1.intersection(s2)
+      else
+        new Set()
+    )
 
   jaccard_metric: (s1,s2) ->
     q.all([@set_intersection([s1,s2]), @set_union([s1,s2])])

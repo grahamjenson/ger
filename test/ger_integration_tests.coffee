@@ -12,16 +12,17 @@ describe 'reccommendations_for_thing', ->
   it 'should take a thing and action and return people that it reccommends', ->
     ger = new GER
     q.all([
-      ger.event('p1','buy','c'),
+      ger.event('p1','buy','a'),
+
       ger.event('p1','view','c'),
       ger.event('p1','view','a'),
 
       ger.event('p2','view','c'),
-      ger.event('p2','view','a'),
+      ger.event('p2','buy','a'),
 
       ger.event('p3','view','a'),
     ])
-    .then(-> ger.reccommendations_for_thing('c', 'buy'))
+    .then(-> ger.reccommendations_for_thing('a', 'buy'))
     .then((people_scores) ->
       people_scores[0].person.should.equal 'p2'
       people_scores[1].person.should.equal 'p3'
