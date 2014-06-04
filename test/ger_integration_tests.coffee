@@ -106,8 +106,28 @@ describe 'similar people', ->
     .then(-> ger.similar_people_for_action('p1', 'action1'))
     .then((people) -> ('p2' in people).should.equal true)
 
+describe 'ordered_similar_things', ->
+  it 'should take a person and return promise for an ordered list of similar things', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','action1','a'),
+      ger.event('p1','action1','b'),
+      ger.event('p1','action1','c'),
+
+      ger.event('p2','action1','a'),
+      ger.event('p2','action1','b'),
+
+      ger.event('p3','action1','d')
+    ])
+    .then(-> ger.ordered_similar_things('a'))
+    .then((things) ->
+      things[0].thing.should.equal 'b'
+      things[1].thing.should.equal 'c'
+      things.length.should.equal 2
+    )
+
 describe 'ordered_similar_people', ->
-  it 'should take a person action thing and return promise for an ordered list of similar people', ->
+  it 'should take a person and return promise for an ordered list of similar people', ->
     ger = new GER
     q.all([
       ger.event('p1','action1','a'),
@@ -126,6 +146,20 @@ describe 'ordered_similar_people', ->
       people.length.should.equal 2
     )
 
+describe 'similarity between things', ->
+  it 'should take a things action person and return promise', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','viewed','a'),
+      ger.event('p1', 'viewed', 'b'),
+      ger.event('p1', 'viewed', 'c'),
+      ger.event('p2','viewed','a'),
+      ger.event('p2','viewed','b'),
+      ger.event('p2','viewed','d')
+    ])
+    .then(-> ger.similarity_between_people('p1', 'p2'))
+    .then((sim) -> sim.should.equal .5)
+
 describe 'similarity between people', ->
   it 'should take a person action thing and return promise', ->
     ger = new GER
@@ -137,10 +171,10 @@ describe 'similarity between people', ->
       ger.event('p2','viewed','b'),
       ger.event('p2','viewed','d')
     ])
-    .then(-> ger.similarity('p1', 'p2'))
+    .then(-> ger.similarity_between_people('p1', 'p2'))
     .then((sim) -> sim.should.equal .5)
 
- it 'should take into consideration the weights of the ', ->
+ it 'should take into consideration the weights of the actions', ->
     ger = new GER
     q.all([
       ger.set_action_weight('view', 1),
@@ -156,7 +190,7 @@ describe 'similarity between people', ->
       ger.event('p1', 'view','b'),
       ger.event('p2', 'view','a'),
     ])
-    .then(-> ger.similarity('p1', 'p2'))
+    .then(-> ger.similarity_between_people('p1', 'p2'))
     .then((sim) -> sim.should.equal 3)
 
 describe 'setting action weights', ->

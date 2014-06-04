@@ -42,6 +42,9 @@ class GER
     #defining mirror methods (methods that need to be reversable)
     for v in [{object: 'person', subject: 'thing'}, {object: 'thing', subject: 'person'}]
       do (v) =>
+        @["get_#{v.object}_action_set"] = (object, action) =>
+          @store.set_members(KeyManager["#{v.object}_action_set_key"](object, action))
+
         @["add_#{v.object}_to_#{v.subject}_action_set"] = (object, action, subject) =>
           @store.set_add(
             KeyManager["#{v.subject}_action_set_key"](subject,action),
@@ -56,6 +59,37 @@ class GER
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
           .then( (objects) => Utils.unique(objects)) #return unique list
 
+        @["similarity_between_#{plural[v.object]}_for_action"] =  (object1, object2, action_key, action_score) ->
+          @store.jaccard_metric(KeyManager["#{v.object}_action_set_key"](object1, action_key), KeyManager["#{v.object}_action_set_key"](object2, action_key))
+          .then( (jm) -> jm * action_score)
+
+        @["similarity_between_#{plural[v.object]}"] = (object1, object2) =>
+          #return a value of a persons similarity
+          @get_action_set_with_scores()
+          .then((actions) => q.all( (@["similarity_between_#{plural[v.object]}_for_action"](object1, object2, action.key, action.score) for action in actions) ) )
+          .then((sims) => sims.reduce (x,y) -> x + y )
+
+        @["similarity_to_#{plural[v.object]}"] = (object, objects) =>
+          q.all( (q.all([o, @["similarity_between_#{plural[v.object]}"](object, o)]) for o in objects) )
+        
+        @["similar_#{plural[v.object]}"] = (object) =>
+          #TODO adding weights to actions could reduce number of people returned
+          @get_action_set()
+          .then( (actions) => q.all( (@["similar_#{plural[v.object]}_for_action"](object, action) for action in actions) ) )
+          .then( (objects) => Utils.flatten(objects)) #flatten list
+          .then( (objects) => Utils.unique(objects)) #return unique list
+        
+        @["ordered_similar_#{plural[v.object]}"] = (object) ->
+          #TODO expencive call, could be cached for a few days as ordered set
+          @["similar_#{plural[v.object]}"](object)
+          .then( (objects) => @["similarity_to_#{plural[v.object]}"](object, objects) )
+          .then( (score_objects) => 
+            sorted_objects = score_objects.sort((x, y) -> y[1] - x[1])
+            for p in sorted_objects
+              temp = {score: p[1]}
+              temp[v.object] = p[0]
+              temp
+          )
 
   store: ->
     @store
@@ -67,12 +101,6 @@ class GER
       @add_person_to_thing_action_set(person,action,thing)
       ])
 
-  get_person_action_set: (person, action) ->
-    @store.set_members(KeyManager.person_action_set_key(person, action))
-
-  get_thing_action_set: (thing, action) ->
-    @store.set_members(KeyManager.thing_action_set_key(thing, action))
-
   has_person_actioned_thing: (person, action, thing) ->
     @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
 
@@ -82,35 +110,6 @@ class GER
   get_action_set_with_scores: ->
     @store.set_rev_members_with_score(KeyManager.action_set_key())
 
-  ordered_similar_people: (person) ->
-    #TODO expencive call, could be cached for a few days as ordered set
-    @similar_people(person)
-    .then( (people) => @similarity_to_people(person,people) )
-    .then( (score_people) => 
-      sorted_people = score_people.sort((x, y) -> y[1] - x[1])
-      ({person: p[0], score: p[1]} for p in sorted_people) 
-    )
-  
-  similarity_to_people : (person, people) ->
-    q.all( (q.all([p, @similarity(person, p)]) for p in people) )
-
-  similarity: (person1, person2) ->
-    #return a value of a persons similarity
-    @get_action_set_with_scores()
-    .then((actions) => q.all( (@similarity_for_action(person1, person2, action.key, action.score) for action in actions) ) )
-    .then((sims) => sims.reduce (x,y) -> x + y )
-
-
-  similarity_for_action: (person1, person2, action_key, action_score) ->
-    @store.jaccard_metric(KeyManager.person_action_set_key(person1, action_key), KeyManager.person_action_set_key(person2, action_key))
-    .then( (jm) -> jm * action_score)
-
-  similar_people: (person) ->
-    #TODO adding weights to actions could reduce number of people returned
-    @get_action_set()
-    .then((actions) => q.all( (@similar_people_for_action(person, action) for action in actions) ) )
-    .then( (people) => Utils.flatten(people)) #flatten list
-    .then( (people) => Utils.unique(people)) #return unique list
 
   things_a_person_hasnt_actioned_that_other_people_have: (person, action, people) ->
     tempset = KeyManager.generate_temp_key()
