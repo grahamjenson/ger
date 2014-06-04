@@ -34,6 +34,13 @@ KeyManager =
 class GER
   constructor: () ->
     @store = new Store
+    for v in [{object: 'person', subject: 'thing'}, {object: 'thing', subject: 'person'}]
+      do (v) =>
+        @["add_#{v.object}_to_#{v.subject}_action_set"] = (object, action, subject) =>
+          @store.set_add(
+            KeyManager["#{v.subject}_action_set_key"](subject,action),
+            object
+          )
 
   store: ->
     @store
@@ -45,26 +52,14 @@ class GER
       @add_person_to_thing_action_set(person,action,thing)
       ])
 
-  add_thing_to_person_action_set: (thing, action, person) ->
-    @store.set_add(
-      KeyManager.person_action_set_key(person, action),
-      thing
-    )
-
-  add_person_to_thing_action_set: (person, action, thing) ->
-    @store.set_add(
-      KeyManager.thing_action_set_key(thing, action),
-      person
-    )
-
   get_person_action_set: (person, action) ->
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
-  has_person_actioned_thing: (person, action, thing) ->
-    @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
-
   get_thing_action_set: (action,thing) ->
     @store.set_members(KeyManager.thing_action_set_key(thing, action))
+
+  has_person_actioned_thing: (person, action, thing) ->
+    @store.set_contains(KeyManager.person_action_set_key(person, action), thing)
 
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())
