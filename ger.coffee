@@ -34,6 +34,12 @@ KeyManager =
 class GER
   constructor: () ->
     @store = new Store
+
+    plural =
+      'person' : 'people'
+      'thing' : 'things'
+
+    #defining mirror methods (methods that need to be reversable)
     for v in [{object: 'person', subject: 'thing'}, {object: 'thing', subject: 'person'}]
       do (v) =>
         @["add_#{v.object}_to_#{v.subject}_action_set"] = (object, action, subject) =>
@@ -41,6 +47,15 @@ class GER
             KeyManager["#{v.subject}_action_set_key"](subject,action),
             object
           )
+
+        @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
+          #return a list of similar objects, later will be breadth first search till some number is found
+          @["get_#{v.object}_action_set"](object, action)
+          .then( (subjects) => q.all((@["get_#{v.subject}_action_set"](subject, action) for subject in subjects)))
+          .then( (objects) => Utils.flatten(objects)) #flatten list
+          .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
+          .then( (objects) => Utils.unique(objects)) #return unique list
+
 
   store: ->
     @store
@@ -55,7 +70,7 @@ class GER
   get_person_action_set: (person, action) ->
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
-  get_thing_action_set: (action,thing) ->
+  get_thing_action_set: (thing, action) ->
     @store.set_members(KeyManager.thing_action_set_key(thing, action))
 
   has_person_actioned_thing: (person, action, thing) ->
@@ -95,14 +110,6 @@ class GER
     @get_action_set()
     .then((actions) => q.all( (@similar_people_for_action(person, action) for action in actions) ) )
     .then( (people) => Utils.flatten(people)) #flatten list
-    .then( (people) => Utils.unique(people)) #return unique list
-
-  similar_people_for_action: (person, action) ->
-    #return a list of similar people, later will be breadth first search till some number is found
-    @get_person_action_set(person, action)
-    .then( (things) => q.all((@get_thing_action_set(action, thing) for thing in things)))
-    .then( (people) => Utils.flatten(people)) #flatten list
-    .then( (people) => people.filter (s_person) -> s_person isnt person) #remove original person
     .then( (people) => Utils.unique(people)) #return unique list
 
   things_a_person_hasnt_actioned_that_other_people_have: (person, action, people) ->

@@ -86,6 +86,16 @@ describe 'things_a_person_hasnt_actioned_that_other_people_have', ->
       items.length.should.equal 2
     )
 
+describe 'similar things', ->
+  it 'should take a thing action and return similar things', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','action1','thing1'),
+      ger.event('p1','action1','thing2'),
+    ])
+    .then(-> ger.similar_things_for_action('thing1', 'action1'))
+    .then((things) -> ('thing2' in things).should.equal true)
+     
 describe 'similar people', ->
   it 'should take a person action and return similar people', ->
     ger = new GER

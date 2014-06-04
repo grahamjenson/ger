@@ -178,7 +178,7 @@ describe '#get_thing_action_set', ->
   it 'should return a promise for the action things set', ->
     ger = new GER
     sinon.stub(ger.store, 'set_members')
-    ger.get_person_action_set('action','thing')
+    ger.get_thing_action_set('thing','action')
     sinon.assert.calledOnce(ger.store.set_members)
 
 describe '#get_person_action_set', ->
