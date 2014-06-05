@@ -112,13 +112,13 @@ describe '#similarity_between_people', ->
 describe "#similarity_between_people_for_action", ->
   it 'should find the similarity people by looking at their jaccard distance', ->
     ger = new GER
-    sinon.stub(ger.store, 'jaccard_metric', -> q.fcall(-> ))
+    sinon.stub(ger, 'jaccard_metric', -> q.fcall(-> ))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '1')
-    sinon.assert.calledOnce(ger.store.jaccard_metric) 
+    sinon.assert.calledOnce(ger.jaccard_metric) 
   
   it 'should find the similarity people by looking at their jaccard distance multiplied by score', ->
     ger = new GER
-    sinon.stub(ger.store, 'jaccard_metric', -> q.fcall(-> 4))
+    sinon.stub(ger, 'jaccard_metric', -> q.fcall(-> 4))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '2').should.eventually.equal 8
 
 describe "#similar_people", ->
@@ -265,3 +265,10 @@ describe 'set_action_weight', ->
     )
     ger.set_action_weight('view', 5)
     sinon.assert.calledOnce(ger.store.sorted_set_add)
+
+describe 'jaccard metric', ->
+  it 'should take two keys to sets and return a number', ->
+    ger = new GER
+    sinon.stub(ger.store, 'set_union', (s1,s2) -> ['1','2','3','4'])
+    sinon.stub(ger.store, 'set_intersection', (s1,s2) -> ['2','3'])
+    ger.jaccard_metric('s1','s2').should.eventually.equal(.5)

@@ -66,7 +66,7 @@ class Store
 
   set_members: (key) ->
     if !(key of @store)
-      return []
+      return q.fcall(=> [])
     q.fcall(=> @store[key].members())
 
   set_rev_members_with_score: (key) ->
@@ -94,7 +94,16 @@ class Store
     q.fcall( => @_intersection(keys).members())
 
   _diff: (keys) ->
-    (@store[k] for k in keys).reduce((s1,s2) -> s1.diff(s2))
+    (@store[k] for k in keys).reduce((s1,s2) -> 
+      if s1? && s2?
+        s1.diff(s2)
+      else if s1?
+        new Set(s1.members())
+      else if s2?
+        new Set(s2.members())
+      else
+        new Set()
+    )
 
   _union: (keys) ->
     keys.push('not_a_key_hack')
@@ -117,9 +126,6 @@ class Store
         new Set()
     )
 
-  jaccard_metric: (s1,s2) ->
-    q.all([@set_intersection([s1,s2]), @set_union([s1,s2])])
-    .spread((int_set, uni_set) -> int_set.length / uni_set.length)
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

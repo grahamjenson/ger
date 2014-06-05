@@ -174,10 +174,3 @@ describe 'Store', ->
           ulist.length.should.equal 1
         )
 
-  describe 'jaccard metric', ->
-    it 'should take two keys to sets and return a number', ->
-      store = new Store
-      sinon.stub(store, 'set_union', (s1,s2) -> ['1','2','3','4'])
-      sinon.stub(store, 'set_intersection', (s1,s2) -> ['2','3'])
-      store.jaccard_metric('s1','s2').should.eventually.equal(.5)
-

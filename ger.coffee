@@ -59,8 +59,8 @@ class GER
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
           .then( (objects) => Utils.unique(objects)) #return unique list
 
-        @["similarity_between_#{plural[v.object]}_for_action"] =  (object1, object2, action_key, action_score) ->
-          @store.jaccard_metric(KeyManager["#{v.object}_action_set_key"](object1, action_key), KeyManager["#{v.object}_action_set_key"](object2, action_key))
+        @["similarity_between_#{plural[v.object]}_for_action"] =  (object1, object2, action_key, action_score) =>
+          @jaccard_metric(KeyManager["#{v.object}_action_set_key"](object1, action_key), KeyManager["#{v.object}_action_set_key"](object2, action_key))
           .then( (jm) -> jm * action_score)
 
         @["similarity_between_#{plural[v.object]}"] = (object1, object2) =>
@@ -73,7 +73,7 @@ class GER
           q.all( (q.all([o, @["similarity_between_#{plural[v.object]}"](object, o)]) for o in objects) )
         
         @["similar_#{plural[v.object]}"] = (object) =>
-          #TODO adding weights to actions could reduce number of people returned
+          #TODO adding weights to actions could reduce number of objects returned
           @get_action_set()
           .then( (actions) => q.all( (@["similar_#{plural[v.object]}_for_action"](object, action) for action in actions) ) )
           .then( (objects) => Utils.flatten(objects)) #flatten list
@@ -124,7 +124,9 @@ class GER
             objects = (ps[v.object] for ps in object_scores) 
             q.all([object_scores, @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"](object, action, objects)])
           )
-          .spread( ( object_scores, subjects) => @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"](subjects, action, object_scores))
+          .spread( ( object_scores, subjects) => 
+            @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"](subjects, action, object_scores)
+          )
           .then( (score_subjects) =>
             sorted_subjects = score_subjects.sort((x, y) -> y[1] - x[1])
             for ts in sorted_subjects
@@ -161,6 +163,15 @@ class GER
 
   get_action_weight: (action) ->
     @store.sorted_set_score(KeyManager.action_set_key(), action)
+
+  jaccard_metric: (s1,s2) ->
+    q.all([@store.set_intersection([s1,s2]), @store.set_union([s1,s2])])
+    .spread((int_set, uni_set) -> 
+      ret = int_set.length / uni_set.length
+      if isNaN(ret)
+        return 0
+      return ret
+    )
 
 RET = {}
 
