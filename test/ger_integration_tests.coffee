@@ -20,11 +20,25 @@ describe 'reccommendations_for_thing', ->
     ])
     .then(-> ger.reccommendations_for_thing('c', 'buy'))
     .then((people_scores) ->
-      console.log people_scores
       people_scores[0].person.should.equal 'p1'
+      people_scores.length.should.equal 1
     )
 
 describe 'reccommendations_for_person', ->
+  
+  it 'should reccommend basic things in reverse', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','view','a'),
+      ger.event('p1','buy','a'),
+      ger.event('p1','view','c'),
+    ])
+    .then(-> ger.reccommendations_for_person('p1', 'buy'))
+    .then((item_scores) ->
+      item_scores[0].thing.should.equal 'c'
+      item_scores.length.should.equal 1
+    )
+
   it 'should reccommend basic things', ->
     ger = new GER
     q.all([

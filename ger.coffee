@@ -60,6 +60,8 @@ class GER
           .then( (objects) => Utils.unique(objects)) #return unique list
 
         @["similarity_between_#{plural[v.object]}_for_action"] =  (object1, object2, action_key, action_score) =>
+          if object1 == object2
+            return q.fcall(-> 1 * action_score)
           @jaccard_metric(KeyManager["#{v.object}_action_set_key"](object1, action_key), KeyManager["#{v.object}_action_set_key"](object2, action_key))
           .then( (jm) -> jm * action_score)
 
@@ -121,7 +123,7 @@ class GER
           #return list of items with weights
           @["ordered_similar_#{plural[v.object]}"](object)
           .then((object_scores) =>
-            objects = (ps[v.object] for ps in object_scores) 
+            objects = (ps[v.object] for ps in object_scores)
             q.all([object_scores, @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"](object, action, objects)])
           )
           .spread( ( object_scores, subjects) => 

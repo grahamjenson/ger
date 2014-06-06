@@ -106,7 +106,9 @@ class Store
     )
 
   _union: (keys) ->
-    keys.push('not_a_key_hack')
+    if keys.length == 0
+      return new Set()
+      
     (@store[k] for k in keys).reduce((s1,s2) -> 
       if s1? && s2?
         s1.union(s2)
