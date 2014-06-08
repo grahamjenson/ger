@@ -8,6 +8,24 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+
+describe '#get_things_a_person_might_action_but_hasnt', ->
+  it 'should return a list of things a person might action but hasnt', ->
+
+describe '#get_actions_of_person_thing_with_scores', ->
+  it 'should return action scores of just keys in actions', ->
+    ger = new GER
+    sinon.stub(ger, 'get_action_set_with_scores', -> q.fcall(-> [{key: 'view', score: 1} , {key: 'buy', score: 2} ]))
+    sinon.stub(ger.store, 'set_members', -> q.fcall(-> ['buy']))
+    ger.get_actions_of_person_thing_with_scores('x','y')
+    .then( (action_scores) ->
+      action_scores.length.should.equal 1
+      action_scores[0].key.should.equal 'buy'
+      action_scores[0].score.should.equal 2
+    )
+
+
+
 describe '#get_action_set_with_scores', ->
   it 'should return the actions with the scores', ->
     ger = new GER
@@ -42,7 +60,7 @@ describe '#has_person_actioned_thing', ->
     ger.has_person_actioned_thing('p1','view','a')
 
 describe '#weighted_probability_to_action_thing_by_people', ->
-  it 'should return a weight an item will people', ->
+  it 'should return a weight an item with people', ->
     ger = new GER
     sinon.stub(ger,'has_person_actioned_thing', (person,action,thing) -> 
       action.should.equal 'view'
@@ -51,8 +69,7 @@ describe '#weighted_probability_to_action_thing_by_people', ->
         return q.fcall( -> true)
       else if person == 'p2'
         return q.fcall( -> false)
-      else
-        throw 'bad person'
+      throw 'bad person'
     )
     people_scores = [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
     ger.weighted_probability_to_action_thing_by_people('i1', 'view', people_scores).should.eventually.equal .25

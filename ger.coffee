@@ -19,11 +19,14 @@ KeyManager =
   action_set_key : ->
     'action_set'
 
+  person_thing_set_key: (person, thing) ->
+    "pt_#{person}:#{thing}"
+
   person_action_set_key: (person, action)->
-    "#{person}:#{action}"
+    "ps_#{person}:#{action}"
 
   thing_action_set_key: (thing, action) ->
-    "#{thing}:#{action}"
+    "ta_#{thing}:#{action}"
 
   generate_temp_key: ->
     length = 8
@@ -102,31 +105,45 @@ class GER
         @["has_#{v.object}_actioned_#{v.subject}"] = (object, action, subject) ->
           @store.set_contains(KeyManager["#{v.object}_action_set_key"](object, action), subject)
 
+        @["probability_of_#{v.object}_actioning_#{v.subject}"] = (object, action, subject) =>
+            #probability of actions s
+            #if it has already actioned it then it is 100%
+            @["has_#{v.object}_actioned_#{v.subject}"](object, action, subject)
+            .then((inc) -> 
+              if inc 
+                return 1
+              else
+                return 0
+            )
+
         @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"] = (subject, action, objects_scores) =>
           # objects_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
           #returns the weighted probability that a group of people (with scores) actions the thing
           #add all the scores together of the people who have actioned the thing 
           #divide by total scores of all the people
           total_scores = (p.score for p in objects_scores).reduce( (x,y) -> x + y )
-          q.all( (q.all([ps, @["has_#{v.object}_actioned_#{v.subject}"](ps[v.object], action, subject)]) for ps in objects_scores) )
-          .then( (person_item_contains) -> (pic[0] for pic in person_item_contains when pic[1]))
-          .then( (people_with_item) -> (p.score for p in people_with_item).reduce( (x,y) -> x + y )/total_scores)
+          q.all( (q.all([ps, @["probability_of_#{v.object}_actioning_#{v.subject}"](ps[v.object], action, subject) ]) for ps in objects_scores) )
+          .then( (person_probs) -> ({person: pp[0].person, score: pp[0].score * pp[1]} for pp in person_probs))
+          .then( (people_with_item) -> (p.score for p in people_with_item).reduce( ((x,y) -> x + y ), 0)/total_scores)
 
         @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"] = (subjects, action, object_scores) =>
           q.all( (q.all([subject, @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"](subject, action, object_scores)]) for subject in subjects) )
 
+
         @["reccommendations_for_#{v.object}"] = (object, action) ->
           #returns a list of reccommended things
-          #get a list of similar people with scores
-          #get a list of items that those people have actioned, but person has not
+          #get a list of similar objects with scores
+          #get a list of subjects that those objects have actioned, but person has not
           #weight the list of items
           #return list of items with weights
           @["ordered_similar_#{plural[v.object]}"](object)
           .then((object_scores) =>
+            #objects is a list of similar objects not including 'object'
             objects = (ps[v.object] for ps in object_scores)
             q.all([object_scores, @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"](object, action, objects)])
           )
-          .spread( ( object_scores, subjects) => 
+          .spread( ( object_scores, subjects) =>
+            # a list of things
             @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"](subjects, action, object_scores)
           )
           .then( (score_subjects) =>
@@ -144,8 +161,20 @@ class GER
     q.all([
       @add_action(action),
       @add_thing_to_person_action_set(thing,action,person),
-      @add_person_to_thing_action_set(person,action,thing)
+      @add_person_to_thing_action_set(person,action,thing),
+      @add_action_to_person_thing_set(person,action,thing)
       ])
+
+
+  add_action_to_person_thing_set: (person, action, thing) =>
+    @store.set_add(KeyManager.person_thing_set_key(person, thing), action)
+
+  get_actions_of_person_thing_with_scores: (person, thing) =>
+    q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_scores()])
+    .spread( (actions, action_scores) ->
+      (as for as in action_scores when as.key in actions)
+    )
+    
 
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())

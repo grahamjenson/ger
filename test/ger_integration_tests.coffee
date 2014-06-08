@@ -8,6 +8,29 @@ sinon = require 'sinon'
 GER = require('../ger').GER
 q = require 'q'
 
+describe '#probability_of_person_actioning_thing', ->
+  it 'should return 1 if the person has already actioned the object', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','buy','c'),
+      ger.event('p1','view','c'),
+    ])
+    .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
+    .then((probability) ->
+      probability.should.equal 1
+    )
+
+  it 'should return 0 if the person has never interacted with the thing', ->
+    ger = new GER
+    q.all([
+      ger.event('p1','buy','c'),
+      ger.event('p1','view','c'),
+    ])
+    .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'd'))
+    .then((probability) ->
+      probability.should.equal 0
+    )
+
 describe 'reccommendations_for_thing', ->
   it 'should take a thing and action and return people that it reccommends', ->
     ger = new GER
