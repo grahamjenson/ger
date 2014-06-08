@@ -31,6 +31,30 @@ describe '#probability_of_person_actioning_thing', ->
       probability.should.equal 0
     )
 
+  it 'should return the score of the action', ->
+    ger = new GER
+    q.all([
+      ger.set_action_weight('view', 5),
+      ger.event('p1','view','c'),
+    ])
+    .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
+    .then((probability) ->
+      probability.should.equal 5
+    )
+
+  it 'should return the sum of the scores of the action', ->
+    ger = new GER
+    q.all([
+      ger.set_action_weight('view', 5),
+      ger.set_action_weight('like', 10),
+      ger.event('p1','view','c'),
+      ger.event('p1','like','c'),
+    ])
+    .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
+    .then((probability) ->
+      probability.should.equal 15
+    )
+
 describe 'reccommendations_for_thing', ->
   it 'should take a thing and action and return people that it reccommends', ->
     ger = new GER
@@ -242,6 +266,14 @@ describe 'similarity between people', ->
     .then((sim) -> sim.should.equal 3)
 
 describe 'setting action weights', ->
+
+  it 'should override existing weight', ->
+    ger = new GER
+    ger.event('p1', 'buy', 'a')
+    .then(-> ger.set_action_weight('buy', 10))
+    .then(-> ger.get_action_weight('buy'))
+    .then((weight) -> weight.should.equal 10)
+
   it 'should add the action with a weight to a sorted set', ->
     ger = new GER
     ger.set_action_weight('buy', 10)

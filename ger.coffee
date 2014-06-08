@@ -109,11 +109,14 @@ class GER
             #probability of actions s
             #if it has already actioned it then it is 100%
             @["has_#{v.object}_actioned_#{v.subject}"](object, action, subject)
-            .then((inc) -> 
+            .then((inc) => 
               if inc 
                 return 1
               else
-                return 0
+                #TODO should return action_score/total_action_scores e.g. view = 1 and buy = 10, return should equal 1/11
+                @get_actions_of_person_thing_with_scores(object, subject)
+                .then( (action_scores) -> (as.score for as in action_scores))
+                .then( (action_scores) -> action_scores.reduce( ((x,y) -> x+y ), 0 ))
             )
 
         @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"] = (subject, action, objects_scores) =>
