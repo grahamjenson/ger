@@ -96,6 +96,7 @@ class GER
               temp
           )
 
+
         @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"] = (object, action, objects) =>
           tempset = KeyManager.generate_temp_key()
           @store.set_union_then_store(tempset, (KeyManager["#{v.object}_action_set_key"](o, action) for o in objects))
@@ -114,7 +115,7 @@ class GER
                 return 1
               else
                 #TODO should return action_score/total_action_scores e.g. view = 1 and buy = 10, return should equal 1/11
-                @get_actions_of_person_thing_with_scores(object, subject)
+                @["get_actions_of_#{v.object}_#{v.subject}_with_scores"](object, subject)
                 .then( (action_scores) -> (as.score for as in action_scores))
                 .then( (action_scores) -> action_scores.reduce( ((x,y) -> x+y ), 0 ))
             )
@@ -141,13 +142,17 @@ class GER
           #return list of items with weights
           @["ordered_similar_#{plural[v.object]}"](object)
           .then((object_scores) =>
-            #objects is a list of similar objects not including 'object'
+            #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
             objects = (ps[v.object] for ps in object_scores)
             q.all([object_scores, @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"](object, action, objects)])
           )
           .spread( ( object_scores, subjects) =>
-            # a list of things
+            # Weight the list of subjects by looking for the probability they are actioned by the similar objects
             @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"](subjects, action, object_scores)
+          )
+          .then( ( score_subjects) ->
+            #TODO add the subjects that the object has already interacted with, weighted by action score
+            score_subjects
           )
           .then( (score_subjects) =>
             sorted_subjects = score_subjects.sort((x, y) -> y[1] - x[1])
@@ -171,6 +176,9 @@ class GER
 
   add_action_to_person_thing_set: (person, action, thing) =>
     @store.set_add(KeyManager.person_thing_set_key(person, thing), action)
+
+  get_actions_of_thing_person_with_scores: (thing,person) ->
+    get_actions_of_person_thing_with_scores(person,thing)
 
   get_actions_of_person_thing_with_scores: (person, thing) =>
     q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_scores()])
