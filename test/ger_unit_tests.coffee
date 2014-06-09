@@ -62,13 +62,13 @@ describe '#has_person_actioned_thing', ->
 describe '#weighted_probability_to_action_thing_by_people', ->
   it 'should return a weight an item with people', ->
     ger = new GER
-    sinon.stub(ger,'probability_of_person_actioning_thing', (person,action,thing) -> 
+    sinon.stub(ger,'has_person_actioned_thing', (person,action,thing) -> 
       action.should.equal 'view'
       thing.should.equal 'i1'
       if person == 'p1'
-        return q.fcall( -> 1)
+        return q.fcall( -> true)
       else if person == 'p2'
-        return q.fcall( -> 0)
+        return q.fcall( -> false)
       throw 'bad person'
     )
     people_scores = [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
