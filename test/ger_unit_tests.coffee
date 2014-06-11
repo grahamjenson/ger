@@ -9,9 +9,6 @@ GER = require('../ger').GER
 q = require 'q'
 
 
-describe '#get_things_a_person_might_action_but_hasnt', ->
-  it 'should return a list of things a person might action but hasnt', ->
-
 describe '#get_actions_of_person_thing_with_scores', ->
   it 'should return action scores of just keys in actions', ->
     ger = new GER
@@ -36,7 +33,7 @@ describe '#reccommendations_for_person', ->
   it 'should return a list of reccommended items', ->
     ger = new GER
     sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', score: 1}, {person: 'p2', score: 3}]))
-    sinon.stub(ger,'things_a_person_hasnt_actioned_that_other_people_have', -> q.fcall(-> ['t1','t2']))
+    sinon.stub(ger,'things_people_have_actioned', -> q.fcall(-> ['t1','t2']))
     sinon.stub(ger, 'weighted_probability_to_action_thing_by_people', (thing, action, people_scores) -> 
       if thing == 't1'
         return .2
@@ -75,15 +72,16 @@ describe '#weighted_probability_to_action_thing_by_people', ->
     ger.weighted_probability_to_action_thing_by_people('i1', 'view', people_scores).should.eventually.equal .25
 
 
-describe '#things_a_person_hasnt_actioned_that_other_people_have', ->
-  it 'should return a list of items that have not been acted on but have by other people', ->
+describe '#things_people_have_actioned', ->
+  it 'should return a list of items that have been actioned by people', ->
     ger = new GER
-    sinon.stub(ger.store,'set_union_then_store', -> q.fcall( -> 3))
-    sinon.stub(ger.store,'set_diff', -> q.fcall( -> ['i1','i2']))
-    ger.things_a_person_hasnt_actioned_that_other_people_have('p1', 'viewed', ['p2','p3'])
+    sinon.stub(ger.store,'set_union', (keys)->
+      q.fcall( -> ['a', 'b'])
+    )
+    ger.things_people_have_actioned('viewed', ['p2','p3'])
     .then((items) ->
-      ('i1' in items).should.equal true
-      ('i2' in items).should.equal true
+      ('a' in items).should.equal true
+      ('b' in items).should.equal true
       items.length.should.equal 2
     )
 

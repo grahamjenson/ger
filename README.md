@@ -1,4 +1,20 @@
-Good Enough Reccomendations (GER) engine is a simple collaborative filtering reccommendations engine.
+GEneric Reccomendations (GER) engine is a simple collaborative filtering reccommendations engine.
+It does not contain business rules, or complex logic, just a really fast core that can be understood and built upon.
+
+Tags
+Calculator
+Microservice
+Reccommendations
+Generic
+Basic
+Simple
+Hypermedia API
+
+
+1) No Business Rules
+2) No reccommending to action thing that has not been actioned before.
+3) easily allowing anonymising people actions and things for cloud deployment
+
 It is built to be configurable to your problem. 
 It is also built to be massivly scalable so that
 It takes inspration from racoon but tries to be more generic.

@@ -67,8 +67,8 @@ describe 'reccommendations_for_thing', ->
     ])
     .then(-> ger.reccommendations_for_thing('c', 'buy'))
     .then((people_scores) ->
-      people_scores[0].person.should.equal 'p1'
-      people_scores.length.should.equal 1
+      people_scores[1].person.should.equal 'p1'
+      people_scores.length.should.equal 2
     )
 
 describe 'reccommendations_for_person', ->
@@ -119,7 +119,7 @@ describe 'reccommendations_for_person', ->
       item_scores[1].thing.should.equal 'd'
     )
 
-  it 'should take a person and action to reccommend things', ->
+  it 'should take a person and reccommend some things', ->
     ger = new GER
     q.all([
       ger.event('p1','view','a'),
@@ -138,7 +138,7 @@ describe 'reccommendations_for_person', ->
       
     )
 
-describe 'things_a_person_hasnt_actioned_that_other_people_have', ->
+describe 'things_people_have_actioned', ->
   it 'should take a person action thing and return promise', ->
     ger = new GER
     q.all([
@@ -151,11 +151,12 @@ describe 'things_a_person_hasnt_actioned_that_other_people_have', ->
       ger.event('p3','action1','a'),
       ger.event('p3','action1','d')
     ])
-    .then(-> ger.things_a_person_hasnt_actioned_that_other_people_have('p1', 'action1', ['p2','p3']))
+    .then(-> ger.things_people_have_actioned('action1', ['p2','p3']))
     .then((items) ->
+      ('a' in items).should.equal true
       ('c' in items).should.equal true
       ('d' in items).should.equal true
-      items.length.should.equal 2
+      items.length.should.equal 3
     )
 
 describe 'similar things', ->

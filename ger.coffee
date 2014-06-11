@@ -35,6 +35,9 @@ KeyManager =
     id.substr 0, length
 
 class GER
+  Config:
+    PRE_ACTION_SCORE: 2
+
   constructor: () ->
     @store = new Store
 
@@ -98,11 +101,8 @@ class GER
           )
 
 
-        @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"] = (object, action, objects) =>
-          tempset = KeyManager.generate_temp_key()
-          @store.set_union_then_store(tempset, (KeyManager["#{v.object}_action_set_key"](o, action) for o in objects))
-          .then( => @store.set_diff([tempset, KeyManager["#{v.object}_action_set_key"](object, action)]))
-          .then( (values) => @store.del(tempset); values)
+        @["#{plural[v.subject]}_#{plural[v.object]}_have_actioned"] = (action, objects) =>
+          @store.set_union((KeyManager["#{v.object}_action_set_key"](o, action) for o in objects))
 
         @["has_#{v.object}_actioned_#{v.subject}"] = (object, action, subject) ->
           @store.set_contains(KeyManager["#{v.object}_action_set_key"](object, action), subject)
@@ -135,63 +135,61 @@ class GER
           list_of_promises = (q.all([subject, @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"](subject, action, object_scores)]) for subject in subjects)
           q.all( list_of_promises )
 
-        @["reccommendations_for_#{v.object}_from_similar_objects"] = (object, action) ->
-          #get a list of similar objects with scores
-          #get a list of subjects that those objects have actioned, but object has not
-          #weight the list of items
-          #return list of items with weights
+  reccommendations_for_thing: (thing, action) ->
+    @store.set_members(KeyManager.thing_action_set_key(thing, action))
+    .then( (people) =>
+      list_of_promises = q.all( (@ordered_similar_people(p) for p in people) )
+      q.all( [people, list_of_promises] )
+    )
+    .spread( (people, peoples_lists) =>
+      people_scores = Utils.flatten(peoples_lists)
 
-          @["ordered_similar_#{plural[v.object]}"](object)
-          .then((object_scores) =>
-            #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-            objects = (ps[v.object] for ps in object_scores)
-            q.all([object_scores, @["#{plural[v.subject]}_a_#{v.object}_hasnt_actioned_that_other_#{plural[v.object]}_have"](object, action, objects)])
-          )
-          .spread( ( object_scores, subjects) =>
-            # Weight the list of subjects by looking for the probability they are actioned by the similar objects
-            @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"](subjects, action, object_scores)
-          )
-          .then( (score_subjects) =>
-            temp = {}
-            for ts in score_subjects
-              temp[ts[0]] = ts[1]
-            temp
-          )
+      temp = {}
+      for ps in people_scores
+        temp[ps.person] = ps.score
 
-        @["reccommendations_for_#{v.object}_from_self"] = (object, action) ->
-          #get a list of subjects the object has actioned
-          #for each subject ask how likely it is to be actioned
-          #if it has been actioned before then 
+      for p in people
+        if temp[p]
+          temp[p] += @Config.PRE_ACTION_SCORE
+        else
+          temp[p] = @Config.PRE_ACTION_SCORE
 
-          {}
-          # .then( ( score_subjects ) =>
-          #   list_of_promises = (q.all ([subject, @["probability_of_#{v.object}_actioning_#{v.subject}"](object, action, subject)]) for subject in subjects)
-          #   q.all( list_of_promises )
-          #   .then( (individual_score_subjects) =>
-          #     console.log individual_score_subjects
-          #     individual_score_subjects.concat score_subjects
-          #   )
-          # )
+      temp
+    )
+    .then( (reccommendations) ->
+      score_subjects = ([subject, score] for subject, score of reccommendations)
+      sorted_subjects = score_subjects.sort((x, y) -> y[1] - x[1])
+      for ts in sorted_subjects
+        temp = {score: ts[1], person: ts[0]}
+    )
 
-        @["reccommendations_for_#{v.object}"] = (object, action) ->
-          #reccommendations for object action from similar people
-          #reccommendations for object action from object, only looking at what they have already done
-          #then join the two objects and sort
-          q.all( [@["reccommendations_for_#{v.object}_from_similar_objects"](object,action), @["reccommendations_for_#{v.object}_from_self"](object,action)] )
-          .spread( (reccommendations_from_others, reccommendations_from_self) ->
-            (reccommendations_from_others[subject] = score for subject, score of reccommendations_from_self)
-            reccommendations_from_others
-          )
-          .then( (reccommendations) ->
-            score_subjects = ([subject, score] for subject, score of reccommendations)
-            sorted_subjects = score_subjects.sort((x, y) -> y[1] - x[1])
-            for ts in sorted_subjects
-              temp = {score: ts[1]}
-              temp[v.subject] = ts[0]
-              temp
-          )
-
-
+  reccommendations_for_person: (person, action) ->
+    #reccommendations for object action from similar people
+    #reccommendations for object action from object, only looking at what they have already done
+    #then join the two objects and sort
+    @ordered_similar_people(person)
+    .then( (object_scores) =>
+      #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
+      object_scores.push {score: @Config.PRE_ACTION_SCORE, person: person}
+      objects = (ps.person for ps in object_scores)
+      q.all([object_scores, @things_people_have_actioned(action, objects)])
+    )
+    .spread( ( object_scores, subjects) =>
+      # Weight the list of subjects by looking for the probability they are actioned by the similar objects
+      @weighted_probabilities_to_action_things_by_people(subjects, action, object_scores)
+    )
+    .then( (score_subjects) =>
+      temp = {}
+      for ts in score_subjects
+        temp[ts[0]] = ts[1]
+      temp
+    )
+    .then( (reccommendations) ->
+      score_subjects = ([subject, score] for subject, score of reccommendations)
+      sorted_subjects = score_subjects.sort((x, y) -> y[1] - x[1])
+      for ts in sorted_subjects
+        temp = {score: ts[1], thing: ts[0]}
+    )
 
   store: ->
     @store
