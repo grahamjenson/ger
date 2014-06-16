@@ -36,7 +36,7 @@ KeyManager =
 
 class GER
   Config:
-    PRE_ACTION_SCORE: 2
+    PRE_ACTION_SCORE: 10 # this is just the default
 
   constructor: () ->
     @store = new Store

@@ -73,19 +73,6 @@ describe 'reccommendations_for_thing', ->
 
 describe 'reccommendations_for_person', ->
   
-  it 'should reccommend basic things in reverse', ->
-    ger = new GER
-    q.all([
-      ger.event('p1','view','a'),
-      ger.event('p1','buy','a'),
-      ger.event('p1','view','c'),
-    ])
-    .then(-> ger.reccommendations_for_person('p1', 'buy'))
-    .then((item_scores) ->
-      item_scores[0].thing.should.equal 'c'
-      item_scores.length.should.equal 1
-    )
-
   it 'should reccommend basic things', ->
     ger = new GER
     q.all([
@@ -115,8 +102,12 @@ describe 'reccommendations_for_person', ->
     ])
     .then(-> ger.reccommendations_for_person('p1', 'buy'))
     .then((item_scores) ->
-      item_scores[0].thing.should.equal 'c'
-      item_scores[1].thing.should.equal 'd'
+      #p1 already bought a, making it very likely to buy again
+      #2/3 people buy c, 1/3 people buys d.
+      items = (i.thing for i in item_scores)
+      items[0].should.equal 'a'
+      items[1].should.equal 'c'
+      items[2].should.equal 'd'
     )
 
   it 'should take a person and reccommend some things', ->
@@ -133,8 +124,9 @@ describe 'reccommendations_for_person', ->
     ])
     .then(-> ger.reccommendations_for_person('p1', 'view'))
     .then((item_scores) ->
-      item_scores[0].thing.should.equal 'c'
-      item_scores[1].thing.should.equal 'd'
+      item_scores[0].thing.should.equal 'a'
+      item_scores[1].thing.should.equal 'c'
+      item_scores[2].thing.should.equal 'd'
       
     )
 
