@@ -100,26 +100,25 @@ class GER
               temp
           )
 
+  things_people_have_actioned: (action, objects) =>
+    @store.set_union((KeyManager.person_action_set_key(o, action) for o in objects))
 
-        @["#{plural[v.subject]}_#{plural[v.object]}_have_actioned"] = (action, objects) =>
-          @store.set_union((KeyManager["#{v.object}_action_set_key"](o, action) for o in objects))
+  has_person_actioned_thing: (object, action, subject) ->
+    @store.set_contains(KeyManager.person_action_set_key(object, action), subject)
 
-        @["has_#{v.object}_actioned_#{v.subject}"] = (object, action, subject) ->
-          @store.set_contains(KeyManager["#{v.object}_action_set_key"](object, action), subject)
-
-        @["probability_of_#{v.object}_actioning_#{v.subject}"] = (object, action, subject) =>
-            #probability of actions s
-            #if it has already actioned it then it is 100%
-            @["has_#{v.object}_actioned_#{v.subject}"](object, action, subject)
-            .then((inc) => 
-              if inc 
-                return 1
-              else
-                #TODO should return action_score/total_action_scores e.g. view = 1 and buy = 10, return should equal 1/11
-                @["get_actions_of_#{v.object}_#{v.subject}_with_scores"](object, subject)
-                .then( (action_scores) -> (as.score for as in action_scores))
-                .then( (action_scores) -> action_scores.reduce( ((x,y) -> x+y ), 0 ))
-            )
+  probability_of_person_actioning_thing: (object, action, subject) =>
+      #probability of actions s
+      #if it has already actioned it then it is 100%
+      @has_person_actioned_thing(object, action, subject)
+      .then((inc) => 
+        if inc 
+          return 1
+        else
+          #TODO should return action_score/total_action_scores e.g. view = 1 and buy = 10, return should equal 1/11
+          @get_actions_of_person_thing_with_scores(object, subject)
+          .then( (action_scores) -> (as.score for as in action_scores))
+          .then( (action_scores) -> action_scores.reduce( ((x,y) -> x+y ), 0 ))
+      )
 
   weighted_probability_to_action_thing_by_people: (thing, action, people_scores) =>
     # objects_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
