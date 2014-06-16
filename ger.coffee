@@ -121,19 +121,19 @@ class GER
                 .then( (action_scores) -> action_scores.reduce( ((x,y) -> x+y ), 0 ))
             )
 
-        @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"] = (subject, action, objects_scores) =>
-          # objects_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
-          #returns the weighted probability that a group of people (with scores) actions the thing
-          #add all the scores together of the people who have actioned the thing 
-          #divide by total scores of all the people
-          total_scores = (p.score for p in objects_scores).reduce( (x,y) -> x + y )
-          q.all( (q.all([ps, @["has_#{v.object}_actioned_#{v.subject}"](ps[v.object], action, subject) ]) for ps in objects_scores) )
-          .then( (person_probs) -> ({person: pp[0].person, score: pp[0].score * pp[1]} for pp in person_probs))
-          .then( (people_with_item) -> (p.score for p in people_with_item).reduce( ((x,y) -> x + y ), 0)/total_scores)
+  weighted_probability_to_action_thing_by_people: (thing, action, people_scores) =>
+    # objects_scores [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
+    #returns the weighted probability that a group of people (with scores) actions the thing
+    #add all the scores together of the people who have actioned the thing 
+    #divide by total scores of all the people
+    total_scores = (p.score for p in people_scores).reduce( (x,y) -> x + y )
+    q.all( (q.all([ps, @has_person_actioned_thing(ps.person, action, thing) ]) for ps in people_scores) )
+    .then( (person_probs) -> ({person: pp[0].person, score: pp[0].score * pp[1]} for pp in person_probs))
+    .then( (people_with_item) -> (p.score for p in people_with_item).reduce( ((x,y) -> x + y ), 0)/total_scores)
 
-        @["weighted_probabilities_to_action_#{plural[v.subject]}_by_#{plural[v.object]}"] = (subjects, action, object_scores) =>
-          list_of_promises = (q.all([subject, @["weighted_probability_to_action_#{v.subject}_by_#{plural[v.object]}"](subject, action, object_scores)]) for subject in subjects)
-          q.all( list_of_promises )
+  weighted_probabilities_to_action_things_by_people : (subjects, action, object_scores) =>
+    list_of_promises = (q.all([subject, @weighted_probability_to_action_thing_by_people(subject, action, object_scores)]) for subject in subjects)
+    q.all( list_of_promises )
 
   reccommendations_for_thing: (thing, action) ->
     @store.set_members(KeyManager.thing_action_set_key(thing, action))
