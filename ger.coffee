@@ -148,7 +148,7 @@ class GER
     q.all( list_of_promises )
 
   reccommendations_for_thing: (thing, action) ->
-    @store.set_members(KeyManager.thing_action_set_key(thing, action))
+    @get_thing_action_set(thing, action)
     .then( (people) =>
       list_of_promises = q.all( (@ordered_similar_people(p) for p in people) )
       q.all( [people, list_of_promises] )
