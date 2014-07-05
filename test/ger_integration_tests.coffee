@@ -7,11 +7,15 @@ sinon = require 'sinon'
 
 Store = require('../lib/store')
 
+ESM = require('../lib/event_store_mapper')
+
 GER = require('../ger').GER
 q = require 'q'
 
 init_ger = ->
-  new GER(new Store)
+  store = new Store
+  esm = new ESM(store)
+  return new GER(esm)
 
 describe '#probability_of_person_actioning_thing', ->
   it 'should return 1 if the person has already actioned the object', ->
@@ -133,27 +137,6 @@ describe 'reccommendations_for_person', ->
       item_scores[1].thing.should.equal 'c'
       item_scores[2].thing.should.equal 'd'
       
-    )
-
-describe 'things_people_have_actioned', ->
-  it 'should take a person action thing and return promise', ->
-    ger = init_ger()
-    q.all([
-      ger.event('p1','action1','a'),
-      ger.event('p1','action1','b'),
-
-      ger.event('p2','action1','a'),
-      ger.event('p2','action1','c'),
-
-      ger.event('p3','action1','a'),
-      ger.event('p3','action1','d')
-    ])
-    .then(-> ger.things_people_have_actioned('action1', ['p2','p3']))
-    .then((items) ->
-      ('a' in items).should.equal true
-      ('c' in items).should.equal true
-      ('d' in items).should.equal true
-      items.length.should.equal 3
     )
 
 describe 'similar things', ->
