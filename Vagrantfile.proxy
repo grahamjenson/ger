@@ -1,0 +1,31 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+#### Vagrant Proxy File ####
+#
+# This file defines the virtualmachine that the docker containers run in.
+# It is a bit magical, as much of the complexity is hidden by vagrant.
+# Basically the most important bit is the mapping of ports from the containers, to the host
+#
+# Graham
+############################
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+	config.vm.provider "virtualbox" do |v|
+	  v.memory = 2048
+	  v.cpus = 4
+	end
+
+  config.vm.box = "hashicorp/precise64"
+  config.vm.provision "docker"
+  config.vm.provision "shell", inline:
+    "ps aux | grep 'sshd:' | awk '{print $2}' | xargs kill"
+
+  config.vm.network :forwarded_port, guest: 6379, host: 6379
+  config.vm.network :forwarded_port, guest: 5432, host: 5432
+  config.vm.network :forwarded_port, guest: 9200, host: 9200
+  config.vm.network :forwarded_port, guest: 9300, host: 9300
+end

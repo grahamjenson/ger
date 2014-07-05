@@ -1,6 +1,20 @@
 q = require 'q'
+knex = require 'knex'
 
-Store = require('./lib/store')
+#create the actions table if it doesn't already exist
+#action | score
+
+#create the events table if it doesn't already exist
+# person, action, thing, created_at
+
+#connect to database
+
+
+
+
+#Create postgres store wrapper
+
+
 
 Utils =
   flatten: (arr) ->
@@ -38,8 +52,7 @@ class GER
   Config:
     PRE_ACTION_SCORE: 10 # this is just the default
 
-  constructor: () ->
-    @store = new Store
+  constructor: (@store) ->
 
     plural =
       'person' : 'people'

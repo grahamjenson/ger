@@ -5,13 +5,17 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
+Store = require('../lib/store')
+
 GER = require('../ger').GER
 q = require 'q'
 
+init_ger = ->
+  new GER(new Store)
 
 describe '#get_actions_of_person_thing_with_scores', ->
   it 'should return action scores of just keys in actions', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'get_action_set_with_scores', -> q.fcall(-> [{key: 'view', score: 1} , {key: 'buy', score: 2} ]))
     sinon.stub(ger.store, 'set_members', -> q.fcall(-> ['buy']))
     ger.get_actions_of_person_thing_with_scores('x','y')
@@ -25,13 +29,13 @@ describe '#get_actions_of_person_thing_with_scores', ->
 
 describe '#get_action_set_with_scores', ->
   it 'should return the actions with the scores', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store,'set_rev_members_with_score', -> return q.fcall(-> true))
     ger.get_action_set_with_scores().should.eventually.equal true
 
 describe '#reccommendations_for_person', ->
   it 'should return a list of reccommended items', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', score: 1}, {person: 'p2', score: 3}]))
     sinon.stub(ger,'things_people_have_actioned', -> q.fcall(-> ['t1','t2']))
     sinon.stub(ger, 'weighted_probability_to_action_thing_by_people', (thing, action, people_scores) -> 
@@ -52,13 +56,13 @@ describe '#reccommendations_for_person', ->
 
 describe '#has_person_actioned_thing', ->
   it 'should check store to see if a person contains a thing', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store,'set_contains', (key,thing)-> thing.should.equal 'a')
     ger.has_person_actioned_thing('p1','view','a')
 
 describe '#weighted_probability_to_action_thing_by_people', ->
   it 'should return a weight an item with people', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger,'has_person_actioned_thing', (person,action,thing) -> 
       action.should.equal 'view'
       thing.should.equal 'i1'
@@ -74,7 +78,7 @@ describe '#weighted_probability_to_action_thing_by_people', ->
 
 describe '#things_people_have_actioned', ->
   it 'should return a list of items that have been actioned by people', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store,'set_union', (keys)->
       q.fcall( -> ['a', 'b'])
     )
@@ -87,7 +91,7 @@ describe '#things_people_have_actioned', ->
 
 describe '#ordered_similar_people', ->
   it 'should return a list of similar people ordered by similarity', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'similar_people', -> q.fcall(-> ['p2', 'p3']))
     sinon.stub(ger, 'similarity_between_people', (person1, person2) ->
       person1.should.equal 'p1'
@@ -106,7 +110,7 @@ describe '#ordered_similar_people', ->
 
 describe '#similarity_between_people', ->
   it 'should find the similarity_between_people by looking at their jaccard distance', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'get_action_set_with_scores', -> q.fcall(-> [{key: 'view', score: 1} , {key: 'buy', score: 1} ]))
     sinon.stub(ger, 'similarity_between_people_for_action', (person1, person2, action_key, action_score) ->
       person1.should.equal 'p1'
@@ -126,19 +130,19 @@ describe '#similarity_between_people', ->
 
 describe "#similarity_between_people_for_action", ->
   it 'should find the similarity people by looking at their jaccard distance', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'jaccard_metric', -> q.fcall(-> ))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '1')
     sinon.assert.calledOnce(ger.jaccard_metric) 
   
   it 'should find the similarity people by looking at their jaccard distance multiplied by score', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'jaccard_metric', -> q.fcall(-> 4))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '2').should.eventually.equal 8
 
 describe "#similar_people", ->
   it 'should compile a list of similar people for all actions', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'get_action_set', -> q.fcall(-> ['view']))
     sinon.stub(ger, 'similar_people_for_action', (person,action) ->
       person.should.equal 'person1'
@@ -153,7 +157,7 @@ describe "#similar_people", ->
 
 describe '#similar_people_for_action', ->
   it 'should take a person and find similar people for an action', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
     sinon.stub(ger, 'get_thing_action_set', -> q.fcall(-> ['person2']))
     ger.similar_people_for_action('person1','action')
@@ -163,7 +167,7 @@ describe '#similar_people_for_action', ->
     )
 
   it 'should remove duplicate people', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
     sinon.stub(ger, 'get_thing_action_set', -> q.fcall(-> ['person2', 'person2']))
     ger.similar_people_for_action('person1','action')
@@ -173,7 +177,7 @@ describe '#similar_people_for_action', ->
     )
 
   it 'should remove the passed person', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'get_person_action_set', -> q.fcall(-> ['thing1']))
     sinon.stub(ger, 'get_thing_action_set', -> q.fcall(-> ['person2', 'person1']))
     ger.similar_people_for_action('person1','action')
@@ -184,21 +188,21 @@ describe '#similar_people_for_action', ->
 
 describe "#get_action_set", ->
   it 'should return a promise for the action things set', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'set_members')
     ger.get_action_set('action','thing')
     sinon.assert.calledOnce(ger.store.set_members)
 
 describe '#get_thing_action_set', ->
   it 'should return a promise for the action things set', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'set_members')
     ger.get_thing_action_set('thing','action')
     sinon.assert.calledOnce(ger.store.set_members)
 
 describe '#get_person_action_set', ->
   it 'should return a promise for the persons action set', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'set_members')
     ger.get_person_action_set('person','action')
     sinon.assert.calledOnce(ger.store.set_members)
@@ -206,17 +210,17 @@ describe '#get_person_action_set', ->
 
 describe '#event', ->
   it 'should take a person action thing and return promise', ->
-    ger = new GER
+    ger = init_ger()
     ger.event('person','action','thing')
 
   it 'should add the action to the set of actions', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'add_action')
     ger.event('person','action','thing')
     sinon.assert.calledOnce(ger.add_action)
 
   it 'should add to the list of things the person has done', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'add_thing_to_person_action_set', (thing, action, person) -> 
       person.should.equal 'person'
       action.should.equal 'action'
@@ -226,7 +230,7 @@ describe '#event', ->
     sinon.assert.calledOnce(ger.add_thing_to_person_action_set)
 
   it 'should add person to a list of people who did action to thing', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger, 'add_person_to_thing_action_set', (person, action, thing) -> 
       person.should.equal 'person'
       action.should.equal 'action'
@@ -237,7 +241,7 @@ describe '#event', ->
 
 describe 'add_thing_to_person_action_set', ->
   it 'should add thing to person action set in store, incrememnting by the number of times it occured', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'set_add', (key, thing) -> 
       thing.should.equal 'thing'
     )
@@ -246,7 +250,7 @@ describe 'add_thing_to_person_action_set', ->
 
 describe 'add_person_to_thing_action_set', ->
   it 'should add a person action set in store, incrememnting by the number of times it occured', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'set_add', (key, thing) -> 
       thing.should.equal 'thing'
     )
@@ -255,7 +259,7 @@ describe 'add_person_to_thing_action_set', ->
 
 describe 'add_action', ->
   it 'should add the action with a weight to a sorted set', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'sorted_set_score', -> q.fcall(-> null))
     sinon.stub(ger.store, 'sorted_set_add', (key, action) -> 
       action.should.equal 'view'
@@ -264,7 +268,7 @@ describe 'add_action', ->
     .then( -> sinon.assert.calledOnce(ger.store.sorted_set_add))
 
   it 'should not override the score if the action is already added', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'sorted_set_score', -> q.fcall(-> 3))
     sinon.stub(ger.store, 'sorted_set_add')
     ger.add_action('view')
@@ -273,7 +277,7 @@ describe 'add_action', ->
 
 describe 'set_action_weight', ->
   it 'will override an actions score', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'sorted_set_add', (key, action, score) -> 
       action.should.equal 'view'
       score.should.equal 5
@@ -283,7 +287,7 @@ describe 'set_action_weight', ->
 
 describe 'jaccard metric', ->
   it 'should take two keys to sets and return a number', ->
-    ger = new GER
+    ger = init_ger()
     sinon.stub(ger.store, 'set_union', (s1,s2) -> ['1','2','3','4'])
     sinon.stub(ger.store, 'set_intersection', (s1,s2) -> ['2','3'])
     ger.jaccard_metric('s1','s2').should.eventually.equal(.5)

@@ -5,12 +5,17 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
+Store = require('../lib/store')
+
 GER = require('../ger').GER
 q = require 'q'
 
+init_ger = ->
+  new GER(new Store)
+
 describe '#probability_of_person_actioning_thing', ->
   it 'should return 1 if the person has already actioned the object', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','buy','c'),
       ger.event('p1','view','c'),
@@ -21,7 +26,7 @@ describe '#probability_of_person_actioning_thing', ->
     )
 
   it 'should return 0 if the person has never interacted with the thing', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','buy','c'),
       ger.event('p1','view','c'),
@@ -32,7 +37,7 @@ describe '#probability_of_person_actioning_thing', ->
     )
 
   it 'should return the score of the action', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.set_action_weight('view', 5),
       ger.event('p1','view','c'),
@@ -43,7 +48,7 @@ describe '#probability_of_person_actioning_thing', ->
     )
 
   it 'should return the sum of the scores of the action', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.set_action_weight('view', 5),
       ger.set_action_weight('like', 10),
@@ -57,7 +62,7 @@ describe '#probability_of_person_actioning_thing', ->
 
 describe 'reccommendations_for_thing', ->
   it 'should take a thing and action and return people that it reccommends', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','view','c'),
 
@@ -74,7 +79,7 @@ describe 'reccommendations_for_thing', ->
 describe 'reccommendations_for_person', ->
   
   it 'should reccommend basic things', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','buy','a'),
       ger.event('p1','view','a'),
@@ -88,7 +93,7 @@ describe 'reccommendations_for_person', ->
     )
 
   it 'should take a person and action to reccommend things', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','buy','a'),
       ger.event('p1','view','a'),
@@ -111,7 +116,7 @@ describe 'reccommendations_for_person', ->
     )
 
   it 'should take a person and reccommend some things', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','view','a'),
 
@@ -132,7 +137,7 @@ describe 'reccommendations_for_person', ->
 
 describe 'things_people_have_actioned', ->
   it 'should take a person action thing and return promise', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','action1','a'),
       ger.event('p1','action1','b'),
@@ -153,7 +158,7 @@ describe 'things_people_have_actioned', ->
 
 describe 'similar things', ->
   it 'should take a thing action and return similar things', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','action1','thing1'),
       ger.event('p1','action1','thing2'),
@@ -163,7 +168,7 @@ describe 'similar things', ->
      
 describe 'similar people', ->
   it 'should take a person action and return similar people', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','action1','thing1'),
       ger.event('p2','action1','thing1'),
@@ -173,7 +178,7 @@ describe 'similar people', ->
 
 describe 'ordered_similar_things', ->
   it 'should take a person and return promise for an ordered list of similar things', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','action1','a'),
       ger.event('p1','action1','b'),
@@ -193,7 +198,7 @@ describe 'ordered_similar_things', ->
 
 describe 'ordered_similar_people', ->
   it 'should take a person and return promise for an ordered list of similar people', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','action1','a'),
       ger.event('p2','action1','a'),
@@ -213,7 +218,7 @@ describe 'ordered_similar_people', ->
 
 describe 'similarity between things', ->
   it 'should take a things action person and return promise', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','viewed','a'),
       ger.event('p1', 'viewed', 'b'),
@@ -227,7 +232,7 @@ describe 'similarity between things', ->
 
 describe 'similarity between people', ->
   it 'should take a person action thing and return promise', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.event('p1','viewed','a'),
       ger.event('p1', 'viewed', 'b'),
@@ -240,7 +245,7 @@ describe 'similarity between people', ->
     .then((sim) -> sim.should.equal .5)
 
  it 'should take into consideration the weights of the actions', ->
-    ger = new GER
+    ger = init_ger()
     q.all([
       ger.set_action_weight('view', 1),
       ger.set_action_weight('buy', 10),
@@ -261,20 +266,20 @@ describe 'similarity between people', ->
 describe 'setting action weights', ->
 
   it 'should override existing weight', ->
-    ger = new GER
+    ger = init_ger()
     ger.event('p1', 'buy', 'a')
     .then(-> ger.set_action_weight('buy', 10))
     .then(-> ger.get_action_weight('buy'))
     .then((weight) -> weight.should.equal 10)
 
   it 'should add the action with a weight to a sorted set', ->
-    ger = new GER
+    ger = init_ger()
     ger.set_action_weight('buy', 10)
     .then(-> ger.get_action_weight('buy'))
     .then((weight) -> weight.should.equal 10)
 
   it 'should default the action weight to 1', ->
-    ger = new GER
+    ger = init_ger()
     ger.add_action('buy')
     .then(-> ger.get_action_weight('buy'))
     .then((weight) -> weight.should.equal 1)
@@ -283,7 +288,7 @@ describe 'setting action weights', ->
     .then((weight) -> weight.should.equal 10)
 
   it 'add_action should not override set_action_weight s', ->
-    ger = new GER
+    ger = init_ger()
     ger.set_action_weight('buy', 10)
     .then(-> ger.get_action_weight('buy'))
     .then((weight) -> weight.should.equal 10)

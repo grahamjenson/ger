@@ -5,7 +5,8 @@
   "keywords"      : ["model", "promise", "backbone"],
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
   "dependencies"  : {
-    "q": "1.0.1"
+    "q": "1.0.1",
+    "knex" : "0.6.20"
   },
   "devDependencies": {
     "mocha": "1.18.2",
