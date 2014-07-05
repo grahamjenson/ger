@@ -131,13 +131,13 @@ describe '#similarity_between_people', ->
 describe "#similarity_between_people_for_action", ->
   it 'should find the similarity people by looking at their jaccard distance', ->
     ger = init_ger()
-    sinon.stub(ger, 'jaccard_metric', -> q.fcall(-> ))
+    sinon.stub(ger, 'people_jaccard_metric', -> q.fcall(-> ))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '1')
-    sinon.assert.calledOnce(ger.jaccard_metric) 
+    sinon.assert.calledOnce(ger.people_jaccard_metric) 
   
   it 'should find the similarity people by looking at their jaccard distance multiplied by score', ->
     ger = init_ger()
-    sinon.stub(ger, 'jaccard_metric', -> q.fcall(-> 4))
+    sinon.stub(ger, 'people_jaccard_metric', -> q.fcall(-> 4))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '2').should.eventually.equal 8
 
 describe "#similar_people", ->
@@ -290,4 +290,4 @@ describe 'jaccard metric', ->
     ger = init_ger()
     sinon.stub(ger.store, 'set_union', (s1,s2) -> ['1','2','3','4'])
     sinon.stub(ger.store, 'set_intersection', (s1,s2) -> ['2','3'])
-    ger.jaccard_metric('s1','s2').should.eventually.equal(.5)
+    ger.people_jaccard_metric('p1','p2', 'a1').should.eventually.equal(.5)

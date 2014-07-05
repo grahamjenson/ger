@@ -61,15 +61,6 @@ class GER
     #defining mirror methods (methods that need to be reversable)
     for v in [{object: 'person', subject: 'thing'}, {object: 'thing', subject: 'person'}]
       do (v) =>
-        @["get_#{v.object}_action_set"] = (object, action) =>
-          @store.set_members(KeyManager["#{v.object}_action_set_key"](object, action))
-
-        @["add_#{v.object}_to_#{v.subject}_action_set"] = (object, action, subject) =>
-          @store.set_add(
-            KeyManager["#{v.subject}_action_set_key"](subject,action),
-            object
-          )
-
         ####################### GET SIMILAR OBJECTS TO OBJECT #################################
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
@@ -82,7 +73,7 @@ class GER
         @["similarity_between_#{plural[v.object]}_for_action"] =  (object1, object2, action_key, action_score) =>
           if object1 == object2
             return q.fcall(-> 1 * action_score)
-          @jaccard_metric(KeyManager["#{v.object}_action_set_key"](object1, action_key), KeyManager["#{v.object}_action_set_key"](object2, action_key))
+          @["#{plural[v.object]}_jaccard_metric"](object1, object2, action_key)
           .then( (jm) -> jm * action_score)
 
         @["similarity_between_#{plural[v.object]}"] = (object1, object2) =>
@@ -113,11 +104,7 @@ class GER
               temp
           )
 
-  things_people_have_actioned: (action, objects) =>
-    @store.set_union((KeyManager.person_action_set_key(o, action) for o in objects))
 
-  has_person_actioned_thing: (object, action, subject) ->
-    @store.set_contains(KeyManager.person_action_set_key(object, action), subject)
 
   probability_of_person_actioning_thing: (object, action, subject) =>
       #probability of actions s
@@ -203,8 +190,7 @@ class GER
         temp = {score: ts[1], thing: ts[0]}
     )
 
-  store: ->
-    @store
+
 
   event: (person, action, thing) ->
     q.all([
@@ -213,6 +199,18 @@ class GER
       @add_person_to_thing_action_set(person, action, thing),
       @add_action_to_person_thing_set(person, action, thing)
       ])
+
+
+  #THINGS THAT USE STORE
+  store: ->
+    @store
+
+  things_people_have_actioned: (action, objects) =>
+    @store.set_union((KeyManager.person_action_set_key(o, action) for o in objects))
+
+  has_person_actioned_thing: (object, action, subject) ->
+    @store.set_contains(KeyManager.person_action_set_key(object, action), subject)
+
 
   add_action_to_person_thing_set: (person, action, thing) =>
     @store.set_add(KeyManager.person_thing_set_key(person, thing), action)
@@ -245,7 +243,32 @@ class GER
   get_action_weight: (action) ->
     @store.sorted_set_score(KeyManager.action_set_key(), action)
 
-  jaccard_metric: (s1,s2) ->
+  get_person_action_set: (person, action) =>
+    @store.set_members(KeyManager.person_action_set_key(person, action))
+
+  get_thing_action_set: (thing, action) =>
+    @store.set_members(KeyManager.thing_action_set_key(thing, action))
+
+  add_person_to_thing_action_set: (person, action, thing) =>
+    @store.set_add(KeyManager.thing_action_set_key(thing,action), person)
+
+  add_thing_to_person_action_set: (thing, action, person) =>
+    @store.set_add(KeyManager.person_action_set_key(person,action), thing)
+
+  things_jaccard_metric: (thing1, thing2, action_key) ->
+    s1 = KeyManager.thing_action_set_key(thing1, action_key)
+    s2 = KeyManager.thing_action_set_key(thing2, action_key)
+    q.all([@store.set_intersection([s1,s2]), @store.set_union([s1,s2])])
+    .spread((int_set, uni_set) -> 
+      ret = int_set.length / uni_set.length
+      if isNaN(ret)
+        return 0
+      return ret
+    ) 
+
+  people_jaccard_metric: (person1, person2, action_key) ->
+    s1 = KeyManager.person_action_set_key(person1, action_key)
+    s2 = KeyManager.person_action_set_key(person2, action_key)
     q.all([@store.set_intersection([s1,s2]), @store.set_union([s1,s2])])
     .spread((int_set, uni_set) -> 
       ret = int_set.length / uni_set.length
