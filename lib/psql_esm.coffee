@@ -56,14 +56,14 @@ class EventStoreMapper
       ])
 
   add_action: (action) ->
-    #Add action if it does not already exist
+    #Add action, it has unique constraint that is difficult to gurantee because of the async nature of this code.
+    #So it must fail gracefully if the action already exists in the table
     now = new Date().toISOString()
-    @has_action(action)
-    .then( (has_action) =>
-      if has_action
-        true
-      else
-        @knex('actions').insert({action: action, weight: 1, created_at: now, updated_at: now})
+    @knex('actions').insert({action: action, weight: 1, created_at: now, updated_at: now})
+    .catch( (error) ->
+      #error code 23505 is unique key violation
+      if error.code != '23505'
+        throw error
     )
 
   add_event_to_db: (person, action, thing) ->
@@ -78,8 +78,6 @@ class EventStoreMapper
     @has_event(person,action,thing)
 
   
-
-
   get_actions_of_person_thing_with_weights: (person, thing) ->
     @knex('events').select('events.action as key', 'actions.weight').leftJoin('actions', 'events.action', 'actions.action').where(person: person, thing: thing).orderBy('weight', 'desc')
     
@@ -112,21 +110,34 @@ class EventStoreMapper
     )
 
   things_people_have_actioned: (action, people) ->
+    @knex('events').select('thing').distinct().where(action: action).whereIn('person', people)
+    .then( (rows) ->
+      (r.thing for r in rows)
+    )
 
+  things_jaccard_metric: (thing1, thing2, action) ->
+    q1 = @knex('events').select('person').distinct().where(thing: thing1, action: action).toString()
+    q2 = @knex('events').select('person').distinct().where(thing: thing2, action: action).toString()
 
-  things_jaccard_metric: (thing1, thing2, action_key) ->
-    q.all([@store.set_intersection([s1,s2]), @store.set_union([s1,s2])])
-    .spread((int_set, uni_set) -> 
-      ret = int_set.length / uni_set.length
+    intersection = @knex.raw("#{q1} INTERSECT #{q2}")
+    union = @knex.raw("#{q1} UNION #{q2}")
+    q.all([intersection, union])
+    .spread((int_count, uni_count) ->
+      ret = int_count.rowCount / uni_count.rowCount
       if isNaN(ret)
         return 0
       return ret
-    ) 
+    )
 
-  people_jaccard_metric: (person1, person2, action_key) ->
-    q.all([@store.set_intersection([s1,s2]), @store.set_union([s1,s2])])
-    .spread((int_set, uni_set) -> 
-      ret = int_set.length / uni_set.length
+  people_jaccard_metric: (person1, person2, action) ->
+    q1 = @knex('events').select('thing').distinct().where(person: person1, action: action).toString()
+    q2 = @knex('events').select('thing').distinct().where(person: person2, action: action).toString()
+
+    intersection = @knex.raw("#{q1} INTERSECT #{q2}")
+    union = @knex.raw("#{q1} UNION #{q2}")
+    q.all([intersection, union])
+    .spread((int_count, uni_count) ->
+      ret = int_count.rowCount / uni_count.rowCount
       if isNaN(ret)
         return 0
       return ret

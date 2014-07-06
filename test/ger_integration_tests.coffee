@@ -11,13 +11,29 @@ PsqlESM = require('../lib/psql_esm')
 GER = require('../ger').GER
 q = require 'q'
 
+knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
+
+drop_tables = ->
+  q.all([knex.schema.hasTable('events'), knex.schema.hasTable('actions')])
+  .spread( (has_events_table, has_actions_table) ->
+    p = []
+    p.push knex.schema.dropTable('events') if has_events_table
+    p.push knex.schema.dropTable('actions') if has_actions_table
+    q.all(p)
+  )
+
+create_psql_esm = ->
+  #in
+  psql_esm = new PsqlESM(knex)
+  #drop the current tables, reinit the tables, return the esm
+  q.fcall(drop_tables)
+  .then( -> psql_esm.init_database_tables())
+  .then( -> psql_esm)
+
 create_store_esm = ->
   q.fcall( -> new MemoryESM())
 
-create_psql_esm = ->
-  new PsqlESM()
-
-for esmfn in [create_store_esm]
+for esmfn in [create_store_esm, create_psql_esm]
   init_ger = ->
     esmfn().then( (esm) -> new GER(esm))
 

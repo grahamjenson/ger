@@ -153,15 +153,48 @@ describe '#get_action_set_with_weights', ->
       ) 
 
 
-
-describe '#get_thing_action_set', ->
-  it 'should return actions with weights', ->
+describe '#get_person_action_set', ->
+  it 'should return list of things', ->
     init_esm()
     .then (esm) ->
-      esm.add_action('a')
-      .then( -> q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')]))
-      .then( -> esm.get_thing_action_set('t','a'))
+      q.all([esm.add_event('p','a','t'),esm.add_event('p','a','t1')])
+      .then( -> esm.get_person_action_set('p','a'))
       .then( (things) ->
-        ('p1' in things).should.equal true
-        ('p2' in things).should.equal true
+        ('t' in things).should.equal true
+        ('t1' in things).should.equal true
       ) 
+
+describe '#get_thing_action_set', ->
+  it 'should return list of people', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')])
+      .then( -> esm.get_thing_action_set('t','a'))
+      .then( (people) ->
+        ('p1' in people).should.equal true
+        ('p2' in people).should.equal true
+      ) 
+
+
+describe '#things_people_have_actioned', ->
+  it 'should return list of things that people have actioned', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
+      .then( -> esm.things_people_have_actioned('a',['p1','p2']))
+      .then( (things) ->
+        ('t' in things).should.equal true
+        ('t1' in things).should.equal true
+      ) 
+
+
+describe '#people_jaccard_metric', ->
+  it 'returns the jaccard distance of the two peoples action', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t'), esm.add_event('p2','a','t1')])
+      .then( -> esm.people_jaccard_metric('p1', 'p2', 'a'))
+      .then( (jm) ->
+        jm.should.equal 0.5
+      ) 
+
