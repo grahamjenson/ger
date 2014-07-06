@@ -47,7 +47,7 @@ for esmfn in [create_store_esm]
           probability.should.equal 0
         )
 
-    it 'should return the score of the action', ->
+    it 'should return the weight of the action', ->
       init_ger()
       .then (ger) ->
         q.all([
@@ -59,7 +59,7 @@ for esmfn in [create_store_esm]
           probability.should.equal 5
         )
 
-    it 'should return the sum of the scores of the action', ->
+    it 'should return the sum of the weights of the action', ->
       init_ger()
       .then (ger) ->
         q.all([
@@ -85,9 +85,9 @@ for esmfn in [create_store_esm]
 
         ])
         .then(-> ger.reccommendations_for_thing('c', 'buy'))
-        .then((people_scores) ->
-          people_scores[1].person.should.equal 'p1'
-          people_scores.length.should.equal 2
+        .then((people_weights) ->
+          people_weights[1].person.should.equal 'p1'
+          people_weights.length.should.equal 2
         )
 
   describe 'reccommendations_for_person', ->
@@ -102,9 +102,9 @@ for esmfn in [create_store_esm]
           ger.event('p2','view','a'),
         ])
         .then(-> ger.reccommendations_for_person('p2', 'buy'))
-        .then((item_scores) ->
-          item_scores[0].thing.should.equal 'a'
-          item_scores.length.should.equal 1
+        .then((item_weights) ->
+          item_weights[0].thing.should.equal 'a'
+          item_weights.length.should.equal 1
         )
 
     it 'should take a person and action to reccommend things', ->
@@ -122,10 +122,10 @@ for esmfn in [create_store_esm]
           ger.event('p3','buy','c')
         ])
         .then(-> ger.reccommendations_for_person('p1', 'buy'))
-        .then((item_scores) ->
+        .then((item_weights) ->
           #p1 already bought a, making it very likely to buy again
           #2/3 people buy c, 1/3 people buys d.
-          items = (i.thing for i in item_scores)
+          items = (i.thing for i in item_weights)
           items[0].should.equal 'a'
           items[1].should.equal 'c'
           items[2].should.equal 'd'
@@ -145,10 +145,10 @@ for esmfn in [create_store_esm]
           ger.event('p3','view','c')
         ])
         .then(-> ger.reccommendations_for_person('p1', 'view'))
-        .then((item_scores) ->
-          item_scores[0].thing.should.equal 'a'
-          item_scores[1].thing.should.equal 'c'
-          item_scores[2].thing.should.equal 'd'
+        .then((item_weights) ->
+          item_weights[0].thing.should.equal 'a'
+          item_weights[1].thing.should.equal 'c'
+          item_weights[2].thing.should.equal 'd'
           
         )
 

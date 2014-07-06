@@ -34,34 +34,34 @@ describe 'Store', ->
     .then(-> store.set_contains('key').should.eventually.equal false)
 
   describe 'SORETED SET METHODS', ->
-    describe '#sorted_set_score', ->
-      it 'should return a promise for the score of the item', ->
+    describe '#sorted_set_weight', ->
+      it 'should return a promise for the weight of the item', ->
         ss = new SortedSet()
         ss.add('i1',5)
         store = new Store({'s1': ss})
-        store.sorted_set_score('s1', 'i1').should.eventually.equal 5
+        store.sorted_set_weight('s1', 'i1').should.eventually.equal 5
 
       it 'should return null if item does not exist', ->
         ss = new SortedSet()
         store = new Store({'s1': ss})
-        store.sorted_set_score('s1', 'i1').should.eventually.equal null
+        store.sorted_set_weight('s1', 'i1').should.eventually.equal null
       
       it 'should return null if set does not exist', ->
         store = new Store()
-        store.sorted_set_score('s1', 'i1').should.eventually.equal null
+        store.sorted_set_weight('s1', 'i1').should.eventually.equal null
 
     describe '#sorted_set_incr', ->
-      it 'should increment the score of a item by a number', ->
+      it 'should increment the weight of a item by a number', ->
         ss = new SortedSet()
         ss.add('i1',5)
         store = new Store({'s1': ss})
         store.sorted_set_incr('s1', 'i1', 1)
-        .then( -> ss.score('i1').should.equal 6 )   
+        .then( -> ss.weight('i1').should.equal 6 )   
       
       it 'should create a set if there is none', ->
         store = new Store()
         store.sorted_set_incr('s1', 'i1', 1)
-        .then( -> store.sorted_set_score('s1','i1').should.eventually.equal 1 )  
+        .then( -> store.sorted_set_weight('s1','i1').should.eventually.equal 1 )  
 
     describe '#sorted_set_add', ->
       it 'should add a value to a set', ->
@@ -91,14 +91,14 @@ describe 'Store', ->
         .then( -> store.set_contains('s1','i1').should.eventually.equal true )  
 
 
-    describe '#set_members_with_score', ->
-      it 'should return a list of members for key with their scores', ->
+    describe '#set_members_with_weight', ->
+      it 'should return a list of members for key with their weights', ->
         store = new Store()
         store.sorted_set_add('s1', 'i1', 2)
-        .then( -> store.set_members_with_score('s1'))
-        .then( (members_with_scores) -> 
-          members_with_scores[0].key.should.equal 'i1'
-          members_with_scores[0].score.should.equal 2
+        .then( -> store.set_members_with_weight('s1'))
+        .then( (members_with_weights) -> 
+          members_with_weights[0].key.should.equal 'i1'
+          members_with_weights[0].weight.should.equal 2
         )  
 
     describe '#set_members', ->

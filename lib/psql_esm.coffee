@@ -64,14 +64,16 @@ class EventStoreMapper
     now = new Date().toISOString()
     @knex('events').insert({person: person, action: action, thing: thing , created_at: now, updated_at: now})
 
-  set_action_weight: (action, score) ->
+  set_action_weight: (action, weight) ->
+    @knex('actions').where(action: action).update({weight: weight})
 
+     
+  has_person_actioned_thing: (person, action, thing) ->
+    @has_event(person,action,thing)
 
-  things_people_have_actioned: (action, people) =>
-    
-  has_person_actioned_thing: (object, action, subject) ->
-    
-  get_actions_of_person_thing_with_scores: (person, thing) =>
+  things_people_have_actioned: (action, people) ->
+
+  get_actions_of_person_thing_with_scores: (person, thing) ->
     q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_scores()])
     .spread( (actions, action_scores) ->
       (as for as in action_scores when as.key in actions)
@@ -84,7 +86,11 @@ class EventStoreMapper
 
     
   get_action_weight: (action) ->
-    
+    @knex('actions').select('weight').where(action: action)
+    .then((row)->
+      parseInt(row[0].weight)
+    )
+
   get_person_action_set: (person, action) =>
 
   get_thing_action_set: (thing, action) =>

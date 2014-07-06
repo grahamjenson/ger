@@ -7,7 +7,7 @@
 # client.sdiff
 # client.del
 # client.zadd
-# client.zscore
+# client.zweight
 # client.zrevrange
 # client.zrange
 # client.zremrangebyrank
@@ -34,20 +34,20 @@ class Store
     return  q.fcall(=> value = @store[key]; delete(@store[key]); value)
 
   #SORTED SET CALLS
-  sorted_set_incr: (key, value, score) ->
+  sorted_set_incr: (key, value, weight) ->
     #redis.zincrby
     @_check_sorted_set(key)
-    q.fcall(=> @store[key].increment(value, score); return)
+    q.fcall(=> @store[key].increment(value, weight); return)
 
-  sorted_set_add: (key, value, score=1) ->
+  sorted_set_add: (key, value, weight=1) ->
     #redis.zadd
     @_check_sorted_set(key)
-    q.fcall(=> @store[key].add(value, score); return)
+    q.fcall(=> @store[key].add(value, weight); return)
 
-  sorted_set_score: (key, value) ->
+  sorted_set_weight: (key, value) ->
     if !(key of @store)
       return q.fcall(-> null)
-    q.fcall(=> @store[key].score(value))
+    q.fcall(=> @store[key].weight(value))
 
 
   _check_sorted_set: (key) ->
@@ -69,11 +69,11 @@ class Store
       return q.fcall(=> [])
     q.fcall(=> @store[key].members())
 
-  set_rev_members_with_score: (key) ->
-    q.fcall(=> @store[key].rev_members_with_scores())
+  set_rev_members_with_weight: (key) ->
+    q.fcall(=> @store[key].rev_members_with_weights())
 
-  set_members_with_score: (key) ->
-    q.fcall(=> @store[key].members_with_score())
+  set_members_with_weight: (key) ->
+    q.fcall(=> @store[key].members_with_weight())
 
   set_contains: (key,value) ->
     #redis.SISMEMBER

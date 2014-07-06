@@ -43,30 +43,30 @@ class EventStoreMapper
   add_action_to_person_thing_set: (person, action, thing) =>
     @store.set_add(KeyManager.person_thing_set_key(person, thing), action)
 
-  get_actions_of_person_thing_with_scores: (person, thing) =>
-    q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_scores()])
-    .spread( (actions, action_scores) ->
-      (as for as in action_scores when as.key in actions)
+  get_actions_of_person_thing_with_weights: (person, thing) =>
+    q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_weights()])
+    .spread( (actions, action_weights) ->
+      (as for as in action_weights when as.key in actions)
     )
     
   get_action_set: ->
     @store.set_members(KeyManager.action_set_key())
 
-  get_action_set_with_scores: ->
-    @store.set_rev_members_with_score(KeyManager.action_set_key())
+  get_action_set_with_weights: ->
+    @store.set_rev_members_with_weight(KeyManager.action_set_key())
 
 
   add_action: (action) ->
     @get_action_weight(action)
-    .then((existing_score) =>
-      @store.sorted_set_add( KeyManager.action_set_key(), action) if existing_score == null
+    .then((existing_weight) =>
+      @store.sorted_set_add( KeyManager.action_set_key(), action) if existing_weight == null
     )
   
-  set_action_weight: (action, score) ->
-    @store.sorted_set_add(KeyManager.action_set_key(), action, score)
+  set_action_weight: (action, weight) ->
+    @store.sorted_set_add(KeyManager.action_set_key(), action, weight)
 
   get_action_weight: (action) ->
-    @store.sorted_set_score(KeyManager.action_set_key(), action)
+    @store.sorted_set_weight(KeyManager.action_set_key(), action)
 
   get_person_action_set: (person, action) =>
     @store.set_members(KeyManager.person_action_set_key(person, action))

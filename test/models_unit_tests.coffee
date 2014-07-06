@@ -82,11 +82,11 @@ describe 'Set', ->
     uset.size().should.equal 2
 
 describe 'SortedSet', ->
-    it 'should have add with score', ->
+    it 'should have add with weight', ->
       set = new SortedSet
       set.add('1',1)
 
-    it 'should return members in order of score', ->
+    it 'should return members in order of weight', ->
       set = new SortedSet
       set.add('a',2)
       set.add('b',1)
@@ -94,7 +94,7 @@ describe 'SortedSet', ->
       members[0].should.equal 'b'
       members[1].should.equal 'a'
 
-    it 'should return revmembers in order of score', ->
+    it 'should return revmembers in order of weight', ->
       set = new SortedSet
       set.add('a',1)
       set.add('b',2)
@@ -102,30 +102,30 @@ describe 'SortedSet', ->
       members[0].should.equal 'b'
       members[1].should.equal 'a'
 
-    it 'should have a score', ->
+    it 'should have a weight', ->
       set = new SortedSet
       set.add('b',2)
-      set.score('b').should.equal 2
+      set.weight('b').should.equal 2
 
-    it 'rev_members_with_scores should return ordered list of values with scores', ->
+    it 'rev_members_with_weights should return ordered list of values with weights', ->
       set = new SortedSet
       set.add('a',1)
       set.add('b',2)
-      mws = set.rev_members_with_scores()
+      mws = set.rev_members_with_weights()
       mws[0].key.should.equal 'b'
-      mws[0].score.should.equal 2
+      mws[0].weight.should.equal 2
       mws[1].key.should.equal 'a'
-      mws[1].score.should.equal 1
+      mws[1].weight.should.equal 1
 
     describe '#increment', ->
       it 'should increment values', ->
         set = new SortedSet
         set.add('b',2)
         set.increment('b',2)
-        set.score('b').should.equal 4
+        set.weight('b').should.equal 4
 
       it 'should add values if they dont exist', ->
         set = new SortedSet
         set.increment('b',2)
-        set.score('b').should.equal 2
+        set.weight('b').should.equal 2
 

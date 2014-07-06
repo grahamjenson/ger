@@ -83,3 +83,32 @@ describe '#add_event', ->
       .then( (has_event) ->
         has_event.should.equal true
       )
+
+describe 'add_action and set_action_weight', ->
+  it 'should add action of weight 1, then set action should change it', ->
+    init_esm()
+    .then (esm) ->
+      esm.add_action('a')
+      .then( ->
+        esm.get_action_weight('a')
+      )
+      .then( (weight) ->
+        weight.should.equal 1
+        esm.set_action_weight('a', 10).then( -> esm.get_action_weight('a'))
+      )
+      .then( (weight) ->
+        weight.should.equal 10
+      )
+
+describe '#has_person_actioned_thing', ->
+  it 'should return things people', ->
+    init_esm()
+    .then (esm) ->
+      esm.add_event('p','a','t')
+      .then( ->
+        q.all([esm.has_person_actioned_thing('p', 'a', 't'), esm.has_person_actioned_thing('p', 'a', 'not_t')])
+      )
+      .spread( (t1, t2) ->
+        t1.should.equal true
+        t2.should.equal false
+      )

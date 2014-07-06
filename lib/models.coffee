@@ -37,34 +37,34 @@ class Set
 
 
 class SortedSet extends Set
-  add: (value, score) ->
-    @store[value] = score
+  add: (value, weight) ->
+    @store[value] = weight
 
-  sorted_member_score_list: ->
-    ({key: k, score: v} for k , v of @store).sort((x, y) -> x.score- y.score)
+  sorted_member_weight_list: ->
+    ({key: k, weight: v} for k , v of @store).sort((x, y) -> x.weight- y.weight)
 
-  members_with_score: ->
-    @sorted_member_score_list()
+  members_with_weight: ->
+    @sorted_member_weight_list()
 
-  rev_members_with_scores: ->
-    @members_with_score().reverse()
+  rev_members_with_weights: ->
+    @members_with_weight().reverse()
 
   members: -> 
-    (m.key for m in @sorted_member_score_list())
+    (m.key for m in @sorted_member_weight_list())
 
   revmembers: ->
     @members().reverse()
 
-  score: (value) ->
+  weight: (value) ->
     if !(value of @store)
       return null
     return @store[value]
 
-  increment: (value, score) ->
+  increment: (value, weight) ->
     if !!@store[value]
-     @add(value, @score(value) + score)
+     @add(value, @weight(value) + weight)
     else
-      @add(value, score)
+      @add(value, weight)
 
 GER_Models.Set = Set
 GER_Models.SortedSet = SortedSet

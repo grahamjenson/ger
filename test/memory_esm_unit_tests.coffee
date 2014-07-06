@@ -17,27 +17,27 @@ init_esm = ->
 describe 'add_action', ->
   it 'should add the action with a weight to a sorted set', ->
     esm = init_esm()
-    sinon.stub(esm.store, 'sorted_set_score', -> q.fcall(-> null))
+    sinon.stub(esm.store, 'sorted_set_weight', -> q.fcall(-> null))
     sinon.stub(esm.store, 'sorted_set_add', (key, action) -> 
       action.should.equal 'view'
     )
     esm.add_action('view')
     .then( -> sinon.assert.calledOnce(esm.store.sorted_set_add))
 
-  it 'should not override the score if the action is already added', ->
+  it 'should not override the weight if the action is already added', ->
     esm = init_esm()
-    sinon.stub(esm.store, 'sorted_set_score', -> q.fcall(-> 3))
+    sinon.stub(esm.store, 'sorted_set_weight', -> q.fcall(-> 3))
     sinon.stub(esm.store, 'sorted_set_add')
     esm.add_action('view')
     .then(-> sinon.assert.notCalled(esm.store.sorted_set_add))
 
 
 describe 'set_action_weight', ->
-  it 'will override an actions score', ->
+  it 'will override an actions weight', ->
     esm = init_esm()
-    sinon.stub(esm.store, 'sorted_set_add', (key, action, score) -> 
+    sinon.stub(esm.store, 'sorted_set_add', (key, action, weight) -> 
       action.should.equal 'view'
-      score.should.equal 5
+      weight.should.equal 5
     )
     esm.set_action_weight('view', 5)
     sinon.assert.calledOnce(esm.store.sorted_set_add)
@@ -125,23 +125,23 @@ describe '#get_person_action_set', ->
     sinon.assert.calledOnce(esm.store.set_members)
 
 
-describe '#get_actions_of_person_thing_with_scores', ->
-  it 'should return action scores of just keys in actions', ->
+describe '#get_actions_of_person_thing_with_weights', ->
+  it 'should return action weights of just keys in actions', ->
     esm = init_esm()
-    sinon.stub(esm, 'get_action_set_with_scores', -> q.fcall(-> [{key: 'view', score: 1} , {key: 'buy', score: 2} ]))
+    sinon.stub(esm, 'get_action_set_with_weights', -> q.fcall(-> [{key: 'view', weight: 1} , {key: 'buy', weight: 2} ]))
     sinon.stub(esm.store, 'set_members', -> q.fcall(-> ['buy']))
-    esm.get_actions_of_person_thing_with_scores('x','y')
-    .then( (action_scores) ->
-      action_scores.length.should.equal 1
-      action_scores[0].key.should.equal 'buy'
-      action_scores[0].score.should.equal 2
+    esm.get_actions_of_person_thing_with_weights('x','y')
+    .then( (action_weights) ->
+      action_weights.length.should.equal 1
+      action_weights[0].key.should.equal 'buy'
+      action_weights[0].weight.should.equal 2
     )
 
-describe '#get_action_set_with_scores', ->
-  it 'should return the actions with the scores', ->
+describe '#get_action_set_with_weights', ->
+  it 'should return the actions with the weights', ->
     esm = init_esm()
-    sinon.stub(esm.store,'set_rev_members_with_score', -> return q.fcall(-> true))
-    esm.get_action_set_with_scores().should.eventually.equal true
+    sinon.stub(esm.store,'set_rev_members_with_weight', -> return q.fcall(-> true))
+    esm.get_action_set_with_weights().should.eventually.equal true
 
 
 describe '#things_people_have_actioned', ->

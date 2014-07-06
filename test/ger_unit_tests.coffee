@@ -17,9 +17,9 @@ init_ger = ->
 describe '#reccommendations_for_person', ->
   it 'should return a list of reccommended items', ->
     ger = init_ger()
-    sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', score: 1}, {person: 'p2', score: 3}]))
+    sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]))
     sinon.stub(ger.esm,'things_people_have_actioned', -> q.fcall(-> ['t1','t2']))
-    sinon.stub(ger, 'weighted_probability_to_action_thing_by_people', (thing, action, people_scores) -> 
+    sinon.stub(ger, 'weighted_probability_to_action_thing_by_people', (thing, action, people_weights) -> 
       if thing == 't1'
         return .2
       else if thing == 't2'
@@ -28,11 +28,11 @@ describe '#reccommendations_for_person', ->
         throw 'bad thing'
     )
     ger.reccommendations_for_person('p1','view')
-    .then( (thing_scores) -> 
-      thing_scores[0].thing.should.equal 't2'
-      thing_scores[0].score.should.equal .5
-      thing_scores[1].thing.should.equal 't1'
-      thing_scores[1].score.should.equal .2
+    .then( (thing_weights) -> 
+      thing_weights[0].thing.should.equal 't2'
+      thing_weights[0].weight.should.equal .5
+      thing_weights[1].thing.should.equal 't1'
+      thing_weights[1].weight.should.equal .2
     )
 
 
@@ -48,8 +48,8 @@ describe '#weighted_probability_to_action_thing_by_people', ->
         return q.fcall( -> false)
       throw 'bad person'
     )
-    people_scores = [{person: 'p1', score: 1}, {person: 'p2', score: 3}]
-    ger.weighted_probability_to_action_thing_by_people('i1', 'view', people_scores).should.eventually.equal .25
+    people_weights = [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]
+    ger.weighted_probability_to_action_thing_by_people('i1', 'view', people_weights).should.eventually.equal .25
 
 
 
@@ -76,8 +76,8 @@ describe '#ordered_similar_people', ->
 describe '#similarity_between_people', ->
   it 'should find the similarity_between_people by looking at their jaccard distance', ->
     ger = init_ger()
-    sinon.stub(ger.esm, 'get_action_set_with_scores', -> q.fcall(-> [{key: 'view', score: 1} , {key: 'buy', score: 1} ]))
-    sinon.stub(ger, 'similarity_between_people_for_action', (person1, person2, action_key, action_score) ->
+    sinon.stub(ger.esm, 'get_action_set_with_weights', -> q.fcall(-> [{key: 'view', weight: 1} , {key: 'buy', weight: 1} ]))
+    sinon.stub(ger, 'similarity_between_people_for_action', (person1, person2, action_key, action_weight) ->
       person1.should.equal 'p1'
       person2.should.equal 'p2'
       if action_key == 'view'
@@ -100,7 +100,7 @@ describe "#similarity_between_people_for_action", ->
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '1')
     sinon.assert.calledOnce(ger.esm.people_jaccard_metric) 
   
-  it 'should find the similarity people by looking at their jaccard distance multiplied by score', ->
+  it 'should find the similarity people by looking at their jaccard distance multiplied by weight', ->
     ger = init_ger()
     sinon.stub(ger.esm, 'people_jaccard_metric', -> q.fcall(-> 4))
     ger.similarity_between_people_for_action('person1', 'person2', 'action', '2').should.eventually.equal 8
