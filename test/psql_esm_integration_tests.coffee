@@ -112,3 +112,56 @@ describe '#has_person_actioned_thing', ->
         t1.should.equal true
         t2.should.equal false
       )
+
+describe '#get_actions_of_person_thing_with_weights', ->
+  it 'should return action and weights', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
+      .then( -> esm.set_action_weight('a',10))
+      .then( -> esm.get_actions_of_person_thing_with_weights('p','t'))
+      .then( (action_weights) ->
+        action_weights[0].key.should.equal 'a'
+        action_weights[0].weight.should.equal 10
+        action_weights[1].key.should.equal 'a2'
+        action_weights[1].weight.should.equal 1
+      )
+
+describe '#get_action_set', ->
+  it 'should return actions', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
+      .then( -> esm.get_action_set())
+      .then( (actions) ->
+        ('a' in actions).should.equal true
+        ('a2' in actions).should.equal true
+      )
+
+describe '#get_action_set_with_weights', ->
+  it 'should return actions with weights', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
+      .then( -> esm.set_action_weight('a',10))
+      .then( -> esm.get_action_set_with_weights())
+      .then( (action_weights) ->
+        action_weights[0].key.should.equal 'a'
+        action_weights[0].weight.should.equal 10
+        action_weights[1].key.should.equal 'a2'
+        action_weights[1].weight.should.equal 1
+      ) 
+
+
+
+describe '#get_thing_action_set', ->
+  it 'should return actions with weights', ->
+    init_esm()
+    .then (esm) ->
+      esm.add_action('a')
+      .then( -> q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')]))
+      .then( -> esm.get_thing_action_set('t','a'))
+      .then( (things) ->
+        ('p1' in things).should.equal true
+        ('p2' in things).should.equal true
+      ) 

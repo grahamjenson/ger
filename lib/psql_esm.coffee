@@ -1,7 +1,7 @@
 q = require 'q'
 
 #create the actions table if it doesn't already exist
-#action | score
+#action | weight
 
 #create the events table if it doesn't already exist
 # person, action, thing, created_at
@@ -58,7 +58,13 @@ class EventStoreMapper
   add_action: (action) ->
     #Add action if it does not already exist
     now = new Date().toISOString()
-    @knex('actions').insert({action: action, weight: 1, created_at: now, updated_at: now})
+    @has_action(action)
+    .then( (has_action) =>
+      if has_action
+        true
+      else
+        @knex('actions').insert({action: action, weight: 1, created_at: now, updated_at: now})
+    )
 
   add_event_to_db: (person, action, thing) ->
     now = new Date().toISOString()
@@ -71,18 +77,20 @@ class EventStoreMapper
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
 
-  things_people_have_actioned: (action, people) ->
+  
 
-  get_actions_of_person_thing_with_scores: (person, thing) ->
-    q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_scores()])
-    .spread( (actions, action_scores) ->
-      (as for as in action_scores when as.key in actions)
-    )
+
+  get_actions_of_person_thing_with_weights: (person, thing) ->
+    @knex('events').select('events.action as key', 'actions.weight').leftJoin('actions', 'events.action', 'actions.action').where(person: person, thing: thing).orderBy('weight', 'desc')
     
   get_action_set: ->
-    
-  get_action_set_with_scores: ->
+    @knex('actions').select('action')
+    .then( (rows) ->
+      (r.action for r in rows)
+    )
 
+  get_action_set_with_weights: ->
+    @knex('actions').select('action as key', 'weight').orderBy('weight', 'desc')
 
     
   get_action_weight: (action) ->
@@ -92,8 +100,18 @@ class EventStoreMapper
     )
 
   get_person_action_set: (person, action) =>
+    @knex('events').select('thing').where(person: person, action: action)
+    .then( (rows) ->
+      (r.thing for r in rows)
+    )
 
   get_thing_action_set: (thing, action) =>
+    @knex('events').select('person').where(thing: thing, action: action)
+    .then( (rows) ->
+      (r.person for r in rows)
+    )
+
+  things_people_have_actioned: (action, people) ->
 
 
   things_jaccard_metric: (thing1, thing2, action_key) ->
