@@ -5,21 +5,13 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
-Store = require('../lib/store')
-
-ESM = require('../lib/event_store_mapper')
+MemoryESM = require('../lib/memory_esm')
 
 GER = require('../ger').GER
 q = require 'q'
 
 init_ger = ->
-  store = new Store
-  esm = new ESM(store)
-  return new GER(esm)
-
-
-
-
+  return new GER(new MemoryESM())
 
 
 describe '#reccommendations_for_person', ->

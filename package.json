@@ -6,7 +6,8 @@
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
   "dependencies"  : {
     "q": "1.0.1",
-    "knex" : "0.6.20"
+    "knex" : "0.6.20",
+    "pg" : "3.3.0"
   },
   "devDependencies": {
     "mocha": "1.18.2",

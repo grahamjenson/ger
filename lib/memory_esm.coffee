@@ -1,4 +1,5 @@
 q = require 'q'
+Store = require('../lib/store')
 
 KeyManager =
   action_set_key : ->
@@ -22,7 +23,8 @@ KeyManager =
 
 class EventStoreMapper
 
-  constructor: (@store) ->
+  constructor: () ->
+    @store = new Store
 
   add_event: (person, action, thing) ->
     q.all([
@@ -38,12 +40,8 @@ class EventStoreMapper
   has_person_actioned_thing: (object, action, subject) ->
     @store.set_contains(KeyManager.person_action_set_key(object, action), subject)
 
-
   add_action_to_person_thing_set: (person, action, thing) =>
     @store.set_add(KeyManager.person_thing_set_key(person, thing), action)
-
-  get_actions_of_thing_person_with_scores: (thing,person) ->
-    get_actions_of_person_thing_with_scores(person,thing)
 
   get_actions_of_person_thing_with_scores: (person, thing) =>
     q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_scores()])

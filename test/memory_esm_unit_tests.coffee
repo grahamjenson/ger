@@ -5,16 +5,13 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
-Store = require('../lib/store')
-
-ESM = require('../lib/event_store_mapper')
+MEMORY_ESM = require('../lib/memory_esm')
 
 q = require 'q'
 
 
 init_esm = ->
-  store = new Store
-  new ESM(store)
+  new MEMORY_ESM()
 
 
 describe 'add_action', ->

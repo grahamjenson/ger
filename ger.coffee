@@ -1,20 +1,4 @@
 q = require 'q'
-knex = require 'knex'
-
-#create the actions table if it doesn't already exist
-#action | score
-
-#create the events table if it doesn't already exist
-# person, action, thing, created_at
-
-#connect to database
-
-
-
-
-#Create postgres store wrapper
-
-
 
 Utils =
   flatten: (arr) ->
@@ -34,7 +18,6 @@ class GER
     PRE_ACTION_SCORE: 10 # this is just the default
 
   constructor: (@esm) ->
-    @store = @esm.store
     
     plural =
       'person' : 'people'
