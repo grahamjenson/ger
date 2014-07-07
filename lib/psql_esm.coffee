@@ -69,9 +69,14 @@ class EventStoreMapper
     .then( (count) =>
       count = parseInt(count[0].count)
       if count == 0
-        @knex('actions').insert({action: action, weight: weight, created_at: now, updated_at: now})
+        #console.log "insert", action, weight, overwrite
+        return @knex('actions').insert({action: action, weight: weight, created_at: now, updated_at: now}).catch()
+      else if overwrite
+        #console.log "update", action, weight, overwrite
+        return @knex('actions').where(action: action).update({weight: weight}).catch()
       else
-        @knex('actions').where(action: action).update({weight: weight}) if overwrite
+        #console.log 'nothing'
+        return true
     )
     .catch( (error) ->
       #error code 23505 is unique key violation

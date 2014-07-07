@@ -19,6 +19,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	  v.cpus = 4
 	end
 
+  config.vm.box_check_update = false
+
   config.vm.box = "hashicorp/precise64"
   config.vm.provision "docker"
   config.vm.provision "shell", inline:

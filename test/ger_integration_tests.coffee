@@ -33,7 +33,7 @@ create_psql_esm = ->
 create_store_esm = ->
   q.fcall( -> new MemoryESM())
 
-for esmfn in [create_store_esm, create_psql_esm]
+for esmfn in [ create_store_esm, create_psql_esm]
   init_ger = ->
     esmfn().then( (esm) -> new GER(esm))
 
@@ -66,10 +66,8 @@ for esmfn in [create_store_esm, create_psql_esm]
     it 'should return the weight of the action', ->
       init_ger()
       .then (ger) ->
-        q.all([
-          ger.set_action_weight('view', 5),
-          ger.event('p1','view','c'),
-        ])
+        ger.set_action_weight('view', 5)
+        .then(-> ger.event('p1','view','c'))
         .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
         .then((probability) ->
           probability.should.equal 5
@@ -81,9 +79,13 @@ for esmfn in [create_store_esm, create_psql_esm]
         q.all([
           ger.set_action_weight('view', 5),
           ger.set_action_weight('like', 10),
-          ger.event('p1','view','c'),
-          ger.event('p1','like','c'),
         ])
+        .then( -> 
+          q.all([
+            ger.event('p1','view','c'),
+            ger.event('p1','like','c')
+          ])
+        )
         .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
         .then((probability) ->
           probability.should.equal 15
@@ -262,27 +264,60 @@ for esmfn in [create_store_esm, create_psql_esm]
         .then(-> ger.similarity_between_people('p1', 'p2'))
         .then((sim) -> sim.should.equal .5)
 
-   it 'should take into consideration the weights of the actions', ->
+   it 'asd should take into consideration the weights of the actions', ->
       init_ger()
       .then (ger) ->
         q.all([
-          ger.set_action_weight('view', 1),
-          ger.set_action_weight('buy', 10),
-
-          ger.event('p1', 'buy', 'a'),
-          ger.event('p1', 'buy', 'b'),
-          ger.event('p1', 'buy', 'c'),
-          ger.event('p1', 'buy', 'd'),
-          ger.event('p2', 'buy', 'a'),
-
-          ger.event('p1', 'view','a'),
-          ger.event('p1', 'view','b'),
-          ger.event('p2', 'view','a'),
-        ])
+          ger.set_action_weight('viewview', 1),
+          ger.set_action_weight('buybuy', 10),
+          ])
+        .then( ->
+          q.all([
+            ger.event('p1', 'buybuy', 'a'),
+            ger.event('p1', 'buybuy', 'b'),
+            ger.event('p1', 'buybuy', 'c'),
+            ger.event('p1', 'buybuy', 'd'),
+            ger.event('p2', 'buybuy', 'a'),
+            ger.event('p1', 'viewview','a'),
+            ger.event('p1', 'viewview','b'),
+            ger.event('p2', 'viewview','a'),
+          ])
+        )
         .then(-> ger.similarity_between_people('p1', 'p2'))
         .then((sim) -> sim.should.equal 3)
 
   describe 'setting action weights', ->
+
+    it 'should work getting all weights', ->
+      init_ger()
+      .then (ger) ->
+        ger.set_action_weight('buybuy', 10)
+        .then( (val) -> ger.set_action_weight('viewview', 1))
+        .then( ->
+          q.all([
+            ger.event('p1', 'buybuy', 'a'),
+            ger.event('p1', 'buybuy', 'b'),
+            ger.event('p1', 'buybuy', 'c'),
+            ])
+        )
+        .then(-> ger.esm.get_action_set_with_weights())
+        .then((actions) -> 
+          actions[0].key.should.equal "buybuy"
+          actions[0].weight.should.equal 10
+          actions[1].key.should.equal "viewview"
+          actions[1].weight.should.equal 1
+        )
+
+    it 'should work multiple at the time', ->
+      init_ger()
+      .then (ger) ->
+        q.all([
+          ger.set_action_weight('viewview', 1),
+          ger.set_action_weight('buybuy', 10),
+        ])
+        .then(-> ger.event('p1', 'buybuy', 'a'))
+        .then(-> ger.get_action_weight('buybuy'))
+        .then((weight) -> weight.should.equal 10)
 
     it 'should override existing weight', ->
       init_ger()
