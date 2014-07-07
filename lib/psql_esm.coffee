@@ -56,22 +56,29 @@ class EventStoreMapper
       ])
 
   add_action: (action) ->
-    #Add action, it has unique constraint that is difficult to gurantee because of the async nature of this code.
-    #So it must fail gracefully if the action already exists in the table
-    now = new Date().toISOString()
-    @knex('actions').insert({action: action, weight: 1, created_at: now, updated_at: now})
-    .catch( (error) ->
-      #error code 23505 is unique key violation
-      if error.code != '23505'
-        throw error
-    )
+    @set_action_weight(action, 1, false)
 
   add_event_to_db: (person, action, thing) ->
     now = new Date().toISOString()
     @knex('events').insert({person: person, action: action, thing: thing , created_at: now, updated_at: now})
 
-  set_action_weight: (action, weight) ->
-    @knex('actions').where(action: action).update({weight: weight})
+  set_action_weight: (action, weight, overwrite = true) ->
+    now = new Date().toISOString()
+    #TODO change to atomic update or insert (upsert), because this can cause a race condition if you try add the same action multiple times, hence the catch -- graham
+    @knex('actions').where(action: action).count()
+    .then( (count) =>
+      count = parseInt(count[0].count)
+      if count == 0
+        @knex('actions').insert({action: action, weight: weight, created_at: now, updated_at: now})
+      else
+        @knex('actions').where(action: action).update({weight: weight}) if overwrite
+    )
+    .catch( (error) ->
+      #error code 23505 is unique key violation
+      if error.code != '23505'
+        throw error
+    )
+    
 
      
   has_person_actioned_thing: (person, action, thing) ->
@@ -93,8 +100,8 @@ class EventStoreMapper
     
   get_action_weight: (action) ->
     @knex('actions').select('weight').where(action: action)
-    .then((row)->
-      parseInt(row[0].weight)
+    .then((rows)->
+      parseInt(rows[0].weight)
     )
 
   get_person_action_set: (person, action) =>
