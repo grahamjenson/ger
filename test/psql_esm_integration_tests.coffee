@@ -153,23 +153,23 @@ describe '#get_action_set_with_weights', ->
       ) 
 
 
-describe '#get_person_action_set', ->
+describe '#get_things_that_actioned_person', ->
   it 'should return list of things', ->
     init_esm()
     .then (esm) ->
       q.all([esm.add_event('p','a','t'),esm.add_event('p','a','t1')])
-      .then( -> esm.get_person_action_set('p','a'))
+      .then( -> esm.get_things_that_actioned_person('p','a'))
       .then( (things) ->
         ('t' in things).should.equal true
         ('t1' in things).should.equal true
       ) 
 
-describe '#get_thing_action_set', ->
+describe '#get_people_that_actioned_thing', ->
   it 'should return list of people', ->
     init_esm()
     .then (esm) ->
       q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')])
-      .then( -> esm.get_thing_action_set('t','a'))
+      .then( -> esm.get_people_that_actioned_thing('t','a'))
       .then( (people) ->
         ('p1' in people).should.equal true
         ('p2' in people).should.equal true

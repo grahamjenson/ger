@@ -68,10 +68,10 @@ class EventStoreMapper
   get_action_weight: (action) ->
     @store.sorted_set_weight(KeyManager.action_set_key(), action)
 
-  get_person_action_set: (person, action) =>
+  get_things_that_actioned_person: (person, action) =>
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
-  get_thing_action_set: (thing, action) =>
+  get_people_that_actioned_thing: (thing, action) =>
     @store.set_members(KeyManager.thing_action_set_key(thing, action))
 
   add_person_to_thing_action_set: (person, action, thing) =>

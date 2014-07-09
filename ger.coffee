@@ -29,8 +29,8 @@ class GER
         ####################### GET SIMILAR OBJECTS TO OBJECT #################################
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
-          @esm["get_#{v.object}_action_set"](object, action)
-          .then( (subjects) => q.all((@esm["get_#{v.subject}_action_set"](subject, action) for subject in subjects)))
+          @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
+          .then( (subjects) => q.all((@esm["get_#{plural[v.object]}_that_actioned_#{v.subject}"](subject, action) for subject in subjects)))
           .then( (objects) => Utils.flatten(objects)) #flatten list
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
           .then( (objects) => Utils.unique(objects)) #return unique list
@@ -102,7 +102,7 @@ class GER
 
 
   reccommendations_for_thing: (thing, action) ->
-    @esm.get_thing_action_set(thing, action)
+    @esm.get_people_that_actioned_thing(thing, action)
     .then( (people) =>
       list_of_promises = q.all( (@ordered_similar_people(p) for p in people) )
       q.all( [people, list_of_promises] )

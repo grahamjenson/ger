@@ -123,8 +123,8 @@ describe "#similar_people", ->
 describe '#similar_people_for_action', ->
   it 'should take a person and find similar people for an action', ->
     ger = init_ger()
-    sinon.stub(ger.esm, 'get_person_action_set', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger.esm, 'get_thing_action_set', -> q.fcall(-> ['person2']))
+    sinon.stub(ger.esm, 'get_things_that_actioned_person', -> q.fcall(-> ['thing1']))
+    sinon.stub(ger.esm, 'get_people_that_actioned_thing', -> q.fcall(-> ['person2']))
     ger.similar_people_for_action('person1','action')
     .then((people) -> 
       ('person2' in people).should.equal true; 
@@ -133,8 +133,8 @@ describe '#similar_people_for_action', ->
 
   it 'should remove duplicate people', ->
     ger = init_ger()
-    sinon.stub(ger.esm, 'get_person_action_set', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger.esm, 'get_thing_action_set', -> q.fcall(-> ['person2', 'person2']))
+    sinon.stub(ger.esm, 'get_things_that_actioned_person', -> q.fcall(-> ['thing1']))
+    sinon.stub(ger.esm, 'get_people_that_actioned_thing', -> q.fcall(-> ['person2', 'person2']))
     ger.similar_people_for_action('person1','action')
     .then((people) -> 
       ('person2' in people).should.equal true; 
@@ -143,8 +143,8 @@ describe '#similar_people_for_action', ->
 
   it 'should remove the passed person', ->
     ger = init_ger()
-    sinon.stub(ger.esm, 'get_person_action_set', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger.esm, 'get_thing_action_set', -> q.fcall(-> ['person2', 'person1']))
+    sinon.stub(ger.esm, 'get_things_that_actioned_person', -> q.fcall(-> ['thing1']))
+    sinon.stub(ger.esm, 'get_people_that_actioned_thing', -> q.fcall(-> ['person2', 'person1']))
     ger.similar_people_for_action('person1','action')
     .then((people) -> 
       ('person2' in people).should.equal true; 

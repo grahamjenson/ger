@@ -110,18 +110,18 @@ describe "#get_action_set", ->
     sinon.assert.calledOnce(esm.store.set_members)
 
 
-describe '#get_thing_action_set', ->
+describe '#get_people_that_actioned_thing', ->
   it 'should return a promise for the action things set', ->
     esm = init_esm()
     sinon.stub(esm.store, 'set_members')
-    esm.get_thing_action_set('thing','action')
+    esm.get_people_that_actioned_thing('thing','action')
     sinon.assert.calledOnce(esm.store.set_members)
 
-describe '#get_person_action_set', ->
+describe '#get_things_that_actioned_person', ->
   it 'should return a promise for the persons action set', ->
     esm = init_esm()
     sinon.stub(esm.store, 'set_members')
-    esm.get_person_action_set('person','action')
+    esm.get_things_that_actioned_person('person','action')
     sinon.assert.calledOnce(esm.store.set_members)
 
 

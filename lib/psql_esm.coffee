@@ -109,13 +109,13 @@ class EventStoreMapper
       parseInt(rows[0].weight)
     )
 
-  get_person_action_set: (person, action) =>
+  get_things_that_actioned_person: (person, action) =>
     @knex('events').select('thing').where(person: person, action: action)
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
-  get_thing_action_set: (thing, action) =>
+  get_people_that_actioned_thing: (thing, action) =>
     @knex('events').select('person').where(thing: thing, action: action)
     .then( (rows) ->
       (r.person for r in rows)
