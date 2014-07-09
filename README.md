@@ -1,22 +1,68 @@
 Good Enough Reccomendations (GER) is a simple recomendations engine that uses collaborative filtering.
 GER is built to be a very fast, scalable calculator that can be built upon and wrapped to add specific features that you may need.
 
-The API of GER is 
+#Init
+
+Create a GER instance by first creating a connection to the database with knex, then creating a Postgres Event Store Mapper (ESM).
 
 ```coffeescript
-event(person: String, action: String)
+#knex is needed for a database connection
+knex = require('knex')(
+  {
+  client: 'pg', 
+  connection: 
+    {
+      host: '127.0.0.1', 
+      user : 'root', 
+      password : 'abcdEF123456', 
+      database : 'ger'
+    }
+  }
+)
+
+#Postgres Event Store Mapper (ESM) is the mapping from 
+PsqlESM = require('./lib/psql_esm')
+GER = require('ger')
+
+psql_esm = new PsqlESM(knex)
+
+#create the tables if they do not already exist
+psql_esm.init_database_tables()
+
+ger = new GER(psql_esm)
 ```
 
-1) No Business Rules
-2) No reccommending to action thing that has not been actioned before.
-3) easily allowing anonymising people actions and things for cloud deployment
 
-It is built to be configurable to your problem. 
-It is also built to be massivly scalable so that
-It takes inspration from racoon but tries to be more generic.
+#The GER API
 
-It uses a k-nearest-neibough algorithm (k-NN) and weighted Jaccard Distance.
+The core method of GER is the event:
+```coffeescript
+ger.event("person", "action", "thing")
+```
 
-It allows configuration and comes with a learning algorithm so given a test and validation set it will try find the best configuration for you.
+Each person, action and thing are just strings that are then used to query for recommendations.
 
+ger can be queried to recommend things a "person" might like to "action", e.g.
 
+```
+ger.recommendations_for_person("person", "action")
+```
+
+Or ask what people might "action" a "thing": 
+
+```
+ger.recommendations_for_thing("thing", "action")
+```
+
+Ger can be queried for similar people or things
+
+```
+ger.ordered_similar_people("person")
+ger.ordered_similar_things("thing")
+```
+
+Particular actions can be weighted so as to increase their importance in the similarity
+
+```
+ger.set_action_weight("action", 1)
+```

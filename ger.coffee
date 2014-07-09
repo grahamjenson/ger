@@ -14,11 +14,10 @@ Utils =
     value for key, value of output
 
 class GER
-  Config:
-    PRE_ACTION_SCORE: 10 # this is just the default
 
   constructor: (@esm) ->
-    
+    @INITIAL_PERSON_WEIGHT = 10
+
     plural =
       'person' : 'people'
       'thing' : 'things'
@@ -101,7 +100,7 @@ class GER
 
 
 
-  reccommendations_for_thing: (thing, action) ->
+  recommendations_for_thing: (thing, action) ->
     @esm.get_people_that_actioned_thing(thing, action)
     .then( (people) =>
       list_of_promises = q.all( (@ordered_similar_people(p) for p in people) )
@@ -116,27 +115,27 @@ class GER
 
       for p in people
         if temp[p]
-          temp[p] += @Config.PRE_ACTION_SCORE
+          temp[p] += @INITIAL_PERSON_WEIGHT
         else
-          temp[p] = @Config.PRE_ACTION_SCORE
+          temp[p] = @INITIAL_PERSON_WEIGHT
 
       temp
     )
-    .then( (reccommendations) ->
-      weight_subjects = ([subject, weight] for subject, weight of reccommendations)
-      sorted_subjects = weight_subjects.sort((x, y) -> y[1] - x[1])
-      for ts in sorted_subjects
+    .then( (recommendations) ->
+      weighted_people = ([person, weight] for person, weight of recommendations)
+      sorted_people = weighted_people.sort((x, y) -> y[1] - x[1])
+      for ts in sorted_people
         temp = {weight: ts[1], person: ts[0]}
     )
 
-  reccommendations_for_person: (person, action) ->
-    #reccommendations for object action from similar people
-    #reccommendations for object action from object, only looking at what they have already done
+  recommendations_for_person: (person, action) ->
+    #recommendations for object action from similar people
+    #recommendations for object action from object, only looking at what they have already done
     #then join the two objects and sort
     @ordered_similar_people(person)
     .then( (object_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      object_weights.push {weight: @Config.PRE_ACTION_SCORE, person: person}
+      object_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
       objects = (ps.person for ps in object_weights)
       q.all([object_weights, @esm.things_people_have_actioned(action, objects)])
     )
@@ -150,8 +149,8 @@ class GER
         temp[ts[0]] = ts[1]
       temp
     )
-    .then( (reccommendations) ->
-      weight_subjects = ([subject, weight] for subject, weight of reccommendations)
+    .then( (recommendations) ->
+      weight_subjects = ([subject, weight] for subject, weight of recommendations)
       sorted_subjects = weight_subjects.sort((x, y) -> y[1] - x[1])
       for ts in sorted_subjects
         temp = {weight: ts[1], thing: ts[0]}

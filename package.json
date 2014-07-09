@@ -1,6 +1,6 @@
 {
   "name"          : "ger",
-  "description"   : "Good Enough Reccommendations (GER): Taking the '80% of people are happy with 20% of the requirements' philosophy to Reccommendations Engines. GER will probably work for you and return good enough reccommendations",
+  "description"   : "Good Enough Recommendations (GER): Taking the '80% of people are happy with 20% of the requirements' philosophy to recommendations Engines. GER will probably work for you and return good enough recommendations",
   "url"           : "https://github.com/grahamjenson/ger.git",
   "keywords"      : ["model", "promise", "backbone"],
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",

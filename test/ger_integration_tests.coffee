@@ -91,7 +91,7 @@ for esmfn in [ create_store_esm, create_psql_esm]
           probability.should.equal 15
         )
 
-  describe 'reccommendations_for_thing', ->
+  describe 'recommendations_for_thing', ->
     it 'should take a thing and action and return people that it reccommends', ->
       init_ger()
       .then (ger) ->
@@ -102,13 +102,13 @@ for esmfn in [ create_store_esm, create_psql_esm]
           ger.event('p2','buy','c'),
 
         ])
-        .then(-> ger.reccommendations_for_thing('c', 'buy'))
+        .then(-> ger.recommendations_for_thing('c', 'buy'))
         .then((people_weights) ->
           people_weights[1].person.should.equal 'p1'
           people_weights.length.should.equal 2
         )
 
-  describe 'reccommendations_for_person', ->
+  describe 'recommendations_for_person', ->
     
     it 'should reccommend basic things', ->
       init_ger()
@@ -119,7 +119,7 @@ for esmfn in [ create_store_esm, create_psql_esm]
 
           ger.event('p2','view','a'),
         ])
-        .then(-> ger.reccommendations_for_person('p2', 'buy'))
+        .then(-> ger.recommendations_for_person('p2', 'buy'))
         .then((item_weights) ->
           item_weights[0].thing.should.equal 'a'
           item_weights.length.should.equal 1
@@ -139,7 +139,7 @@ for esmfn in [ create_store_esm, create_psql_esm]
           ger.event('p3','view','a'),
           ger.event('p3','buy','c')
         ])
-        .then(-> ger.reccommendations_for_person('p1', 'buy'))
+        .then(-> ger.recommendations_for_person('p1', 'buy'))
         .then((item_weights) ->
           #p1 already bought a, making it very likely to buy again
           #2/3 people buy c, 1/3 people buys d.
@@ -162,7 +162,7 @@ for esmfn in [ create_store_esm, create_psql_esm]
           ger.event('p3','view','a'),
           ger.event('p3','view','c')
         ])
-        .then(-> ger.reccommendations_for_person('p1', 'view'))
+        .then(-> ger.recommendations_for_person('p1', 'view'))
         .then((item_weights) ->
           item_weights[0].thing.should.equal 'a'
           item_weights[1].thing.should.equal 'c'

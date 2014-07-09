@@ -14,7 +14,7 @@ init_ger = ->
   return new GER(new MemoryESM())
 
 
-describe '#reccommendations_for_person', ->
+describe '#recommendations_for_person', ->
   it 'should return a list of reccommended items', ->
     ger = init_ger()
     sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]))
@@ -27,7 +27,7 @@ describe '#reccommendations_for_person', ->
       else
         throw 'bad thing'
     )
-    ger.reccommendations_for_person('p1','view')
+    ger.recommendations_for_person('p1','view')
     .then( (thing_weights) -> 
       thing_weights[0].thing.should.equal 't2'
       thing_weights[0].weight.should.equal .5
