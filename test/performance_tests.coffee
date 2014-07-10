@@ -42,10 +42,11 @@ describe 'adding events', ->
     init_ger()
     .then (ger) ->
       st = new Date().getTime()
-      
+      actions = ["buy", "like", "view"]
       promises = []
       for x in [1..1000]
-        promises.push ger.event('p1','buy','c')
+        action = actions[Math.floor(Math.random()*actions.length)];
+        promises.push ger.event('p1', action ,'c')
       q.all(promises)
       .then(->
         et = new Date().getTime()
