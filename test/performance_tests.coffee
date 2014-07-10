@@ -41,11 +41,15 @@ describe 'adding events', ->
     this.timeout(5000);
     init_ger()
     .then (ger) ->
-      console.log "START #{new Date()}"
+      st = new Date().getTime()
+      
       promises = []
       for x in [1..1000]
         promises.push ger.event('p1','buy','c')
       q.all(promises)
-      .then(-> 
-        console.log "Finished #{new Date()}"
+      .then(->
+        et = new Date().getTime()
+        time = et-st
+        pe = time/1000
+        console.log "#{pe}ms per event"
       )
