@@ -38,19 +38,19 @@ init_ger = ->
 
 describe 'adding events', ->
   it 'adding 1000 events takes so much time', ->
-    this.timeout(5000);
+    this.timeout(10000);
     init_ger()
     .then (ger) ->
       st = new Date().getTime()
       actions = ["buy", "like", "view"]
       promises = []
-      for x in [1..1000]
+      for x in [1..4000]
         action = actions[Math.floor(Math.random()*actions.length)];
         promises.push ger.event('p1', action ,'c')
       q.all(promises)
       .then(->
         et = new Date().getTime()
         time = et-st
-        pe = time/1000
+        pe = time/4000
         console.log "#{pe}ms per event"
       )
