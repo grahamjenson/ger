@@ -13,6 +13,9 @@ q = require 'q'
 
 knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
+
+
+
 drop_tables = ->
   q.all([knex.schema.hasTable('events'), knex.schema.hasTable('actions')])
   .spread( (has_events_table, has_actions_table) ->
@@ -36,21 +39,39 @@ create_store_esm = ->
 init_ger = ->
   create_psql_esm().then( (esm) -> new GER(esm))
 
-describe 'adding events', ->
+describe 'performance tests', ->
+
+
   it 'adding 1000 events takes so much time', ->
-    this.timeout(10000);
+    console.log ""
+    console.log ""
+    console.log "####################################################"
+    console.log "################# Performance Tests ################"
+    console.log "####################################################"
+    console.log ""
+    console.log ""
+    this.timeout(5000);
     init_ger()
     .then (ger) ->
       st = new Date().getTime()
       actions = ["buy", "like", "view"]
       promises = []
-      for x in [1..4000]
+      for x in [1..1000]
         action = actions[Math.floor(Math.random()*actions.length)];
-        promises.push ger.event('p1', action ,'c')
+        promises.push ger.set_action_weight(action , 10)
       q.all(promises)
       .then(->
         et = new Date().getTime()
         time = et-st
-        pe = time/4000
-        console.log "#{pe}ms per event"
+        pe = time/1000
+        console.log "#{pe}ms per set action"
+      )
+      .then( ->
+        console.log ""
+        console.log ""
+        console.log "####################################################"
+        console.log "################# END OF Performance Tests #########"
+        console.log "####################################################"
+        console.log ""
+        console.log ""
       )

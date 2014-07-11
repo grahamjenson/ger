@@ -65,24 +65,18 @@ class EventStoreMapper
   set_action_weight: (action, weight, overwrite = true) ->
     now = new Date().toISOString()
     #TODO change to atomic update or insert (upsert), because this can cause a race condition if you try add the same action multiple times, hence the catch -- graham
-    @knex('actions').where(action: action).count()
-    .then( (count) =>
-      count = parseInt(count[0].count)
-      if count == 0
-        #console.log "insert", action, weight, overwrite
-        return @knex('actions').insert({action: action, weight: weight, created_at: now, updated_at: now}).catch()
-      else if overwrite
-        #console.log "update", action, weight, overwrite
-        return @knex('actions').where(action: action).update({weight: weight}).catch()
-      else
-        #console.log 'nothing'
-        return true
-    )
-    .catch( (error) ->
-      #error code 23505 is unique key violation
-      if error.code != '23505'
-        throw error
-    )
+    
+    insert = @knex('actions').insert({action: action, weight: weight, created_at: now, updated_at: now}).toString()
+    #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
+    insert = insert.replace(/\svalues\s\(/, " select ")[..-2]
+
+    update_attr = {action: action}
+    update_attr["weight"] = weight if overwrite
+    update = @knex('actions').where(action: action).update(update_attr).toString()
+
+    #defined here http://www.the-art-of-web.com/sql/upsert/
+    query = "BEGIN; LOCK TABLE actions IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
+    @knex.raw(query)
     
 
      
