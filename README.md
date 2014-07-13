@@ -27,7 +27,7 @@ GER = require('ger')
 psql_esm = new PsqlESM(knex)
 
 #create the tables if they do not already exist
-psql_esm.init_database_tables()
+psql_esm.init_tables()
 
 ger = new GER(psql_esm)
 ```

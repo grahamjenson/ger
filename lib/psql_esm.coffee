@@ -1,23 +1,17 @@
 q = require 'q'
 
-#create the actions table if it doesn't already exist
-#action | weight
-
-#create the events table if it doesn't already exist
-# person, action, thing, created_at
-
-#connect to database
-
-
-
-
-#Create postgres store wrapper
 
 class EventStoreMapper
 
   constructor: (@knex) ->
 
-  init_database_tables: ->
+  drop_tables: ->
+    q.all( [
+      @knex.schema.dropTableIfExists('events'),
+      @knex.schema.dropTableIfExists('actions')
+    ])
+
+  init_tables: ->
     q.all([@init_events_table(), @init_action_table()])
 
   init_events_table: ->
