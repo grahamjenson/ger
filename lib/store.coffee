@@ -1,18 +1,3 @@
-#Initially a stub of redis Key Value Store. 
-# client.sinter
-# client.sunion
-# client.scard
-# client.smembers
-# client.sunionstore
-# client.sdiff
-# client.del
-# client.zadd
-# client.zweight
-# client.zrevrange
-# client.zrange
-# client.zremrangebyrank
-# client.zcard
-
 q = require 'q'
 
 GER_Models = require './models'

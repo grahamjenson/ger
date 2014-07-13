@@ -1,1 +1,5 @@
 .vagrant
+*.csv
+test_events
+.DS_Store
+events
