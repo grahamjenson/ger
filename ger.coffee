@@ -29,7 +29,7 @@ class GER
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
           @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
-          .then( (subjects) => q.all((@esm["get_#{plural[v.object]}_that_actioned_#{v.subject}"](subject, action) for subject in subjects)))
+          .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
           .then( (objects) => Utils.flatten(objects)) #flatten list
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
           .then( (objects) => Utils.unique(objects)) #return unique list
@@ -62,7 +62,8 @@ class GER
           .then( (objects) => @["similarity_to_#{plural[v.object]}"](object, objects) )
           .then( (weight_objects) => 
             sorted_objects = weight_objects.sort((x, y) -> y[1] - x[1])
-            for p in sorted_objects
+            #TODO CHANGE LIMITATION TO CONFIGURATION
+            for p in sorted_objects[..20]
               temp = {weight: p[1]}
               temp[v.object] = p[0]
               temp
@@ -84,19 +85,38 @@ class GER
           .then( (action_weights) -> action_weights.reduce( ((x,y) -> x+y ), 0 ))
       )
 
-  weighted_probability_to_action_thing_by_people: (thing, action, people_weights) =>
-    # objects_weights [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]
-    #returns the weighted probability that a group of people (with weights) actions the thing
-    #add all the weights together of the people who have actioned the thing 
-    #divide by total weights of all the people
-    total_weights = (p.weight for p in people_weights).reduce( (x,y) -> x + y )
-    q.all( (q.all([ps, @esm.has_person_actioned_thing(ps.person, action, thing) ]) for ps in people_weights) )
-    .then( (person_probs) -> ({person: pp[0].person, weight: pp[0].weight * pp[1]} for pp in person_probs))
-    .then( (people_with_item) -> (p.weight for p in people_with_item).reduce( ((x,y) -> x + y ), 0)/total_weights)
 
-  weighted_probabilities_to_action_things_by_people : (subjects, action, object_weights) =>
-    list_of_promises = (q.all([subject, @weighted_probability_to_action_thing_by_people(subject, action, object_weights)]) for subject in subjects)
-    q.all( list_of_promises )
+  weighted_probabilities_to_action_things_by_people : (things, action, people_weights) =>
+    #select events where person is in object_weights and subject is in subjects
+    # [person, action, subject]
+    # 
+    # return [[subject, weight]]
+    total_weights = 0
+    people = []
+    people_keys = {}
+    for p in people_weights
+      total_weights += p.weight
+      people.push p.person
+      people_keys[p.person] = p.weight
+
+    total_weight = (p.weight for p in people_weights).reduce( (x,y) -> x + y )
+
+    @esm.events_for_people_action_things(people, action, things)
+    .then( (events) ->
+      things_weight = {}
+      for e in events
+        weight = people_keys[e.person]
+        if things_weight[e.thing] == undefined
+          things_weight[e.thing] = 0
+        things_weight[e.thing] += weight
+
+      normal_weights = {}
+      for thing, weight of things_weight
+        normal_weights[thing] = (weight/total_weight)
+
+      normal_weights
+    )
+
 
 
 
@@ -133,26 +153,21 @@ class GER
     #recommendations for object action from object, only looking at what they have already done
     #then join the two objects and sort
     @ordered_similar_people(person)
-    .then( (object_weights) =>
+    .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      object_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
-      objects = (ps.person for ps in object_weights)
-      q.all([object_weights, @esm.things_people_have_actioned(action, objects)])
+      people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
+      people = (ps.person for ps in people_weights)
+      q.all([people_weights, @esm.things_people_have_actioned(action, people)])
     )
-    .spread( ( object_weights, subjects) =>
+    .spread( ( people_weights, things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
-      @weighted_probabilities_to_action_things_by_people(subjects, action, object_weights)
-    )
-    .then( (weight_subjects) =>
-      temp = {}
-      for ts in weight_subjects
-        temp[ts[0]] = ts[1]
-      temp
+      @weighted_probabilities_to_action_things_by_people(things, action, people_weights)
     )
     .then( (recommendations) ->
-      weight_subjects = ([subject, weight] for subject, weight of recommendations)
-      sorted_subjects = weight_subjects.sort((x, y) -> y[1] - x[1])
-      for ts in sorted_subjects
+      # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
+      weight_things = ([thing, weight] for thing, weight of recommendations)
+      sorted_things = weight_things.sort((x, y) -> y[1] - x[1])
+      for ts in sorted_things
         temp = {weight: ts[1], thing: ts[0]}
     )
 

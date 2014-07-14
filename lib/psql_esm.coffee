@@ -73,11 +73,14 @@ class EventStoreMapper
     @knex.raw(query)
     
 
-     
+  
+  events_for_people_action_things: (people, action, things) ->
+    return q.fcall(->[]) if people.length == 0 || things.length == 0
+    @knex('events').whereIn('person', people).whereIn('thing', things)
+
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
 
-  
   get_actions_of_person_thing_with_weights: (person, thing) ->
     @knex('events').select('events.action as key', 'actions.weight').leftJoin('actions', 'events.action', 'actions.action').where(person: person, thing: thing).orderBy('weight', 'desc')
     
@@ -95,6 +98,20 @@ class EventStoreMapper
     @knex('actions').select('weight').where(action: action)
     .then((rows)->
       parseInt(rows[0].weight)
+    )
+
+  get_things_that_actioned_people: (people, action) =>
+    return q.fcall(->[]) if people.length == 0
+    @knex('events').select('thing').where(action: action).whereIn('person', people)
+    .then( (rows) ->
+      (r.thing for r in rows)
+    )
+
+  get_people_that_actioned_things: (things, action) =>
+    return q.fcall(->[]) if things.length == 0
+    @knex('events').select('person').where(action: action).whereIn('thing', things)
+    .then( (rows) ->
+      (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>

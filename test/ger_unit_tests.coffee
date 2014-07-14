@@ -19,13 +19,8 @@ describe '#recommendations_for_person', ->
     ger = init_ger()
     sinon.stub(ger,'ordered_similar_people', () -> q.fcall(-> [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]))
     sinon.stub(ger.esm,'things_people_have_actioned', -> q.fcall(-> ['t1','t2']))
-    sinon.stub(ger, 'weighted_probability_to_action_thing_by_people', (thing, action, people_weights) -> 
-      if thing == 't1'
-        return .2
-      else if thing == 't2'
-        return .5
-      else
-        throw 'bad thing'
+    sinon.stub(ger, 'weighted_probabilities_to_action_things_by_people', (things, action, people_weights) -> 
+      return {'t1':0.2 , 't2': 0.5}
     )
     ger.recommendations_for_person('p1','view')
     .then( (thing_weights) -> 
@@ -34,24 +29,6 @@ describe '#recommendations_for_person', ->
       thing_weights[1].thing.should.equal 't1'
       thing_weights[1].weight.should.equal .2
     )
-
-
-describe '#weighted_probability_to_action_thing_by_people', ->
-  it 'should return a weight an item with people', ->
-    ger = init_ger()
-    sinon.stub(ger.esm,'has_person_actioned_thing', (person,action,thing) -> 
-      action.should.equal 'view'
-      thing.should.equal 'i1'
-      if person == 'p1'
-        return q.fcall( -> true)
-      else if person == 'p2'
-        return q.fcall( -> false)
-      throw 'bad person'
-    )
-    people_weights = [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]
-    ger.weighted_probability_to_action_thing_by_people('i1', 'view', people_weights).should.eventually.equal .25
-
-
 
 
 describe '#ordered_similar_people', ->

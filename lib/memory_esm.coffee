@@ -1,6 +1,19 @@
 q = require 'q'
 Store = require('../lib/store')
 
+Utils =
+  flatten: (arr) ->
+    arr.reduce ((xs, el) ->
+      if Array.isArray el
+        xs.concat Utils.flatten el
+      else
+        xs.concat [el]), []
+
+  unique : (arr)->
+    output = {}
+    output[arr[key]] = arr[key] for key in [0...arr.length]
+    value for key, value of output
+
 KeyManager =
   action_set_key : ->
     'action_set'
@@ -33,6 +46,23 @@ class EventStoreMapper
       @add_person_to_thing_action_set(person, action, thing),
       @add_action_to_person_thing_set(person, action, thing)
       ])
+
+  events_for_people_action_things: (people, action, things) ->
+    p = []
+    events = []
+    for person in people
+      p.push q.all( [person, @get_things_that_actioned_person(person, action)])
+    q.all(p)
+    .then( (person_things) ->
+      for pt in person_things
+        person = pt[0]
+        things = pt[1]
+        for thing in things
+          events.push {person: person, action: action, thing: thing} if thing in things
+      events
+    )
+     
+
 
   things_people_have_actioned: (action, people) =>
     @store.set_union((KeyManager.person_action_set_key(p, action) for p in people))
@@ -68,6 +98,26 @@ class EventStoreMapper
   get_action_weight: (action) ->
     @store.sorted_set_weight(KeyManager.action_set_key(), action)
 
+  get_things_that_actioned_people: (people, action) =>
+    return q.fcall(->[]) if people.length == 0
+    p = []
+    for person in people
+      p.push @get_things_that_actioned_person(person, action)
+    q.all(p)
+    .then( (peoples) ->
+      Utils.flatten(peoples)
+    )
+
+  get_people_that_actioned_things: (things, action) =>
+    return q.fcall(->[]) if things.length == 0
+    p = []
+    for thing in things
+      p.push @get_people_that_actioned_thing(thing, action)
+    q.all(p)
+    .then( (thingss) ->
+      Utils.flatten(thingss)
+    )
+    
   get_things_that_actioned_person: (person, action) =>
     @store.set_members(KeyManager.person_action_set_key(person, action))
 
