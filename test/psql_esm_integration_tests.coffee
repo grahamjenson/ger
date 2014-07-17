@@ -131,13 +131,13 @@ describe '#get_action_set', ->
         ('a2' in actions).should.equal true
       )
 
-describe '#get_action_set_with_weights', ->
+describe '#get_ordered_action_set_with_weights', ->
   it 'should return actions with weights', ->
     init_esm()
     .then (esm) ->
       q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
       .then( -> esm.set_action_weight('a',10))
-      .then( -> esm.get_action_set_with_weights())
+      .then( -> esm.get_ordered_action_set_with_weights())
       .then( (action_weights) ->
         action_weights[0].key.should.equal 'a'
         action_weights[0].weight.should.equal 10

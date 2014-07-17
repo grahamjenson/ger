@@ -1,6 +1,10 @@
 #cat aug_feb_vr.csv| grep 2013-08 | awk -F, '{if($3 && $4 && $4 != "undefined") print $3","$5","$4}' > aug_events.csv
 
-ger = require('./ger').GER(new require('./lib/psql_esm'))
+
+#single line ger
+#ger = new (require('./ger').GER)(new (require('./lib/psql_esm'))(require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_opt'}})))
+
+
 #This Script takes a csv of PERSON,ACTION,THING ordered by time and attempts to optimise the 
 MemoryESM = require('./lib/memory_esm')
 PsqlESM = require('./lib/psql_esm')
@@ -61,7 +65,7 @@ init_opt_db = ->
     events_from_csv_to_ger(ger)
   )
 
-init_opt_db().then(-> console.log "done").fail(console.log).fin(-> knex.destroy())
+#init_opt_db().then(-> console.log "done").fail(console.log).fin(-> knex.destroy())
 
 
 #setup the weights

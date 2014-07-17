@@ -83,14 +83,8 @@ class EventStoreMapper
 
   get_actions_of_person_thing_with_weights: (person, thing) ->
     @knex('events').select('events.action as key', 'actions.weight').leftJoin('actions', 'events.action', 'actions.action').where(person: person, thing: thing).orderBy('weight', 'desc')
-    
-  get_action_set: ->
-    @knex('actions').select('action')
-    .then( (rows) ->
-      (r.action for r in rows)
-    )
 
-  get_action_set_with_weights: ->
+  get_ordered_action_set_with_weights: ->
     @knex('actions').select('action as key', 'weight').orderBy('weight', 'desc')
 
     

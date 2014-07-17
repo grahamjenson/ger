@@ -128,7 +128,7 @@ describe '#get_things_that_actioned_person', ->
 describe '#get_actions_of_person_thing_with_weights', ->
   it 'should return action weights of just keys in actions', ->
     esm = init_esm()
-    sinon.stub(esm, 'get_action_set_with_weights', -> q.fcall(-> [{key: 'view', weight: 1} , {key: 'buy', weight: 2} ]))
+    sinon.stub(esm, 'get_ordered_action_set_with_weights', -> q.fcall(-> [{key: 'view', weight: 1} , {key: 'buy', weight: 2} ]))
     sinon.stub(esm.store, 'set_members', -> q.fcall(-> ['buy']))
     esm.get_actions_of_person_thing_with_weights('x','y')
     .then( (action_weights) ->
@@ -137,11 +137,11 @@ describe '#get_actions_of_person_thing_with_weights', ->
       action_weights[0].weight.should.equal 2
     )
 
-describe '#get_action_set_with_weights', ->
+describe '#get_ordered_action_set_with_weights', ->
   it 'should return the actions with the weights', ->
     esm = init_esm()
     sinon.stub(esm.store,'set_rev_members_with_weight', -> return q.fcall(-> true))
-    esm.get_action_set_with_weights().should.eventually.equal true
+    esm.get_ordered_action_set_with_weights().should.eventually.equal true
 
 
 describe '#things_people_have_actioned', ->

@@ -207,7 +207,7 @@ for esmfn in [ create_store_esm, create_psql_esm]
           )
 
     describe 'ordered_similar_people', ->
-      it 'should take a person and return promise for an ordered list of similar people', ->
+      it 'asd should take a person and return promise for an ordered list of similar people', ->
         init_ger()
         .then (ger) ->
           q.all([
@@ -227,57 +227,6 @@ for esmfn in [ create_store_esm, create_psql_esm]
             people.length.should.equal 2
           )
 
-    describe 'similarity between things', ->
-      it 'should take a things action person and return promise', ->
-        init_ger()
-        .then (ger) ->
-          q.all([
-            ger.event('p1','viewed','a'),
-            ger.event('p1', 'viewed', 'b'),
-            ger.event('p1', 'viewed', 'c'),
-            ger.event('p2','viewed','a'),
-            ger.event('p2','viewed','b'),
-            ger.event('p2','viewed','d')
-          ])
-          .then(-> ger.similarity_between_people('p1', 'p2'))
-          .then((sim) -> sim.should.equal .5)
-
-    describe 'similarity between people', ->
-      it 'should take a person action thing and return promise', ->
-        init_ger()
-        .then (ger) ->
-          q.all([
-            ger.event('p1','viewed','a'),
-            ger.event('p1', 'viewed', 'b'),
-            ger.event('p1', 'viewed', 'c'),
-            ger.event('p2','viewed','a'),
-            ger.event('p2','viewed','b'),
-            ger.event('p2','viewed','d')
-          ])
-          .then(-> ger.similarity_between_people('p1', 'p2'))
-          .then((sim) -> sim.should.equal .5)
-
-     it 'asd should take into consideration the weights of the actions', ->
-        init_ger()
-        .then (ger) ->
-          q.all([
-            ger.set_action_weight('viewview', 1),
-            ger.set_action_weight('buybuy', 10),
-            ])
-          .then( ->
-            q.all([
-              ger.event('p1', 'buybuy', 'a'),
-              ger.event('p1', 'buybuy', 'b'),
-              ger.event('p1', 'buybuy', 'c'),
-              ger.event('p1', 'buybuy', 'd'),
-              ger.event('p2', 'buybuy', 'a'),
-              ger.event('p1', 'viewview','a'),
-              ger.event('p1', 'viewview','b'),
-              ger.event('p2', 'viewview','a'),
-            ])
-          )
-          .then(-> ger.similarity_between_people('p1', 'p2'))
-          .then((sim) -> sim.should.equal 3)
 
     describe 'setting action weights', ->
 
@@ -293,7 +242,7 @@ for esmfn in [ create_store_esm, create_psql_esm]
               ger.event('p1', 'buybuy', 'c'),
               ])
           )
-          .then(-> ger.esm.get_action_set_with_weights())
+          .then(-> ger.esm.get_ordered_action_set_with_weights())
           .then((actions) -> 
             actions[0].key.should.equal "buybuy"
             actions[0].weight.should.equal 10

@@ -53,7 +53,7 @@ describe '#ordered_similar_people', ->
 describe '#similarity_between_people', ->
   it 'should find the similarity_between_people by looking at their jaccard distance', ->
     ger = init_ger()
-    sinon.stub(ger.esm, 'get_action_set_with_weights', -> q.fcall(-> [{key: 'view', weight: 1} , {key: 'buy', weight: 1} ]))
+    sinon.stub(ger.esm, 'get_ordered_action_set_with_weights', -> q.fcall(-> [{key: 'view', weight: 1} , {key: 'buy', weight: 1} ]))
     sinon.stub(ger, 'similarity_between_people_for_action', (person1, person2, action_key, action_weight) ->
       person1.should.equal 'p1'
       person2.should.equal 'p2'

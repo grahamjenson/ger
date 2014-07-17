@@ -74,16 +74,14 @@ class EventStoreMapper
     @store.set_add(KeyManager.person_thing_set_key(person, thing), action)
 
   get_actions_of_person_thing_with_weights: (person, thing) =>
-    q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_action_set_with_weights()])
+    q.all([@store.set_members(KeyManager.person_thing_set_key(person, thing)), @get_ordered_action_set_with_weights()])
     .spread( (actions, action_weights) ->
       (as for as in action_weights when as.key in actions)
     )
     
-  get_action_set: ->
-    @store.set_members(KeyManager.action_set_key())
-
-  get_action_set_with_weights: ->
+  get_ordered_action_set_with_weights: ->
     @store.set_rev_members_with_weight(KeyManager.action_set_key())
+    .then( (action_weights) -> action_weights.sort((x, y) -> y.weight - x.weight))
 
 
   add_action: (action) ->

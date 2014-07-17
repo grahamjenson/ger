@@ -13,6 +13,15 @@ Utils =
     output[arr[key]] = arr[key] for key in [0...arr.length]
     value for key, value of output
 
+  shuffle : (a) ->
+    i = a.length
+    while --i > 0
+      j = ~~(Math.random() * (i + 1)) # ~~ is a common optimization for Math.floor
+      t = a[j]
+      a[j] = a[i]
+      a[i] = t
+    a
+
 class GER
 
   constructor: (@esm) ->
@@ -32,42 +41,65 @@ class GER
           .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
           .then( (objects) => Utils.flatten(objects)) #flatten list
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
-          .then( (objects) => Utils.unique(objects)) #return unique list
 
-        @["similarity_between_#{plural[v.object]}_for_action"] =  (object1, object2, action_key, action_weight) =>
-          if object1 == object2
-            return q.fcall(-> 1 * action_weight)
-          @esm["#{plural[v.object]}_jaccard_metric"](object1, object2, action_key)
-          .then( (jm) -> jm * action_weight)
 
-        @["similarity_between_#{plural[v.object]}"] = (object1, object2) =>
-          #return a value of a persons similarity
-          @esm.get_action_set_with_weights()
-          .then((actions) => q.all( (@["similarity_between_#{plural[v.object]}_for_action"](object1, object2, action.key, action.weight) for action in actions) ) )
-          .then((sims) => sims.reduce (x,y) -> x + y )
+        @["similar_#{plural[v.object]}_for_action_with_weights"] = (object, action, weight) =>
+          @["similar_#{plural[v.object]}_for_action"](object, action)
+          .then( (objects) =>
+            #add weights
+            temp = []
+            for o in objects
+              t = {} 
+              t[v.object] = o
+              t.weight = weight
+              temp.push t
+            temp
+          )
 
-        @["similarity_to_#{plural[v.object]}"] = (object, objects) =>
-          q.all( (q.all([o, @["similarity_between_#{plural[v.object]}"](object, o)]) for o in objects) )
-        
-        @["similar_#{plural[v.object]}"] = (object) =>
-          #TODO adding weights to actions could reduce number of objects returned
-          @esm.get_action_set()
-          .then( (actions) => q.all( (@["similar_#{plural[v.object]}_for_action"](object, action) for action in actions) ) )
-          .then( (objects) => Utils.flatten(objects)) #flatten list
-          .then( (objects) => Utils.unique(objects)) #return unique list
-        
+
         @["ordered_similar_#{plural[v.object]}"] = (object) ->
           #TODO expencive call, could be cached for a few days as ordered set
-          @["similar_#{plural[v.object]}"](object)
-          .then( (objects) => @["similarity_to_#{plural[v.object]}"](object, objects) )
-          .then( (weight_objects) => 
-            sorted_objects = weight_objects.sort((x, y) -> y[1] - x[1])
-            #TODO CHANGE LIMITATION TO CONFIGURATION
-            for p in sorted_objects[..20]
-              temp = {weight: p[1]}
-              temp[v.object] = p[0]
-              temp
+          @esm.get_ordered_action_set_with_weights()
+          .then( (action_weights) =>
+            fn = (i) => 
+              if i >= action_weights.length
+                return q.fcall(-> null)
+              else
+                @["similar_#{plural[v.object]}_for_action_with_weights"](object, action_weights[i].key, action_weights[i].weight)
+
+            @get_list_to_size(fn, 0, [], 100)  
+          ) 
+          .then( (object_weights) ->
+            #join the weights together
+            temp = {}
+            for ow in object_weights
+              if temp[ow[v.object]] == undefined
+                temp[ow[v.object]] = 0
+              temp[ow[v.object]] += ow.weight
+            
+            res = []
+            for p,w of temp
+              continue if p == object
+              r = {}
+              r[v.object] = p
+              r.weight = w
+              res.push r
+            res = res.sort((x, y) -> y.weight - x.weight)
+            res
           )
+
+          
+  get_list_to_size: (fn, i, list, size) =>
+    #recursive promise that will resolve till either the end
+    if list.length > size
+      return q.fcall(-> list)
+    fn(i)
+    .then( (new_list) =>
+      return q.fcall(-> list) if new_list == null 
+      new_list = list.concat new_list
+      i = i + 1
+      @get_list_to_size(fn, i, new_list, size)
+    )
 
 
 
