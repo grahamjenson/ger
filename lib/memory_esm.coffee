@@ -61,8 +61,6 @@ class EventStoreMapper
           events.push {person: person, action: action, thing: thing} if thing in things
       events
     )
-     
-
 
   things_people_have_actioned: (action, people) =>
     @store.set_union((KeyManager.person_action_set_key(p, action) for p in people))

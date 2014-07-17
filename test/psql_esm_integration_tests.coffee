@@ -120,17 +120,6 @@ describe '#get_actions_of_person_thing_with_weights', ->
         action_weights[1].weight.should.equal 1
       )
 
-describe '#get_action_set', ->
-  it 'should return actions', ->
-    init_esm()
-    .then (esm) ->
-      q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
-      .then( -> esm.get_action_set())
-      .then( (actions) ->
-        ('a' in actions).should.equal true
-        ('a2' in actions).should.equal true
-      )
-
 describe '#get_ordered_action_set_with_weights', ->
   it 'should return actions with weights', ->
     init_esm()

@@ -102,14 +102,6 @@ describe '#add_event', ->
 
 
 
-describe "#get_action_set", ->
-  it 'should return a promise for the action things set', ->
-    esm = init_esm()
-    sinon.stub(esm.store, 'set_members')
-    esm.get_action_set('action','thing')
-    sinon.assert.calledOnce(esm.store.set_members)
-
-
 describe '#get_people_that_actioned_thing', ->
   it 'should return a promise for the action things set', ->
     esm = init_esm()
@@ -140,8 +132,12 @@ describe '#get_actions_of_person_thing_with_weights', ->
 describe '#get_ordered_action_set_with_weights', ->
   it 'should return the actions with the weights', ->
     esm = init_esm()
-    sinon.stub(esm.store,'set_rev_members_with_weight', -> return q.fcall(-> true))
-    esm.get_ordered_action_set_with_weights().should.eventually.equal true
+    sinon.stub(esm.store,'set_rev_members_with_weight', -> return q.fcall(-> [{key: 'a', weight: 1}]))
+    esm.get_ordered_action_set_with_weights()
+    .then( (actions) ->
+      actions[0].key.should.equal 'a'
+      actions[0].weight.should.equal 1
+    )
 
 
 describe '#things_people_have_actioned', ->
