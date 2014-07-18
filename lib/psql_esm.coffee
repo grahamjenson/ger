@@ -76,7 +76,7 @@ class EventStoreMapper
   
   events_for_people_action_things: (people, action, things) ->
     return q.fcall(->[]) if people.length == 0 || things.length == 0
-    @knex('events').whereIn('person', people).whereIn('thing', things)
+    @knex('events').where(action: action).whereIn('person', people).whereIn('thing', things)
 
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)

@@ -13,19 +13,12 @@ Utils =
     output[arr[key]] = arr[key] for key in [0...arr.length]
     value for key, value of output
 
-  shuffle : (a) ->
-    i = a.length
-    while --i > 0
-      j = ~~(Math.random() * (i + 1)) # ~~ is a common optimization for Math.floor
-      t = a[j]
-      a[j] = a[i]
-      a[i] = t
-    a
-
 class GER
 
   constructor: (@esm) ->
     @INITIAL_PERSON_WEIGHT = 10
+    @RESTRICTION_GET_PEOPLE_LIST = 1000
+    @RESTRICTION_PEOPLE_LIST = 300
 
     plural =
       'person' : 'people'
@@ -67,7 +60,7 @@ class GER
               else
                 @["similar_#{plural[v.object]}_for_action_with_weights"](object, action_weights[i].key, action_weights[i].weight)
 
-            @get_list_to_size(fn, 0, [], 100)  
+            @get_list_to_size(fn, 0, [], @RESTRICTION_GET_PEOPLE_LIST)  
           ) 
           .then( (object_weights) ->
             #join the weights together
@@ -133,6 +126,8 @@ class GER
 
     total_weight = (p.weight for p in people_weights).reduce( (x,y) -> x + y )
 
+    people
+
     @esm.events_for_people_action_things(people, action, things)
     .then( (events) ->
       things_weight = {}
@@ -186,10 +181,14 @@ class GER
     #then join the two objects and sort
     @ordered_similar_people(person)
     .then( (people_weights) =>
+
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
+      people_weights = people_weights[..@RESTRICTION_PEOPLE_LIST] #select top 100 people
       people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
+      
       people = (ps.person for ps in people_weights)
       q.all([people_weights, @esm.things_people_have_actioned(action, people)])
+
     )
     .spread( ( people_weights, things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
@@ -199,9 +198,12 @@ class GER
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       weight_things = ([thing, weight] for thing, weight of recommendations)
       sorted_things = weight_things.sort((x, y) -> y[1] - x[1])
+      ret = []
       for ts in sorted_things
         temp = {weight: ts[1], thing: ts[0]}
-    )
+        ret.push(temp)
+      ret
+    ) 
 
   ##Wrappers of the ESM
   event: (person, action, thing) ->
