@@ -17,8 +17,8 @@ class GER
 
   constructor: (@esm) ->
     @INITIAL_PERSON_WEIGHT = 10
-    @RESTRICTION_GET_PEOPLE_LIST = 1000
-    @RESTRICTION_PEOPLE_LIST = 300
+    @RESTRICTION_GET_PEOPLE_LIST = 500
+    @RESTRICTION_PEOPLE_LIST = 500
 
     plural =
       'person' : 'people'
