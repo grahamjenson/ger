@@ -17,8 +17,10 @@ class GER
 
   constructor: (@esm) ->
     @INITIAL_PERSON_WEIGHT = 10
-    @RESTRICTION_GET_PEOPLE_LIST = 500
-    @RESTRICTION_PEOPLE_LIST = 500
+    @RESTRICTION_GET_PEOPLE_LIST = 300
+    @RESTRICTION_PEOPLE_LIST = 200
+    @RESTRICTION_SUBJECTS_LIST = 100;
+    @RESTRICTION_THINGS_LIST = 200;
 
     plural =
       'person' : 'people'
@@ -31,7 +33,7 @@ class GER
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
           @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
-          .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
+          .then( (subjects) => subjects = subjects[..@RESTRICTION_SUBJECTS_LIST]; @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
           .then( (objects) => Utils.flatten(objects)) #flatten list
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
 
@@ -126,8 +128,6 @@ class GER
 
     total_weight = (p.weight for p in people_weights).reduce( (x,y) -> x + y )
 
-    people
-
     @esm.events_for_people_action_things(people, action, things)
     .then( (events) ->
       things_weight = {}
@@ -192,6 +192,7 @@ class GER
     )
     .spread( ( people_weights, things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
+      things = things[..@RESTRICTION_THINGS_LIST]
       @weighted_probabilities_to_action_things_by_people(things, action, people_weights)
     )
     .then( (recommendations) ->

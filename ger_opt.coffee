@@ -127,26 +127,31 @@ extract_person_things = (filename, action, split_file_at_line) ->
   .then( (person_things) -> filter_must_contain_thing(person_things, filename, split_file_at_line))
   .then( (person_things) -> filter_person_things_for_people_who_actioned_n_times(person_things, 10, filename, split_file_at_line))
 
-predict = (ger, person, actually_actioned_things, action) ->
-  
+
+rec_times = []
+counter_for_rec = 0
+
+predict = (ger, person, thing, action) ->
+  counter_for_rec = counter_for_rec + 1
+  console.log counter_for_rec, person, thing
+  st = new Date().getTime()
   ger.recommendations_for_person(person, action)
   .then( (recs) ->
     predictions = (i.thing for i in recs)
-    real = (predictions.indexOf ri for ri in actually_actioned_things)
+    real = predictions.indexOf thing
+    et = new Date().getTime()
+    time = et-st
+    rec_times.push time
     [person, real]
   )
 
 calculate_predictions = (person_things, action) ->
-  people = (ui[0] for ui in person_things)
-  people = Utils.unique(people)
-  people = Utils.shuffle(people)
+  person_things = Utils.shuffle(person_things)
   promises = []
   ger = new GER(new PsqlESM(knex()))
-  for person in people[..50]
-    do (person) ->
-      things = person_things.filter (ui) -> ui[0] == person
-      things = (thing[1] for thing in things)
-      promises.push (previous) -> predict(ger, person, things, action).then((newl) -> 
+  for person_thing in person_things[..500]
+    do (person_thing) ->
+      promises.push (previous) -> predict(ger, person_thing[0], person_thing[1], action).then((newl) -> 
         previous.push newl
         previous
       )
@@ -164,27 +169,22 @@ calculate_recall_and_precision = (predictions) ->
   tp = 0
   fp = 0
   fn = 0
-  for p in predictions
-    [user, preds] = p
+  predictions = predictions.map((n) -> n[1])
+  total_predictions = predictions.length
+  correct_predictions = predictions.filter (n) -> n < recommendation_limit && n != -1
+  #tp number of time the system recommended a relevant reward
+  tp = correct_predictions.length
+  #fp is the number of incorrect predicitons ger made
+  fp = total_predictions - tp
+  #fn is the number of times ger did not give a relevant result
+  #fn = (predictions.filter (n) -> n >= recommendation_limit || n == -1).length
+  mean = correct_predictions.reduce((x,y) -> x+y)/correct_predictions.length
+  
+  accuracy = tp/total_predictions
 
-    total_predictions = recommendation_limit * preds.length
-    #tp number of time the system recommended a relevant reward
-    local_tp = (preds.filter (n) -> n < recommendation_limit && n != -1).length
-    #fp is the number of incorrect predicitons ger made
-    local_fp = total_predictions - local_tp
+  console.log tp, fp, mean, accuracy
 
-    #fn is the number of times ger did not give a relevant result
-    local_fn = (preds.filter (n) -> n >= recommendation_limit || n == -1).length
-    console.log local_tp, local_fp, local_fn, total_predictions
-    tp += local_tp
-    fn += local_fn
-    fp += local_fp
-
-  console.log tp, fp, fn
-  recall = tp/(tp+fn)
-  precision = tp/(tp+fp)
-  #fn 
-  {recall: recall, precision: precision}
+  {accuracy: accuracy, mean: mean}
 
 [..., b_action, b_split_file_at_line, b_filename] = process.argv
 
@@ -193,8 +193,10 @@ console.log b_action, b_split_file_at_line, b_filename
 person_things = require './user_items.json'
 #extract_person_things(b_filename, b_action, b_split_file_at_line)
 calculate_predictions(person_things, b_action)
+.then((j) -> console.log j; j)
 .then((predictions) -> calculate_recall_and_precision(predictions))
-.then((j) -> console.log JSON.stringify(j, null, 2)).fail(console.log)
+.then((j) -> console.log j; console.log "mean rec time", rec_times.reduce( (x,y) -> x+y)/rec_times.length)
+.fail(console.log)
 
 
 

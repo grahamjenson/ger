@@ -96,32 +96,32 @@ class EventStoreMapper
 
   get_things_that_actioned_people: (people, action) =>
     return q.fcall(->[]) if people.length == 0
-    @knex('events').select('thing').where(action: action).whereIn('person', people)
+    @knex('events').select('thing', 'created_at').distinct().where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_things: (things, action) =>
     return q.fcall(->[]) if things.length == 0
-    @knex('events').select('person').where(action: action).whereIn('thing', things)
+    @knex('events').select('person', 'created_at').distinct().where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex('events').select('thing').where(person: person, action: action)
+    @knex('events').select('thing', 'created_at').distinct().where(person: person, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex('events').select('person').where(thing: thing, action: action)
+    @knex('events').select('person', 'created_at').distinct().where(thing: thing, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex('events').select('thing').distinct().where(action: action).whereIn('person', people)
+    @knex('events').select('thing', 'created_at').distinct().where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
