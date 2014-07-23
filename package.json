@@ -1,8 +1,16 @@
 {
   "name"          : "ger",
-  "description"   : "Good Enough Recommendations (GER): Taking the '80% of people are happy with 20% of the requirements' philosophy to recommendations Engines. GER will probably work for you and return good enough recommendations",
+  "description"   : "Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine built to be easy to use and integrate into your application.",
   "url"           : "https://github.com/grahamjenson/ger.git",
-  "keywords"      : ["model", "promise", "backbone"],
+  "keywords": [
+    "recommend",
+    "recommended",
+    "recommendation",
+    "engine",
+    "collaborative",
+    "filtering",
+    "middleware"
+  ],
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
   "dependencies"  : {
     "q": "1.0.1",
