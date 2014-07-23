@@ -26,7 +26,7 @@
     "coffee-script": "1.7.1"
   },
   "scripts": {
-    "build": "./node_modules/.bin/coffee -c ger.coffee",
+    "build": "./node_modules/.bin/coffee -cj ger.coffee lib/memory_esm.coffee lib/models.coffee lib/psql_esm.coffee lib/store.coffee ",
     "test": "mocha"
   },
   "main"          : "ger.js",

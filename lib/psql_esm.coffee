@@ -47,7 +47,7 @@ class EventStoreMapper
     q.all([
       @add_action(action),
       @add_event_to_db(person, action, thing)
-      ])
+    ])
 
   add_action: (action) ->
     @set_action_weight(action, 1, false)
@@ -96,32 +96,32 @@ class EventStoreMapper
 
   get_things_that_actioned_people: (people, action) =>
     return q.fcall(->[]) if people.length == 0
-    @knex('events').select('thing', 'created_at').distinct().where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex('events').select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_things: (things, action) =>
     return q.fcall(->[]) if things.length == 0
-    @knex('events').select('person', 'created_at').distinct().where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
+    @knex('events').select('person', 'created_at').where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex('events').select('thing', 'created_at').distinct().where(person: person, action: action).orderBy('created_at', 'desc')
+    @knex('events').select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex('events').select('person', 'created_at').distinct().where(thing: thing, action: action).orderBy('created_at', 'desc')
+    @knex('events').select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex('events').select('thing', 'created_at').distinct().where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex('events').select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )

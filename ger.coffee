@@ -56,6 +56,7 @@ class GER
           #TODO expencive call, could be cached for a few days as ordered set
           @esm.get_ordered_action_set_with_weights()
           .then( (action_weights) =>
+
             fn = (i) => 
               if i >= action_weights.length
                 return q.fcall(-> null)

@@ -9,7 +9,9 @@ sinon = require 'sinon'
 
 q = require 'q'
 
-ger_models = require('../lib/models')
+MEMORY_ESM = require('../lib/memory_esm')
+ger_models = MEMORY_ESM.GER_Models
+
 Set = ger_models.Set
 SortedSet = ger_models.SortedSet
 

@@ -1,5 +1,185 @@
 q = require 'q'
-Store = require('../lib/store')
+
+
+
+GER_Models = {}
+
+class Set
+  constructor: (ivals = []) ->
+    @store = {}
+    (@store[iv] = 1 for iv in ivals)
+
+  add: (value) ->
+    @store[value] = 1
+
+  size: () ->
+    @members().length
+
+  contains: (value) ->
+    if Array.isArray(value)
+      (@.contains(v) for v in value).reduce((x,y) -> x && y)
+    else
+      !!@store[value]
+
+  union: (set) ->
+    new Set( (v for v in @members().concat(set.members())) )
+  
+  intersection: (set) ->
+    s1 = @members()
+    s2 = set.members()
+    new Set(  (v for v in s1.concat(s2) when (s1.indexOf(v) != -1) && (s2.indexOf(v) != -1))  )
+  
+  diff: (set) ->
+    s1 = @members()
+    s2 = set.members()
+    new Set( (v for v in s1.concat(s2) when (s1.indexOf(v) != -1) && (s2.indexOf(v) == -1))  )
+
+  members: ->
+    return Object.keys(@store)
+
+
+class SortedSet extends Set
+  add: (value, weight) ->
+    @store[value] = weight
+
+  sorted_member_weight_list: ->
+    ({key: k, weight: v} for k , v of @store).sort((x, y) -> x.weight- y.weight)
+
+  members_with_weight: ->
+    @sorted_member_weight_list()
+
+  rev_members_with_weights: ->
+    @members_with_weight().reverse()
+
+  members: -> 
+    (m.key for m in @sorted_member_weight_list())
+
+  revmembers: ->
+    @members().reverse()
+
+  weight: (value) ->
+    if !(value of @store)
+      return null
+    return @store[value]
+
+  increment: (value, weight) ->
+    if !!@store[value]
+     @add(value, @weight(value) + weight)
+    else
+      @add(value, weight)
+
+GER_Models.Set = Set
+GER_Models.SortedSet = SortedSet
+
+class Store
+  #BASIC METHODS
+  constructor: (ivals = {}) ->
+    @store = ivals
+
+  set: (key, value) ->
+    return q.fcall(=> @store[key] = value; return) 
+  
+  get: (key) ->
+    return  q.fcall(=> @store[key])
+
+  del: (key) ->
+    return  q.fcall(=> value = @store[key]; delete(@store[key]); value)
+
+  #SORTED SET CALLS
+  sorted_set_incr: (key, value, weight) ->
+    #redis.zincrby
+    @_check_sorted_set(key)
+    q.fcall(=> @store[key].increment(value, weight); return)
+
+  sorted_set_add: (key, value, weight=1) ->
+    #redis.zadd
+    @_check_sorted_set(key)
+    q.fcall(=> @store[key].add(value, weight); return)
+
+  sorted_set_weight: (key, value) ->
+    if !(key of @store)
+      return q.fcall(-> null)
+    q.fcall(=> @store[key].weight(value))
+
+
+  _check_sorted_set: (key) ->
+    if !(key of @store)
+      @store[key] = new SortedSet()
+
+  _check_set: (key) ->
+    if !(key of @store)
+      @store[key] = new Set()
+
+  #SET METHODS
+  set_add: (key,value) ->
+    #redis.sadd
+    @_check_set(key)
+    q.fcall(=> @store[key].add(value); return)
+
+  set_members: (key) ->
+    if !(key of @store)
+      return q.fcall(=> [])
+    q.fcall(=> @store[key].members())
+
+  set_rev_members_with_weight: (key) ->
+    q.fcall(=> @store[key].rev_members_with_weights())
+
+  set_members_with_weight: (key) ->
+    q.fcall(=> @store[key].members_with_weight())
+
+  set_contains: (key,value) ->
+    #redis.SISMEMBER
+    if !(key of @store)
+      return q.fcall(-> false)
+    q.fcall(=> @store[key].contains(value))  
+
+  set_union_then_store: (store_key, keys) ->
+    q.fcall( => un = @_union(keys); @store[store_key] = un; return un.size())
+
+  set_diff: (keys) ->
+    q.fcall( => @_diff(keys).members())
+
+  set_union: (keys) ->
+    q.fcall( => @_union(keys).members())
+
+  set_intersection: (keys) ->
+    q.fcall( => @_intersection(keys).members())
+
+  _diff: (keys) ->
+    (@store[k] for k in keys).reduce((s1,s2) -> 
+      if s1? && s2?
+        s1.diff(s2)
+      else if s1?
+        new Set(s1.members())
+      else if s2?
+        new Set(s2.members())
+      else
+        new Set()
+    )
+
+  _union: (keys) ->
+    if keys.length == 0
+      return new Set()
+      
+    (@store[k] for k in keys).reduce((s1,s2) -> 
+      if s1? && s2?
+        s1.union(s2)
+      else if s1?
+        new Set(s1.members())
+      else if s2?
+        new Set(s2.members())
+      else
+        new Set()
+    )
+
+  _intersection: (keys) ->
+    (@store[k] for k in keys).reduce((s1,s2) -> 
+      if s1? && s2?
+        s1.intersection(s2)
+      else
+        new Set()
+    )
+
 
 Utils =
   flatten: (arr) ->
@@ -147,6 +327,9 @@ class EventStoreMapper
         return 0
       return ret
     )
+
+EventStoreMapper.Store = Store
+EventStoreMapper.GER_Models = GER_Models
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

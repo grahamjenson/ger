@@ -223,7 +223,9 @@ for esmfn in [ create_store_esm, create_psql_esm]
           .then(-> ger.ordered_similar_people('p1'))
           .then((people) ->
             people[0].person.should.equal 'p3'
+            people[0].weight.should.equal 2
             people[1].person.should.equal 'p2'
+            people[1].weight.should.equal 1
             people.length.should.equal 2
           )
 

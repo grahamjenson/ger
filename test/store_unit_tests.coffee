@@ -5,8 +5,10 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
-Store = require('../lib/store')
-GER_Models = require('../lib/models')
+MEMORY_ESM = require('../lib/memory_esm')
+Store = MEMORY_ESM.Store
+GER_Models = MEMORY_ESM.GER_Models
+
 Set = GER_Models.Set
 SortedSet = GER_Models.SortedSet
 
