@@ -1,7 +1,9 @@
-Good Enough Reccomendations (GER) is a simple recomendations engine that uses collaborative filtering.
-GER is built to be a very fast, scalable calculator that can be built upon and wrapped to add specific features that you may need.
+Good Enough Reccomendations (GER) is a collaborative filtering based recomendations engine.
+GER is built to be easy to use and integrate into any application.
 
-#Init
+Read more here [Good Enough Recomendations with GER]
+
+#Quick Start
 
 Create a GER instance by first creating a connection to the database with knex, then creating a Postgres Event Store Mapper (ESM).
 
@@ -20,7 +22,8 @@ knex = require('knex')(
   }
 )
 
-#Postgres Event Store Mapper (ESM) is the mapping from 
+#Postgres Event Store Mapper (ESM) is the mapping from Events to the persistance layer of Postgres.
+
 PsqlESM = require('./lib/psql_esm')
 GER = require('ger')
 
@@ -42,26 +45,26 @@ ger.event("person", "action", "thing")
 
 Each person, action and thing are just strings that are then used to query for recommendations.
 
-ger can be queried to recommend things a "person" might like to "action", e.g.
+GER can be queried to recommend things a "person" might like to "action".
 
 ```
 ger.recommendations_for_person("person", "action")
 ```
 
-Or ask what people might "action" a "thing": 
+Or ask what people might "action" a "thing".
 
 ```
 ger.recommendations_for_thing("thing", "action")
 ```
 
-Ger can be queried for similar people or things
+GER can be queried for similar people or things.
 
 ```
 ger.ordered_similar_people("person")
 ger.ordered_similar_things("thing")
 ```
 
-Particular actions can be weighted so as to increase their importance in the similarity
+Actions can be assinged weights to increase their importance for GER predicitons.
 
 ```
 ger.set_action_weight("action", 1)
