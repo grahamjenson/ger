@@ -4,15 +4,18 @@ chaiAsPromised = require("chai-as-promised")
 chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
-
-MemoryESM = require('../lib/memory_esm')
-PsqlESM = require('../lib/psql_esm')
-
-GER_Package = require('../ger')
-GER = GER_Package.GER
 q = require 'q'
 
-knex = GER_Package.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
+
+g = require('../ger')
+GER = g.GER
+
+MemoryESM = g.MemoryESM
+PsqlESM = g.PsqlESM
+
+
+
+knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
 
 create_psql_esm = ->

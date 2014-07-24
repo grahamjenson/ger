@@ -1,5 +1,4 @@
 q = require 'q'
-knex = require 'knex'
 
 Utils =
   flatten: (arr) ->
@@ -222,7 +221,15 @@ class GER
 RET = {}
 
 RET.GER = GER
+
+knex = require 'knex'
 RET.knex = knex
+
+MemoryESM = require('./lib/memory_esm')
+RET.MemoryESM
+
+PsqlESM = require('./lib/psql_esm')
+RET.PsqlESM
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

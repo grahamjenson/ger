@@ -5,7 +5,7 @@ Read more here [Good Enough Recomendations with GER]()
 
 #Quick Start Guide
 
-Install GER with
+Install GER
 
 ```bash
 npm install ger
@@ -14,26 +14,20 @@ npm install ger
 First create a database connection with knex:
 
 ```javascript
-knex = require('knex')(
-  {
-  client: 'pg', 
-  connection: 
-    {
-      host: '127.0.0.1', 
-      user : 'root', 
-      password : 'abcdEF123456', 
-      database : 'ger'
-    }
-  }
-)
+var g = require('../ger')
+var GER = g.GER
+```
+
+Need to create a [knex](http://knexjs.org/) connection:
+
+```javascript
+var knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'root', database : 'ger'}})
 ```
 
 Then create a Postgres Event Store Mapper (ESM), which is the mapping between GER and the persistence layer:
 
 ```javascript
-PsqlESM = require('./lib/psql_esm');
-
-psql_esm = new PsqlESM(knex)
+var psql_esm = new g.PsqlESM(knex)
 
 psql_esm.init_tables() //create the tables if they don't exist
 ```
@@ -41,9 +35,7 @@ psql_esm.init_tables() //create the tables if they don't exist
 Then create the GER instance by passing the ESM
 
 ```javascript
-GER = require('ger');
-
-ger = new GER(psql_esm);
+var ger = new GER(psql_esm);
 ```
 
 #The GER API
@@ -53,6 +45,8 @@ There are four concepts for GER
 1. person:String 
 2. thing:String
 3. action:String which has a weight:Integer (defaults to 1)
+
+**All functions from GER return a promise.**
 
 To add an event to GER use:
 
