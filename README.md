@@ -1,14 +1,19 @@
-Good Enough Reccomendations (GER) is a collaborative filtering based recomendations engine.
+Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine.
 GER is built to be easy to use and integrate into any application.
 
-Read more here [Good Enough Recomendations with GER]
+Read more here [Good Enough Recomendations with GER]()
 
-#Quick Start
+#Quick Start Guide
 
-Create a GER instance by first creating a connection to the database with knex, then creating a Postgres Event Store Mapper (ESM).
+Install GER with
 
-```coffeescript
-#knex is needed for a database connection
+```bash
+npm install ger
+```
+
+First create a database connection with knex:
+
+```javascript
 knex = require('knex')(
   {
   client: 'pg', 
@@ -21,31 +26,47 @@ knex = require('knex')(
     }
   }
 )
+```
 
-#Postgres Event Store Mapper (ESM) is the mapping from Events to the persistance layer of Postgres.
+Then create a Postgres Event Store Mapper (ESM), which is the mapping between GER and the persistence layer:
 
-PsqlESM = require('./lib/psql_esm')
-GER = require('ger')
+```javascript
+PsqlESM = require('./lib/psql_esm');
 
 psql_esm = new PsqlESM(knex)
 
-#create the tables if they do not already exist
-psql_esm.init_tables()
-
-ger = new GER(psql_esm)
+psql_esm.init_tables() //create the tables if they don't exist
 ```
 
+Then create the GER instance by passing the ESM
+
+```javascript
+GER = require('ger');
+
+ger = new GER(psql_esm);
+```
 
 #The GER API
 
-The core method of GER is the event:
-```coffeescript
-ger.event("person", "action", "thing")
+There are four concepts for GER
+
+1. person:String 
+2. thing:String
+3. action:String which has a weight:Integer (defaults to 1)
+
+To add an event to GER use:
+
+```javascript
+ger.event("person", "action", "thing");
 ```
 
-Each person, action and thing are just strings that are then used to query for recommendations.
+An actions weight can be changed, the higher the weight the more important it is for GER predictions.
 
-GER can be queried to recommend things a "person" might like to "action".
+```
+ger.set_action_weight("action", 10)
+```
+
+GER can be queried to recommend things a "person" might like to "action":
 
 ```
 ger.recommendations_for_person("person", "action")
@@ -64,8 +85,4 @@ ger.ordered_similar_people("person")
 ger.ordered_similar_things("thing")
 ```
 
-Actions can be assinged weights to increase their importance for GER predicitons.
 
-```
-ger.set_action_weight("action", 1)
-```

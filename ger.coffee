@@ -1,4 +1,5 @@
 q = require 'q'
+knex = require 'knex'
 
 Utils =
   flatten: (arr) ->
@@ -146,8 +147,6 @@ class GER
     )
 
 
-
-
   recommendations_for_thing: (thing, action) ->
     @esm.get_people_that_actioned_thing(thing, action)
     .then( (people) =>
@@ -223,6 +222,7 @@ class GER
 RET = {}
 
 RET.GER = GER
+RET.knex = knex
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

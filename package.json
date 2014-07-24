@@ -26,11 +26,11 @@
     "coffee-script": "1.7.1"
   },
   "scripts": {
-    "build": "./node_modules/.bin/coffee -cj ger.coffee lib/memory_esm.coffee lib/models.coffee lib/psql_esm.coffee lib/store.coffee ",
+    "build": "./node_modules/.bin/coffee -c ger.coffee lib/psql_esm.coffee lib/memory_esm.coffee",
     "test": "mocha"
   },
   "main"          : "ger.js",
-  "version"       : "0.0.1",
+  "version"       : "0.0.2",
   "license"       : "MIT",
   "repository": {
     "type": "git",
