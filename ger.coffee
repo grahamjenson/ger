@@ -225,11 +225,9 @@ RET.GER = GER
 knex = require 'knex'
 RET.knex = knex
 
-MemoryESM = require('./lib/memory_esm')
-RET.MemoryESM
+RET.MemoryESM = require('./lib/memory_esm')
 
-PsqlESM = require('./lib/psql_esm')
-RET.PsqlESM
+RET.PsqlESM = require('./lib/psql_esm')
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

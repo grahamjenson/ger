@@ -13,8 +13,6 @@ GER = g.GER
 MemoryESM = g.MemoryESM
 PsqlESM = g.PsqlESM
 
-
-
 knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
 
