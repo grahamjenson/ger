@@ -3,24 +3,25 @@ q = require 'q'
 
 class EventStoreMapper
 
-  constructor: (@knex) ->
+  constructor: (@knex, @schema = 'public') ->
 
   drop_tables: ->
     q.all( [
-      @knex.schema.dropTableIfExists('events'),
-      @knex.schema.dropTableIfExists('actions')
+      @knex.schema.dropTableIfExists("#{@schema}.events"),
+      @knex.schema.dropTableIfExists("#{@schema}.actions")
     ])
 
   init_tables: ->
     q.all([@init_events_table(), @init_action_table()])
 
   init_events_table: ->
-    @knex.schema.hasTable('events')
+    @knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{@schema}")
+    .then( => @knex.schema.hasTable("#{@schema}.events"))
     .then( (has_events_table) =>
       if has_events_table 
         true
       else
-        @knex.schema.createTable('events',(table) ->
+        @knex.schema.createTable("#{@schema}.events",(table) ->
           table.increments();
           table.string('person').index().notNullable()
           table.string('action').index().notNullable()
@@ -30,12 +31,12 @@ class EventStoreMapper
     )
 
   init_action_table: ->
-    @knex.schema.hasTable('actions')
+    @knex.schema.hasTable("#{@schema}.actions")
     .then( (has_actions_table) =>
       if has_actions_table 
         true
       else
-        @knex.schema.createTable('actions',(table) ->
+        @knex.schema.createTable("#{@schema}.actions",(table) ->
           table.increments();
           table.string('action').unique().index().notNullable()
           table.integer('weight').notNullable()
@@ -54,81 +55,81 @@ class EventStoreMapper
 
   add_event_to_db: (person, action, thing) ->
     now = new Date().toISOString()
-    @knex('events').insert({person: person, action: action, thing: thing , created_at: now, updated_at: now})
+    @knex("#{@schema}.events").insert({person: person, action: action, thing: thing , created_at: now, updated_at: now})
 
   set_action_weight: (action, weight, overwrite = true) ->
     now = new Date().toISOString()
     #TODO change to atomic update or insert (upsert), because this can cause a race condition if you try add the same action multiple times, hence the catch -- graham
     
-    insert = @knex('actions').insert({action: action, weight: weight, created_at: now, updated_at: now}).toString()
+    insert = @knex("#{@schema}.actions").insert({action: action, weight: weight, created_at: now, updated_at: now}).toString()
     #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
     insert = insert.replace(/\svalues\s\(/, " select ")[..-2]
 
     update_attr = {action: action}
     update_attr["weight"] = weight if overwrite
-    update = @knex('actions').where(action: action).update(update_attr).toString()
+    update = @knex("#{@schema}.actions").where(action: action).update(update_attr).toString()
 
     #defined here http://www.the-art-of-web.com/sql/upsert/
-    query = "BEGIN; LOCK TABLE actions IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
+    query = "BEGIN; LOCK TABLE #{@schema}.actions IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
     @knex.raw(query)
     
 
   
   events_for_people_action_things: (people, action, things) ->
     return q.fcall(->[]) if people.length == 0 || things.length == 0
-    @knex('events').where(action: action).whereIn('person', people).whereIn('thing', things)
+    @knex("#{@schema}.events").where(action: action).whereIn('person', people).whereIn('thing', things)
 
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
 
   get_actions_of_person_thing_with_weights: (person, thing) ->
-    @knex('events').select('events.action as key', 'actions.weight').leftJoin('actions', 'events.action', 'actions.action').where(person: person, thing: thing).orderBy('weight', 'desc')
+    @knex("#{@schema}.events").select("#{@schema}.events.action as key", "#{@schema}.actions.weight").leftJoin("#{@schema}.actions", "#{@schema}.events.action", "#{@schema}.actions.action").where(person: person, thing: thing).orderBy('weight', 'desc')
 
   get_ordered_action_set_with_weights: ->
-    @knex('actions').select('action as key', 'weight').orderBy('weight', 'desc')
+    @knex("#{@schema}.actions").select('action as key', 'weight').orderBy('weight', 'desc')
 
     
   get_action_weight: (action) ->
-    @knex('actions').select('weight').where(action: action)
+    @knex("#{@schema}.actions").select('weight').where(action: action)
     .then((rows)->
       parseInt(rows[0].weight)
     )
 
   get_things_that_actioned_people: (people, action) =>
     return q.fcall(->[]) if people.length == 0
-    @knex('events').select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_things: (things, action) =>
     return q.fcall(->[]) if things.length == 0
-    @knex('events').select('person', 'created_at').where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('person', 'created_at').where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex('events').select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex('events').select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex('events').select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   things_jaccard_metric: (thing1, thing2, action) ->
-    q1 = @knex('events').select('person').distinct().where(thing: thing1, action: action).toString()
-    q2 = @knex('events').select('person').distinct().where(thing: thing2, action: action).toString()
+    q1 = @knex("#{@schema}.events").select('person').distinct().where(thing: thing1, action: action).toString()
+    q2 = @knex("#{@schema}.events").select('person').distinct().where(thing: thing2, action: action).toString()
 
     intersection = @knex.raw("#{q1} INTERSECT #{q2}")
     union = @knex.raw("#{q1} UNION #{q2}")
@@ -141,8 +142,8 @@ class EventStoreMapper
     )
 
   people_jaccard_metric: (person1, person2, action) ->
-    q1 = @knex('events').select('thing').distinct().where(person: person1, action: action).toString()
-    q2 = @knex('events').select('thing').distinct().where(person: person2, action: action).toString()
+    q1 = @knex("#{@schema}.events").select('thing').distinct().where(person: person1, action: action).toString()
+    q2 = @knex("#{@schema}.events").select('thing').distinct().where(person: person2, action: action).toString()
 
     intersection = @knex.raw("#{q1} INTERSECT #{q2}")
     union = @knex.raw("#{q1} UNION #{q2}")
@@ -157,23 +158,23 @@ class EventStoreMapper
 
   #knex wrapper functions
   has_event: (person, action, thing) ->
-    @knex('events').where({person: person, action: action, thing: thing})
+    @knex("#{@schema}.events").where({person: person, action: action, thing: thing})
     .then( (rows) ->
       rows.length > 0
     )
 
   has_action: (action) ->
-    @knex('actions').where(action: action)
+    @knex("#{@schema}.actions").where(action: action)
     .then( (rows) ->
       rows.length > 0
     )
 
   count_events: ->
-    @knex('events').count()
+    @knex("#{@schema}.events").count()
     .then (count) -> parseInt(count[0].count)
 
   count_actions: ->
-    @knex('actions').count()
+    @knex("#{@schema}.actions").count()
     .then (count) -> parseInt(count[0].count)
 
 #AMD
