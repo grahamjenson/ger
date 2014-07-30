@@ -20,6 +20,28 @@ init_esm = ->
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
 
+describe "Schemas for multitenancy", ->
+  it "should have different counts for different schemas", ->
+    psql_esm1 = new PsqlESM(knex, "schema1")
+    psql_esm2 = new PsqlESM(knex, "schema2")
+
+    q.all([psql_esm1.drop_tables(),psql_esm2.drop_tables()])
+    .then( -> q.all([psql_esm1.init_tables(),psql_esm2.init_tables()]) )
+    .then( ->
+      q.all([
+        psql_esm1.add_event('p','a','t')
+        psql_esm1.add_event('p1','a','t')
+
+        psql_esm2.add_event('p2','a','t')
+      ])
+    )
+    .then( ->
+      q.all([psql_esm1.count_events(), psql_esm2.count_events() ]) 
+    )
+    .spread((c1,c2) ->
+      c1.should.equal 2
+      c2.should.equal 1
+    )
 
 describe '#initial tables', ->
   it 'should have empty actions table', ->
