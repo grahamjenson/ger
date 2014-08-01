@@ -12,37 +12,27 @@ class EventStoreMapper
     ])
 
   init_tables: ->
-    q.all([@init_events_table(), @init_action_table()])
+    @knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{@schema}")
+    .then( => q.all([@init_events_table(), @init_action_table()]))
 
   init_events_table: ->
-    @knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{@schema}")
-    .then( => @knex.schema.hasTable("#{@schema}.events"))
-    .then( (has_events_table) =>
-      if has_events_table 
-        true
-      else
-        @knex.schema.createTable("#{@schema}.events",(table) ->
-          table.increments();
-          table.string('person').index().notNullable()
-          table.string('action').index().notNullable()
-          table.string('thing').index().notNullable()
-          table.timestamps();
-        )
+    @knex.schema.createTable("#{@schema}.events",(table) ->
+      table.increments();
+      table.string('person').index().notNullable()
+      table.string('action').index().notNullable()
+      table.string('thing').index().notNullable()
+      table.timestamps();
     )
+    
 
   init_action_table: ->
-    @knex.schema.hasTable("#{@schema}.actions")
-    .then( (has_actions_table) =>
-      if has_actions_table 
-        true
-      else
-        @knex.schema.createTable("#{@schema}.actions",(table) ->
-          table.increments();
-          table.string('action').unique().index().notNullable()
-          table.integer('weight').notNullable()
-          table.timestamps();
-        )
+    @knex.schema.createTable("#{@schema}.actions",(table) ->
+      table.increments();
+      table.string('action').unique().index().notNullable()
+      table.integer('weight').notNullable()
+      table.timestamps();
     )
+  
 
   add_event: (person, action, thing) ->
     q.all([
