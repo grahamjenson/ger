@@ -77,10 +77,10 @@ events_from_csv_to_ger = (ger) ->
 
 init_new_ger = ->
   #q.fcall(-> new GER(new MemoryESM()))
-  psql_esm = new PsqlESM(knex())
-  q.fcall(-> psql_esm.drop_tables())
-  .then( -> psql_esm.init_tables())
-  .then( -> new GER(psql_esm))
+  knex = knex()
+  PsqlESM.drop_tables(knex)
+  .then( -> PsqlESM.init_tables(knex))
+  .then( -> new GER(new PsqlESM(knex)))
 
 
 init_opt_db = ->

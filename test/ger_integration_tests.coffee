@@ -20,8 +20,8 @@ create_psql_esm = ->
   #in
   psql_esm = new PsqlESM(knex)
   #drop the current tables, reinit the tables, return the esm
-  q.fcall(-> psql_esm.drop_tables())
-  .then( -> psql_esm.init_tables())
+  q.fcall(-> PsqlESM.drop_tables(knex))
+  .then( -> PsqlESM.init_tables(knex))
   .then( -> psql_esm)
 
 create_store_esm = ->

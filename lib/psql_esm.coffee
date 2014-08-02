@@ -1,38 +1,45 @@
 q = require 'q'
 
 
-class EventStoreMapper
+init_events_table = (knex, schema) ->
+  knex.schema.createTable("#{schema}.events",(table) ->
+    table.increments();
+    table.string('person').index().notNullable()
+    table.string('action').index().notNullable()
+    table.string('thing').index().notNullable()
+    table.timestamps();
+  )
+  
 
+init_action_table = (knex, schema) ->
+  knex.schema.createTable("#{schema}.actions",(table) ->
+    table.increments();
+    table.string('action').unique().index().notNullable()
+    table.integer('weight').notNullable()
+    table.timestamps();
+  )
+
+#CLASS ACTIONS
+drop_tables = (knex, schema = 'public') ->
+  q.all( [
+    knex.schema.dropTableIfExists("#{schema}.events"),
+    knex.schema.dropTableIfExists("#{schema}.actions")
+  ])
+
+init_tables = (knex, schema = 'public') ->
+  q.when(knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{schema}"))
+  .then( => q.all([init_events_table(knex, schema), init_action_table(knex, schema)]))
+
+class EventStoreMapper
+  
+  #INSTANCE ACTIONS
   constructor: (@knex, @schema = 'public') ->
 
   drop_tables: ->
-    q.all( [
-      @knex.schema.dropTableIfExists("#{@schema}.events"),
-      @knex.schema.dropTableIfExists("#{@schema}.actions")
-    ])
+    drop_tables(@knex,@schema)
 
   init_tables: ->
-    @knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{@schema}")
-    .then( => q.all([@init_events_table(), @init_action_table()]))
-
-  init_events_table: ->
-    @knex.schema.createTable("#{@schema}.events",(table) ->
-      table.increments();
-      table.string('person').index().notNullable()
-      table.string('action').index().notNullable()
-      table.string('thing').index().notNullable()
-      table.timestamps();
-    )
-    
-
-  init_action_table: ->
-    @knex.schema.createTable("#{@schema}.actions",(table) ->
-      table.increments();
-      table.string('action').unique().index().notNullable()
-      table.integer('weight').notNullable()
-      table.timestamps();
-    )
-  
+    init_tables(@knex,@schema)
 
   add_event: (person, action, thing) ->
     q.all([
@@ -166,6 +173,10 @@ class EventStoreMapper
   count_actions: ->
     @knex("#{@schema}.actions").count()
     .then (count) -> parseInt(count[0].count)
+
+
+EventStoreMapper.drop_tables = drop_tables
+EventStoreMapper.init_tables = init_tables
 
 #AMD
 if (typeof define != 'undefined' && define.amd)
