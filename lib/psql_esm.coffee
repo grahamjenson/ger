@@ -25,7 +25,8 @@ drop_tables = (knex, schema = 'public') ->
     knex.schema.dropTableIfExists("#{schema}.events"),
     knex.schema.dropTableIfExists("#{schema}.actions")
   ])
-
+  .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS #{schema}"))
+  
 init_tables = (knex, schema = 'public') ->
   q.when(knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{schema}"))
   .then( => q.all([init_events_table(knex, schema), init_action_table(knex, schema)]))
