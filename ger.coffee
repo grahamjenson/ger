@@ -208,9 +208,11 @@ class GER
   ##Wrappers of the ESM
   event: (person, action, thing) ->
     @esm.add_event(person,action,thing)
+    .then( -> {person: person, action: action, thing: thing})
 
   set_action_weight: (action, weight) ->
     @esm.set_action_weight(action, weight)
+    .then( -> {action: action, weight: weight}) 
 
   get_action_weight:(action) ->
     @esm.get_action_weight(action)

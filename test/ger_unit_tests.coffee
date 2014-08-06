@@ -74,7 +74,7 @@ describe '#event', ->
 
   it 'should add the action to the set of actions', ->
     ger = init_ger()
-    sinon.stub(ger.esm, 'add_event')
+    sinon.stub(ger.esm, 'add_event', -> q.when())
     ger.event('person','action','thing')
     sinon.assert.calledOnce(ger.esm.add_event)
 

@@ -57,7 +57,6 @@ class EventStoreMapper
 
   set_action_weight: (action, weight, overwrite = true) ->
     now = new Date().toISOString()
-    #TODO change to atomic update or insert (upsert), because this can cause a race condition if you try add the same action multiple times, hence the catch -- graham
     
     insert = @knex("#{@schema}.actions").insert({action: action, weight: weight, created_at: now, updated_at: now}).toString()
     #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error

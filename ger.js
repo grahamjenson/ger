@@ -332,11 +332,22 @@
     };
 
     GER.prototype.event = function(person, action, thing) {
-      return this.esm.add_event(person, action, thing);
+      return this.esm.add_event(person, action, thing).then(function() {
+        return {
+          person: person,
+          action: action,
+          thing: thing
+        };
+      });
     };
 
     GER.prototype.set_action_weight = function(action, weight) {
-      return this.esm.set_action_weight(action, weight);
+      return this.esm.set_action_weight(action, weight).then(function() {
+        return {
+          action: action,
+          weight: weight
+        };
+      });
     };
 
     GER.prototype.get_action_weight = function(action) {
