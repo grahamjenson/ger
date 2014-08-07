@@ -7,7 +7,7 @@ init_events_table = (knex, schema) ->
     table.string('person').index().notNullable()
     table.string('action').index().notNullable()
     table.string('thing').index().notNullable()
-    table.timestamps();
+    table.timestamp('created_at').notNullable()
   )
   
 
@@ -16,7 +16,8 @@ init_action_table = (knex, schema) ->
     table.increments();
     table.string('action').unique().index().notNullable()
     table.integer('weight').notNullable()
-    table.timestamps();
+    table.timestamp('created_at').notNullable()
+    table.timestamp('updated_at').notNullable()
   )
 
 #CLASS ACTIONS
@@ -53,7 +54,7 @@ class EventStoreMapper
 
   add_event_to_db: (person, action, thing) ->
     now = new Date().toISOString()
-    @knex("#{@schema}.events").insert({person: person, action: action, thing: thing , created_at: now, updated_at: now})
+    @knex("#{@schema}.events").insert({person: person, action: action, thing: thing, created_at: now,})
 
   set_action_weight: (action, weight, overwrite = true) ->
     now = new Date().toISOString()
@@ -62,7 +63,7 @@ class EventStoreMapper
     #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
     insert = insert.replace(/\svalues\s\(/, " select ")[..-2]
 
-    update_attr = {action: action}
+    update_attr = {action: action, updated_at: now}
     update_attr["weight"] = weight if overwrite
     update = @knex("#{@schema}.actions").where(action: action).update(update_attr).toString()
 
