@@ -358,6 +358,10 @@
       return this.esm.add_action(action);
     };
 
+    GER.prototype.bootstrap = function(stream) {
+      return this.esm.bootstrap(stream);
+    };
+
     return GER;
 
   })();

@@ -5,9 +5,13 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
+path = require 'path'
+
 PsqlESM = require('../lib/psql_esm')
 
 q = require 'q'
+
+fs = require('fs');
 
 knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
@@ -19,6 +23,15 @@ init_esm = ->
   q.fcall(-> psql_esm.drop_tables())
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
+
+describe "#bootstrap", ->
+  it 'should load a set cof events from a file into the database', ->
+    init_esm()
+    .then (esm) ->
+      fileStream = fs.createReadStream(path.resolve('./test/test_events.csv'))
+      esm.bootstrap(fileStream)
+      .then( -> esm.count_events())
+      .then( (count) -> count.should.equal 3)
 
 describe "Schemas for multitenancy", ->
   it "should have different counts for different schemas", ->

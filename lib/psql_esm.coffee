@@ -1,4 +1,8 @@
 q = require 'q'
+fs = require 'fs'
+
+pg = require('pg');
+copyFrom = require('pg-copy-streams').from;
 
 
 init_events_table = (knex, schema) ->
@@ -175,6 +179,26 @@ class EventStoreMapper
     @knex("#{@schema}.actions").count()
     .then (count) -> parseInt(count[0].count)
 
+  bootstrap: (stream) ->
+    #stream of  person,action,thing,date CSV
+    #this will require manually adding the actions
+
+    runner = new @knex.client.Runner(@knex.client)
+    runner.ensureConnection()
+    .then( (connection) =>
+      runner.connection = connection
+      deferred = q.defer()
+      pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at) FROM STDIN CSV"));
+      
+      stream.pipe(pg_stream)
+      .on('end', -> deferred.resolve())
+      .on('error', (error) -> deferred.reject(error))
+      
+      deferred.promise
+    )
+    .finally( -> runner.cleanupConnection())
+    
+    
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables
