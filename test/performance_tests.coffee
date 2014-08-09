@@ -11,6 +11,8 @@ PsqlESM = require('../lib/psql_esm')
 GER = require('../ger').GER
 q = require 'q'
 
+Readable = require('stream').Readable;
+
 knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
 
@@ -73,6 +75,22 @@ describe 'performance tests', ->
           time = et-st
           pe = time/10000
           console.log "#{pe}ms per event"
+        )
+      )
+      .then( ->
+        st = new Date().getTime()
+
+        rs = new Readable();
+        for x in [1..10000]
+          rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01\n")
+        rs.push(null);
+
+        ger.bootstrap(rs)
+        .then(->
+          et = new Date().getTime()
+          time = et-st
+          pe = time/10000
+          console.log "#{pe}ms per bootstrapped event"
         )
       )
       .then( ->
