@@ -15,7 +15,8 @@
   "dependencies"  : {
     "q": "1.0.1",
     "knex" : "0.6.20",
-    "pg" : "3.3.0"
+    "pg" : "3.3.0",
+    "pg-copy-streams": "0.2.4"
   },
   "devDependencies": {
     "q-io": "1.11.3", 
@@ -23,15 +24,14 @@
     "chai": "1.9.1",
     "chai-as-promised": "4.1.1",
     "sinon": "1.9.1",
-    "coffee-script": "1.7.1",
-    "pg-copy-streams": "0.2.4"
+    "coffee-script": "1.7.1"
   },
   "scripts": {
     "build": "./node_modules/.bin/coffee -c ger.coffee lib/psql_esm.coffee lib/memory_esm.coffee",
     "test": "mocha"
   },
   "main"          : "ger.js",
-  "version"       : "0.0.10",
+  "version"       : "0.0.11",
   "license"       : "MIT",
   "repository": {
     "type": "git",
