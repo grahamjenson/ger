@@ -94,7 +94,10 @@ class EventStoreMapper
   get_action_weight: (action) ->
     @knex("#{@schema}.actions").select('weight').where(action: action)
     .then((rows)->
-      parseInt(rows[0].weight)
+      if rows.length > 0
+        return parseInt(rows[0].weight)
+      else
+        return null
     )
 
   get_things_that_actioned_people: (people, action) =>
