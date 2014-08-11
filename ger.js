@@ -331,6 +331,10 @@
       });
     };
 
+    GER.prototype.count_events = function() {
+      return this.esm.count_events();
+    };
+
     GER.prototype.event = function(person, action, thing) {
       return this.esm.add_event(person, action, thing).then(function() {
         return {

@@ -206,6 +206,10 @@ class GER
     ) 
 
   ##Wrappers of the ESM
+
+  count_events: ->
+    @esm.count_events()
+
   event: (person, action, thing) ->
     @esm.add_event(person,action,thing)
     .then( -> {person: person, action: action, thing: thing})

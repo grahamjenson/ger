@@ -216,10 +216,16 @@ KeyManager =
 
 class EventStoreMapper
 
+
   constructor: () ->
     @store = new Store
+    @event_count = 0
 
+  count_events: () ->
+    q.when(@event_count)
+    
   add_event: (person, action, thing) ->
+    @event_count += 1
     q.all([
       @add_action(action),
       @add_thing_to_person_action_set(thing,  action, person),

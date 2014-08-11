@@ -32,6 +32,19 @@ for esmfn in [ create_store_esm, create_psql_esm]
     init_ger = ->
       esmfn().then( (esm) -> new GER(esm))
 
+    describe '#count_events', ->
+      it 'should return 2 for 2 events', ->
+        init_ger()
+        .then (ger) ->
+          q.all([
+            ger.event('p1','buy','c'),
+            ger.event('p1','view','c'),
+          ])
+          .then(-> ger.count_events())
+          .then((count) ->
+            count.should.equal 2
+          )
+
     describe '#probability_of_person_actioning_thing', ->
       it 'should return 1 if the person has already actioned the object', ->
         init_ger()
