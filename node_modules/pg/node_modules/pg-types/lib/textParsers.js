@@ -39,9 +39,10 @@ var parseDate = function(isoDate) {
   //Z (UTC)
   //-05
   //+06:30
-  var tZone = /([Z|+\-])(\d{2})?:?(\d{2})?/.exec(isoDate.split(' ')[1]);
+  var tZone = /([Z|+\-])(\d{2})?:?(\d{2})?:?(\d{2})?/.exec(isoDate.split(' ')[1]);
   //minutes to adjust for timezone
   var tzAdjust = 0;
+  var tzSign = 1;
   var date;
   if(tZone) {
     var type = tZone[1];
@@ -49,10 +50,13 @@ var parseDate = function(isoDate) {
     case 'Z':
       break;
     case '-':
-      tzAdjust = -(((parseInt(tZone[2],10)*60)+(parseInt(tZone[3]||0,10))));
-      break;
+      tzSign = -1;
     case '+':
-      tzAdjust = (((parseInt(tZone[2],10)*60)+(parseInt(tZone[3]||0,10))));
+      tzAdjust = tzSign * (
+        (parseInt(tZone[2], 10) * 3600) +
+        (parseInt(tZone[3] || 0, 10) * 60) +
+        (parseInt(tZone[4] || 0, 10))
+      );
       break;
     default:
       throw new Error("Unidentifed tZone part " + type);
@@ -60,7 +64,7 @@ var parseDate = function(isoDate) {
 
     var utcOffset = Date.UTC(year, month, day, hour, min, seconds, mili);
 
-    date = new Date(utcOffset - (tzAdjust * 60* 1000));
+    date = new Date(utcOffset - (tzAdjust * 1000));
   }
   //no timezone information
   else {
