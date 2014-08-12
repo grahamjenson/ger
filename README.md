@@ -1,7 +1,7 @@
 Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine.
 GER is built to be easy to use and integrate into any application.
 
-Read more here [Good Enough Recomendations with GER]()
+Read more here [Good Enough Recommendations with GER](http://maori.geek.nz/post/good_enough_recomendations_with_ger)
 
 #Quick Start Guide
 
