@@ -1,8 +1,17 @@
 q = require 'q'
 fs = require 'fs'
-
+split = require 'split'
 pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
+
+Transform = require('stream').Transform;
+class CounterStream extends Transform
+  _transform: (chunk, encoding, done) ->
+    @count |= 0
+    if chunk.toString().trim() != ''
+      @count += 1
+    @push(chunk)
+    done()
 
 
 init_events_table = (knex, schema) ->
@@ -193,8 +202,9 @@ class EventStoreMapper
       deferred = q.defer()
       pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at) FROM STDIN CSV"));
       
-      stream.pipe(pg_stream)
-      .on('end', -> deferred.resolve())
+      counter = new CounterStream()
+      stream.pipe(split(/(\r?\n)/)).pipe(counter).pipe(pg_stream)
+      .on('end', -> deferred.resolve(counter.count))
       .on('error', (error) -> deferred.reject(error))
       
       deferred.promise

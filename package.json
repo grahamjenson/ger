@@ -16,7 +16,8 @@
     "q": "1.0.1",
     "knex" : "0.6.22",
     "pg" : "3.4.1",
-    "pg-copy-streams": "0.2.4"
+    "pg-copy-streams": "0.2.4",
+    "split": "0.3.0"
   },
   "devDependencies": {
     "q-io": "1.11.3", 

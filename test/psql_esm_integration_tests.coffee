@@ -38,12 +38,13 @@ describe "#bootstrap", ->
       rs.push(null);
 
       esm.bootstrap(rs)
-      .then( -> esm.count_events())
-      .then( (count) -> count.should.equal 3)
+      .then( (returned_count) -> q.all([returned_count, esm.count_events()]))
+      .spread( (returned_count, count) -> 
+        count.should.equal 3
+        returned_count.should.equal 3
+      )
 
     
-
-
   it 'should load a set of events from a file into the database', ->
     init_esm()
     .then (esm) ->
