@@ -203,7 +203,7 @@ class EventStoreMapper
       pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at) FROM STDIN CSV"));
       
       counter = new CounterStream()
-      stream.pipe(split(/(\r?\n)/)).pipe(counter).pipe(pg_stream)
+      stream.pipe(split(/^/gm)).pipe(counter).pipe(pg_stream)
       .on('end', -> deferred.resolve(counter.count))
       .on('error', (error) -> deferred.reject(error))
       
