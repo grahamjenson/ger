@@ -232,28 +232,22 @@ class GER
 
   #  DATABASE CLEANING #
 
-  compact_to_size: (number_of_events) ->
-    # step 1 remove expired
-    # if it still has too many events
-    # step 2 remove non_unique events
-    # if it still has too many events
+  compact_database: ->
+    # Do some smart (lossless) things to shrink the size of the database
+    q.all( [ @esm.remove_expired_events(), @esm.remove_non_unique_events(), @esm.remove_superseded_events()] )
 
-  remove_expired_events: ->
-    #removes the events passed their expiry date
-    @esm.remove_expired_events()
 
-  remove_non_unique_events: ->
-    #remove all events that are not unique
-    # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
-    
-  remove_superseded_events: ->
-    #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
-
-  remove_excessive_user_events: ->
-    #find members with most events and truncate them down
-
-  remove_events_till_size: (number_of_events) ->
-    #removes old events till there is only number_of_events left
+  compact_database_to_size: (number_of_events) ->
+    # Smartly Cut (lossy) the tail of the database (based on created_at) to a defined size
+    #STEP 1
+    @esm.remove_excessive_user_events()
+    .then( => @count_events())
+    .then( (count) => 
+      if count <= number_of_events
+        return count
+      else
+        @esm.remove_events_till_size(number_of_events)
+    )
 
 
 

@@ -26,6 +26,50 @@ init_esm = ->
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
 
+describe "remove_expired_events", ->
+  it "removes the events passed their expiry date", ->
+    init_esm()
+    .then (esm) ->
+      esm.add_event('p','a','t', new Date(0).toISOString())
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 1
+        esm.remove_expired_events()
+      )
+      .then( -> esm.count_events())
+      .then( (count) -> count.should.equal 0 )
+
+  it "does not remove events that have no expiry date or future date", ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p1','a','t'),  esm.add_event('p2','a','t', new Date(2050,10,10)), esm.add_event('p3','a','t', new Date(0).toISOString())])
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        console.log "DASDASD", count
+        count.should.equal 3
+        console.log "FDHFDJFDHFD"
+        esm.remove_expired_events()
+      )
+      .then( -> esm.count_events())
+      .then( (count) -> count.should.equal 2 )
+
+describe "remove_non_unique_events", ->
+  it "remove all events that are not unique", ->
+
+    
+describe "remove_superseded_events", ->
+  it "Remove events that have been superseded events", ->
+    #e.g. bob views a and bob redeems a, we can remove bob views a
+describe "remove_excessive_user_events", ->
+  it "find members with most events and truncate them down", ->
+
+describe "remove_events_till_size", ->
+  it "removes old events till there is only number_of_events left", ->
+
 describe "expires at", ->
   it 'should accept an expiry date', ->
     init_esm()

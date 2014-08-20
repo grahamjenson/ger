@@ -212,7 +212,26 @@ class EventStoreMapper
     )
     .finally( -> runner.cleanupConnection())
     
+  # DATABASE CLEANING METHODS
+
+  remove_expired_events: ->
+    #removes the events passed their expiry date
+    now = new Date().toISOString()
+    @knex("#{@schema}.events").where('expires_at', '<', now).del()
+
+  remove_non_unique_events: ->
+    #remove all events that are not unique
+    # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
     
+  remove_superseded_events: ->
+    #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
+
+  remove_excessive_user_events: ->
+    #find members with most events and truncate them down
+
+  remove_events_till_size: (number_of_events) ->
+    #removes old events till there is only number_of_events left
+
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables

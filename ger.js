@@ -369,19 +369,25 @@
       return this.esm.bootstrap(stream);
     };
 
-    GER.prototype.compact_to_size = function(number_of_events) {};
-
-    GER.prototype.remove_expired_events = function() {
-      return this.esm.remove_expired_events();
+    GER.prototype.compact_database = function() {
+      return q.all([this.esm.remove_expired_events(), this.esm.remove_non_unique_events(), this.esm.remove_superseded_events()]);
     };
 
-    GER.prototype.remove_non_unique_events = function() {};
-
-    GER.prototype.remove_superseded_events = function() {};
-
-    GER.prototype.remove_excessive_user_events = function() {};
-
-    GER.prototype.remove_events_till_size = function(number_of_events) {};
+    GER.prototype.compact_database_to_size = function(number_of_events) {
+      return this.esm.remove_excessive_user_events().then((function(_this) {
+        return function() {
+          return _this.count_events();
+        };
+      })(this)).then((function(_this) {
+        return function(count) {
+          if (count <= number_of_events) {
+            return count;
+          } else {
+            return _this.esm.remove_events_till_size(number_of_events);
+          }
+        };
+      })(this));
+    };
 
     return GER;
 
