@@ -5,7 +5,6 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
-MemoryESM = require('../lib/memory_esm')
 PsqlESM = require('../lib/psql_esm')
 
 GER = require('../ger').GER
@@ -27,8 +26,6 @@ create_psql_esm = ->
 actions = ["buy", "like", "view"]
 people = [1..10000]
 things = [1..1000]
-create_store_esm = ->
-  q.fcall( -> new MemoryESM())
 
 init_ger = ->
   create_psql_esm().then( (esm) -> new GER(esm))
@@ -36,6 +33,7 @@ init_ger = ->
 sample = (list) ->
   v = list[Math.floor(Math.random()*list.length)]
   v
+  
 describe 'performance tests', ->
 
   it 'adding 1000 events takes so much time', ->

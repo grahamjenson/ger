@@ -5,13 +5,17 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 
-MemoryESM = require('../lib/memory_esm')
+g = require('../ger')
+GER = g.GER
 
-GER = require('../ger').GER
+knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
+
+PsqlESM = g.PsqlESM
+
 q = require 'q'
 
 init_ger = ->
-  return new GER(new MemoryESM())
+  return new GER(new PsqlESM(knex))
 
 
 describe '#recommendations_for_person', ->
@@ -43,28 +47,6 @@ describe '#ordered_similar_people', ->
     )
 
 
-
-describe '#similar_people_for_action', ->
-  it 'should take a person and find similar people for an action', ->
-    ger = init_ger()
-    sinon.stub(ger.esm, 'get_things_that_actioned_person', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger.esm, 'get_people_that_actioned_thing', -> q.fcall(-> ['person2']))
-    ger.similar_people_for_action('person1','action')
-    .then((people) -> 
-      ('person2' in people).should.equal true; 
-      people.length.should.equal 1
-    )
-
-
-  it 'should remove the passed person', ->
-    ger = init_ger()
-    sinon.stub(ger.esm, 'get_things_that_actioned_person', -> q.fcall(-> ['thing1']))
-    sinon.stub(ger.esm, 'get_people_that_actioned_thing', -> q.fcall(-> ['person2', 'person1']))
-    ger.similar_people_for_action('person1','action')
-    .then((people) -> 
-      ('person2' in people).should.equal true; 
-      people.length.should.equal 1
-    )
 
 
 describe '#event', ->

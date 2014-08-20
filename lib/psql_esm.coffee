@@ -21,6 +21,7 @@ init_events_table = (knex, schema) ->
     table.string('action').index().notNullable()
     table.string('thing').index().notNullable()
     table.timestamp('created_at').notNullable()
+    table.timestamp('expires_at')
   )
   
 
@@ -56,18 +57,18 @@ class EventStoreMapper
   init_tables: ->
     init_tables(@knex,@schema)
 
-  add_event: (person, action, thing) ->
+  add_event: (person, action, thing, expires_at = null) ->
     q.all([
       @add_action(action),
-      @add_event_to_db(person, action, thing)
+      @add_event_to_db(person, action, thing, expires_at)
     ])
 
   add_action: (action) ->
     @set_action_weight(action, 1, false)
 
-  add_event_to_db: (person, action, thing) ->
+  add_event_to_db: (person, action, thing, expires_at = null) ->
     now = new Date().toISOString()
-    @knex("#{@schema}.events").insert({person: person, action: action, thing: thing, created_at: now,})
+    @knex("#{@schema}.events").insert({person: person, action: action, thing: thing, created_at: now, expires_at: expires_at})
 
   set_action_weight: (action, weight, overwrite = true) ->
     now = new Date().toISOString()

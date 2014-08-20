@@ -19,8 +19,8 @@ class GER
     @INITIAL_PERSON_WEIGHT = 10
     @RESTRICTION_GET_PEOPLE_LIST = 300
     @RESTRICTION_PEOPLE_LIST = 200
-    @RESTRICTION_SUBJECTS_LIST = 100;
-    @RESTRICTION_THINGS_LIST = 200;
+    @RESTRICTION_SUBJECTS_LIST = 100
+    @RESTRICTION_THINGS_LIST = 200
 
     plural =
       'person' : 'people'
@@ -210,8 +210,8 @@ class GER
   count_events: ->
     @esm.count_events()
 
-  event: (person, action, thing) ->
-    @esm.add_event(person,action,thing)
+  event: (person, action, thing, expires_at = null) ->
+    @esm.add_event(person,action,thing, expires_at)
     .then( -> {person: person, action: action, thing: thing})
 
   set_action_weight: (action, weight) ->
@@ -229,14 +229,40 @@ class GER
     #this will require manually adding the actions
     @esm.bootstrap(stream)
     
+
+  #  DATABASE CLEANING #
+
+  compact_to_size: (number_of_events) ->
+    # step 1 remove expired
+    # if it still has too many events
+    # step 2 remove non_unique events
+    # if it still has too many events
+
+  remove_expired_events: ->
+    #removes the events passed their expiry date
+    @esm.remove_expired_events()
+
+  remove_non_unique_events: ->
+    #remove all events that are not unique
+    # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
+    
+  remove_superseded_events: ->
+    #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
+
+  remove_excessive_user_events: ->
+    #find members with most events and truncate them down
+
+  remove_events_till_size: (number_of_events) ->
+    #removes old events till there is only number_of_events left
+
+
+
 RET = {}
 
 RET.GER = GER
 
 knex = require 'knex'
 RET.knex = knex
-
-RET.MemoryESM = require('./lib/memory_esm')
 
 RET.PsqlESM = require('./lib/psql_esm')
 

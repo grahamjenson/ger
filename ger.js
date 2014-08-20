@@ -335,8 +335,11 @@
       return this.esm.count_events();
     };
 
-    GER.prototype.event = function(person, action, thing) {
-      return this.esm.add_event(person, action, thing).then(function() {
+    GER.prototype.event = function(person, action, thing, expires_at) {
+      if (expires_at == null) {
+        expires_at = null;
+      }
+      return this.esm.add_event(person, action, thing, expires_at).then(function() {
         return {
           person: person,
           action: action,
@@ -366,6 +369,20 @@
       return this.esm.bootstrap(stream);
     };
 
+    GER.prototype.compact_to_size = function(number_of_events) {};
+
+    GER.prototype.remove_expired_events = function() {
+      return this.esm.remove_expired_events();
+    };
+
+    GER.prototype.remove_non_unique_events = function() {};
+
+    GER.prototype.remove_superseded_events = function() {};
+
+    GER.prototype.remove_excessive_user_events = function() {};
+
+    GER.prototype.remove_events_till_size = function(number_of_events) {};
+
     return GER;
 
   })();
@@ -377,8 +394,6 @@
   knex = require('knex');
 
   RET.knex = knex;
-
-  RET.MemoryESM = require('./lib/memory_esm');
 
   RET.PsqlESM = require('./lib/psql_esm');
 

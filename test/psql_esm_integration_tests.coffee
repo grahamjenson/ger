@@ -26,6 +26,22 @@ init_esm = ->
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
 
+describe "expires at", ->
+  it 'should accept an expiry date', ->
+    init_esm()
+    .then (esm) ->
+      esm.add_event('p','a','t', new Date().toISOString())
+      .then( ->
+        esm.count_actions()
+      )
+      .then( (count) ->
+        count.should.equal 1
+        esm.has_action('a')
+      )
+      .then( (has_action) ->
+        has_action.should.equal true
+      )
+
 describe "#bootstrap", ->
 
   it 'should load a set cof events from a file into the database', -> 
