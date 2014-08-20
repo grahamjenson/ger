@@ -222,7 +222,9 @@ class EventStoreMapper
   remove_non_unique_events: ->
     #remove all events that are not unique
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
-    
+    query = "DELETE FROM #{@schema}.events e1 USING #{@schema}.events e2 WHERE e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND e1.created_at < e2.created_at"
+    @knex.raw(query)
+
   remove_superseded_events: ->
     #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
 

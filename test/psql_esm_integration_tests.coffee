@@ -49,9 +49,7 @@ describe "remove_expired_events", ->
         esm.count_events()
       )
       .then( (count) ->
-        console.log "DASDASD", count
         count.should.equal 3
-        console.log "FDHFDJFDHFD"
         esm.remove_expired_events()
       )
       .then( -> esm.count_events())
@@ -59,8 +57,47 @@ describe "remove_expired_events", ->
 
 describe "remove_non_unique_events", ->
   it "remove all events that are not unique", ->
+    init_esm()
+    .then (esm) ->
+      rs = new Readable();
+      rs.push('person,action,thing,2013-01-01\n');
+      rs.push('person,action,thing,2014-01-01\n');
+      rs.push(null);
+      esm.bootstrap(rs)
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 2
+        esm.remove_non_unique_events()
+      )
+      .then( -> esm.count_events())
+      .then( (count) -> count.should.equal 1 )
 
-    
+  it "removes events that have a older created_at", ->
+    init_esm()
+    .then (esm) ->    
+      rs = new Readable();
+      rs.push('person,action,thing,2013-01-01\n');
+      rs.push('person,action,thing,2014-01-01\n');
+      rs.push(null);
+      esm.bootstrap(rs)
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 2
+        esm.remove_non_unique_events()
+      )
+      .then( -> esm.count_events())
+      .then( (count) -> 
+        count.should.equal 1 
+        esm.get_oldest_event()
+      )
+      .then( (event) -> 
+        event.created_at.should.equal "2014-01-01"
+      )
+
 describe "remove_superseded_events", ->
   it "Remove events that have been superseded events", ->
     #e.g. bob views a and bob redeems a, we can remove bob views a
