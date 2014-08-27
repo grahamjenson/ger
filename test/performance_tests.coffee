@@ -65,13 +65,13 @@ describe 'performance tests', ->
       .then( ->
         st = new Date().getTime()
         promises = []
-        for x in [1..10000]
+        for x in [1..500]
           promises.push ger.event(sample(people), sample(actions) , sample(things))
         q.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
-          pe = time/10000
+          pe = time/500
           console.log "#{pe}ms per event"
         )
       )
@@ -79,7 +79,7 @@ describe 'performance tests', ->
         st = new Date().getTime()
 
         rs = new Readable();
-        for x in [1..10000]
+        for x in [1..20000]
           rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01\n")
         rs.push(null);
 
@@ -87,7 +87,7 @@ describe 'performance tests', ->
         .then(->
           et = new Date().getTime()
           time = et-st
-          pe = time/10000
+          pe = time/20000
           console.log "#{pe}ms per bootstrapped event"
         )
       )

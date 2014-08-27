@@ -10,6 +10,18 @@ unique_rows = (rows, row) ->
   (unique[r[row]] = r[row] for r in rows)
   Object.keys(unique)
 
+get_list_to_size = (fn, i, list, size) =>
+  #recursive promise that will resolve till either the end
+  if list.length > size
+    return q.fcall(-> list)
+  fn(i)
+  .then( (new_list) =>
+    return q.fcall(-> list) if new_list == null 
+    new_list = list.concat new_list
+    i = i + 1
+    get_list_to_size(fn, i, new_list, size)
+  )
+
 Transform = require('stream').Transform;
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
@@ -55,7 +67,10 @@ init_tables = (knex, schema = 'public') ->
 class EventStoreMapper
   
   #INSTANCE ACTIONS
-  constructor: (@knex, @schema = 'public') ->
+  constructor: (@knex, @schema = 'public', limits = {}) ->
+    @similar_objects_limit = limits.similar_objects_limit || 100
+    @things_limit = limits.things_limit  || 100
+    @people_limit = limits.people_limit || 100
 
   drop_tables: ->
     drop_tables(@knex,@schema)
@@ -134,19 +149,19 @@ class EventStoreMapper
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex("#{@schema}.events").select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc').limit(@things_limit)
     .then( (rows) ->
       unique_rows(rows, 'thing')
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex("#{@schema}.events").select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc').limit(@people_limit)
     .then( (rows) ->
       unique_rows(rows, 'person')
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc').limit(@things_limit)
     .then( (rows) ->
       unique_rows(rows, 'thing')
     )

@@ -25,10 +25,6 @@
       this.probability_of_person_actioning_thing = __bind(this.probability_of_person_actioning_thing, this);
       this.get_list_to_size = __bind(this.get_list_to_size, this);
       this.INITIAL_PERSON_WEIGHT = 10;
-      this.RESTRICTION_GET_PEOPLE_LIST = 300;
-      this.RESTRICTION_PEOPLE_LIST = 200;
-      this.RESTRICTION_SUBJECTS_LIST = 100;
-      this.RESTRICTION_THINGS_LIST = 200;
       plural = {
         'person': 'people',
         'thing': 'things'
@@ -46,7 +42,6 @@
         return function(v) {
           _this["similar_" + plural[v.object] + "_for_action"] = function(object, action) {
             return _this.esm["get_" + plural[v.subject] + "_that_actioned_" + v.object](object, action).then(function(subjects) {
-              subjects = subjects.slice(0, +_this.RESTRICTION_SUBJECTS_LIST + 1 || 9e9);
               return _this.esm["get_" + plural[v.object] + "_that_actioned_" + plural[v.subject]](subjects, action);
             }).then(function(objects) {
               return Utils.flatten(objects);
@@ -83,34 +78,36 @@
                     return _this["similar_" + plural[v.object] + "_for_action_with_weights"](object, action_weights[i].key, action_weights[i].weight);
                   }
                 };
-                return _this.get_list_to_size(fn, 0, [], _this.RESTRICTION_GET_PEOPLE_LIST);
+                return _this.get_list_to_size(fn, 0, [], _this.esm.similar_objects_limit);
               };
-            })(this)).then(function(object_weights) {
-              var ow, p, r, res, temp, w, _j, _len1;
-              temp = {};
-              for (_j = 0, _len1 = object_weights.length; _j < _len1; _j++) {
-                ow = object_weights[_j];
-                if (temp[ow[v.object]] === void 0) {
-                  temp[ow[v.object]] = 0;
+            })(this)).then((function(_this) {
+              return function(object_weights) {
+                var ow, p, r, res, temp, w, _j, _len1;
+                temp = {};
+                for (_j = 0, _len1 = object_weights.length; _j < _len1; _j++) {
+                  ow = object_weights[_j];
+                  if (temp[ow[v.object]] === void 0) {
+                    temp[ow[v.object]] = 0;
+                  }
+                  temp[ow[v.object]] += ow.weight;
                 }
-                temp[ow[v.object]] += ow.weight;
-              }
-              res = [];
-              for (p in temp) {
-                w = temp[p];
-                if (p === object) {
-                  continue;
+                res = [];
+                for (p in temp) {
+                  w = temp[p];
+                  if (p === object) {
+                    continue;
+                  }
+                  r = {};
+                  r[v.object] = p;
+                  r.weight = w;
+                  res.push(r);
                 }
-                r = {};
-                r[v.object] = p;
-                r.weight = w;
-                res.push(r);
-              }
-              res = res.sort(function(x, y) {
-                return y.weight - x.weight;
-              });
-              return res;
-            });
+                res = res.sort(function(x, y) {
+                  return y.weight - x.weight;
+                });
+                return res.slice(0, _this.esm.similar_objects_limit);
+              };
+            })(this));
           };
         };
       })(this);
@@ -270,7 +267,6 @@
       return this.ordered_similar_people(person).then((function(_this) {
         return function(people_weights) {
           var people, ps;
-          people_weights = people_weights.slice(0, +_this.RESTRICTION_PEOPLE_LIST + 1 || 9e9);
           people_weights.push({
             weight: _this.INITIAL_PERSON_WEIGHT,
             person: person
@@ -288,7 +284,6 @@
         };
       })(this)).spread((function(_this) {
         return function(people_weights, things) {
-          things = things.slice(0, +_this.RESTRICTION_THINGS_LIST + 1 || 9e9);
           return _this.weighted_probabilities_to_action_things_by_people(things, action, people_weights);
         };
       })(this)).then(function(recommendations) {

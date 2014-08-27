@@ -12,10 +12,6 @@ class GER
 
   constructor: (@esm) ->
     @INITIAL_PERSON_WEIGHT = 10
-    @RESTRICTION_GET_PEOPLE_LIST = 300
-    @RESTRICTION_PEOPLE_LIST = 200
-    @RESTRICTION_SUBJECTS_LIST = 100
-    @RESTRICTION_THINGS_LIST = 200
 
     plural =
       'person' : 'people'
@@ -28,7 +24,7 @@ class GER
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
           @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
-          .then( (subjects) => subjects = subjects[..@RESTRICTION_SUBJECTS_LIST]; @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
+          .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
           .then( (objects) => Utils.flatten(objects)) #flatten list
           .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
 
@@ -58,9 +54,9 @@ class GER
               else
                 @["similar_#{plural[v.object]}_for_action_with_weights"](object, action_weights[i].key, action_weights[i].weight)
 
-            @get_list_to_size(fn, 0, [], @RESTRICTION_GET_PEOPLE_LIST)  
+            @get_list_to_size(fn, 0, [], @esm.similar_objects_limit)  
           ) 
-          .then( (object_weights) ->
+          .then( (object_weights) =>
             #join the weights together
             temp = {}
             for ow in object_weights
@@ -76,7 +72,7 @@ class GER
               r.weight = w
               res.push r
             res = res.sort((x, y) -> y.weight - x.weight)
-            res
+            res[...@esm.similar_objects_limit] #Cut it off with similar objects limit
           )
 
           
@@ -177,16 +173,13 @@ class GER
     .then( (people_weights) =>
 
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      people_weights = people_weights[..@RESTRICTION_PEOPLE_LIST] #select top 100 people
       people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
       
       people = (ps.person for ps in people_weights)
       q.all([people_weights, @esm.things_people_have_actioned(action, people)])
-
     )
     .spread( ( people_weights, things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
-      things = things[..@RESTRICTION_THINGS_LIST]
       @weighted_probabilities_to_action_things_by_people(things, action, people_weights)
     )
     .then( (recommendations) ->
