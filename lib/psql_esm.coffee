@@ -71,6 +71,7 @@ class EventStoreMapper
     @similar_objects_limit = limits.similar_objects_limit || 100
     @things_limit = limits.things_limit  || 100
     @people_limit = limits.people_limit || 100
+    @upper_limit = limits.upper_limit || 10000
 
   drop_tables: ->
     drop_tables(@knex,@schema)
@@ -111,16 +112,23 @@ class EventStoreMapper
   events_for_people_action_things: (people, action, things) ->
     return q.fcall(->[]) if people.length == 0 || things.length == 0
 
-    @knex("#{@schema}.events").where(action: action).whereIn('person', people).whereIn('thing', things)
+    @knex("#{@schema}.events").where(action: action).whereIn('person', people).whereIn('thing', things).limit(@upper_limit)
 
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
 
   get_actions_of_person_thing_with_weights: (person, thing) ->
-    @knex("#{@schema}.events").select("#{@schema}.events.action as key", "#{@schema}.actions.weight").leftJoin("#{@schema}.actions", "#{@schema}.events.action", "#{@schema}.actions.action").where(person: person, thing: thing).orderBy('weight', 'desc')
+    @knex("#{@schema}.events")
+    .select("#{@schema}.events.action as key", "#{@schema}.actions.weight")
+    .leftJoin("#{@schema}.actions", "#{@schema}.events.action", "#{@schema}.actions.action")
+    .where(person: person, thing: thing)
+    .orderBy('weight', 'desc')
+    .limit(@upper_limit)
 
   get_ordered_action_set_with_weights: ->
-    @knex("#{@schema}.actions").select('action as key', 'weight').orderBy('weight', 'desc')
+    @knex("#{@schema}.actions")
+    .select('action as key', 'weight')
+    .orderBy('weight', 'desc')
 
     
   get_action_weight: (action) ->
@@ -134,7 +142,12 @@ class EventStoreMapper
 
   get_things_that_actioned_people: (people, action) =>
     return q.fcall(->[]) if people.length == 0
-    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events")
+    .select('thing', 'created_at')
+    .where(action: action)
+    .whereIn('person', people)
+    .orderBy('created_at', 'desc')
+    .limit(@upper_limit)
     .then( (rows) ->
       #Do not make distinct -- Graham
       (r.thing for r in rows)
@@ -142,26 +155,43 @@ class EventStoreMapper
 
   get_people_that_actioned_things: (things, action) =>
     return q.fcall(->[]) if things.length == 0
-    @knex("#{@schema}.events").select('person', 'created_at').where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events")
+    .select('person', 'created_at')
+    .where(action: action)
+    .whereIn('thing', things)
+    .orderBy('created_at', 'desc')
+    .limit(@upper_limit)
     .then( (rows) ->
       #Do not make distinct -- Graham
       (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex("#{@schema}.events").select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc').limit(@things_limit)
+    @knex("#{@schema}.events")
+    .select('thing', 'created_at')
+    .where(person: person, action: action)
+    .orderBy('created_at', 'desc')
+    .limit(@things_limit)
     .then( (rows) ->
       unique_rows(rows, 'thing')
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex("#{@schema}.events").select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc').limit(@people_limit)
+    @knex("#{@schema}.events")
+    .select('person', 'created_at')
+    .where(thing: thing, action: action)
+    .orderBy('created_at', 'desc')
+    .limit(@people_limit)
     .then( (rows) ->
       unique_rows(rows, 'person')
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc').limit(@things_limit)
+    @knex("#{@schema}.events").select('thing', 'created_at')
+    .where(action: action)
+    .whereIn('person', people)
+    .orderBy('created_at', 'desc')
+    .limit(@things_limit)
     .then( (rows) ->
       unique_rows(rows, 'thing')
     )
@@ -246,7 +276,10 @@ class EventStoreMapper
   remove_non_unique_events: ->
     #remove all events that are not unique
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
-    query = "DELETE FROM #{@schema}.events e1 USING #{@schema}.events e2 WHERE e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND e1.created_at < e2.created_at"
+    query = "DELETE FROM #{@schema}.events e1 
+    USING #{@schema}.events e2 
+    WHERE e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
+    (e1.created_at < e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id) )" #LEXICOGRAPHIC ORDERING for created at then id
     @knex.raw(query)
 
   remove_superseded_events: ->
@@ -259,7 +292,8 @@ class EventStoreMapper
     
   remove_events_till_size: (number_of_events) ->
     #removes old events till there is only number_of_events left
-    q.when(true)
+    query = "delete from #{@schema}.events where id not in (select id from #{@schema}.events order by created_at desc limit #{number_of_events})"
+    @knex.raw(query)
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables

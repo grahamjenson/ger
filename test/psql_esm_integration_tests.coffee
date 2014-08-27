@@ -102,6 +102,27 @@ describe "remove_excessive_user_events", ->
 
 describe "remove_events_till_size", ->
   it "removes old events till there is only number_of_events left", ->
+    init_esm()
+    .then (esm) ->    
+      rs = new Readable();
+      rs.push('person,action,thing,2013-01-01\n');
+      rs.push('person,action,thing,2014-01-01\n');
+      rs.push('person,action,thing,2013-01-01\n');
+      rs.push('person,action,thing,2014-01-01\n');
+      rs.push(null);
+      esm.bootstrap(rs)
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 4
+        esm.remove_events_till_size(2)
+      )
+      .then( -> esm.count_events())
+      .then( (count) -> 
+        count.should.equal 2
+      )
+
 
 describe "expires at", ->
   it 'should accept an expiry date', ->
