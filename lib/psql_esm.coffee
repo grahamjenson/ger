@@ -4,6 +4,12 @@ split = require 'split'
 pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
 
+
+unique_rows = (rows, row) ->
+  unique = {}
+  (unique[r[row]] = r[row] for r in rows)
+  Object.keys(unique)
+
 Transform = require('stream').Transform;
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
@@ -115,6 +121,7 @@ class EventStoreMapper
     return q.fcall(->[]) if people.length == 0
     @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
+      #Do not make distinct -- Graham
       (r.thing for r in rows)
     )
 
@@ -122,25 +129,26 @@ class EventStoreMapper
     return q.fcall(->[]) if things.length == 0
     @knex("#{@schema}.events").select('person', 'created_at').where(action: action).whereIn('thing', things).orderBy('created_at', 'desc')
     .then( (rows) ->
+      #Do not make distinct -- Graham
       (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex("#{@schema}.events").select('thing', 'created_at').distinct('thing').where(person: person, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
-      (r.thing for r in rows)
+      unique_rows(rows, 'thing')
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex("#{@schema}.events").select('person', 'created_at').distinct('person').where(thing: thing, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
-      (r.person for r in rows)
+      unique_rows(rows, 'person')
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex("#{@schema}.events").select('thing', 'created_at').distinct('thing').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
-      (r.thing for r in rows)
+      unique_rows(rows, 'thing')
     )
 
   things_jaccard_metric: (thing1, thing2, action) ->

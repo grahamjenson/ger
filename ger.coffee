@@ -8,11 +8,6 @@ Utils =
       else
         xs.concat [el]), []
 
-  unique : (arr)->
-    output = {}
-    output[arr[key]] = arr[key] for key in [0...arr.length]
-    value for key, value of output
-
 class GER
 
   constructor: (@esm) ->
