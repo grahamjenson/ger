@@ -234,13 +234,13 @@ class GER
 
   compact_database: ->
     # Do some smart (lossless) things to shrink the size of the database
-    q.all( [ @esm.remove_expired_events(), @esm.remove_non_unique_events(), @esm.remove_superseded_events()] )
+    q.all( [ @esm.remove_expired_events(), @esm.remove_non_unique_events()] )
 
 
   compact_database_to_size: (number_of_events) ->
     # Smartly Cut (lossy) the tail of the database (based on created_at) to a defined size
     #STEP 1
-    @esm.remove_excessive_user_events()
+    q.all([@esm.remove_superseded_events() , @esm.remove_excessive_user_events()])
     .then( => @count_events())
     .then( (count) => 
       if count <= number_of_events

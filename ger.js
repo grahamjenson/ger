@@ -370,11 +370,11 @@
     };
 
     GER.prototype.compact_database = function() {
-      return q.all([this.esm.remove_expired_events(), this.esm.remove_non_unique_events(), this.esm.remove_superseded_events()]);
+      return q.all([this.esm.remove_expired_events(), this.esm.remove_non_unique_events()]);
     };
 
     GER.prototype.compact_database_to_size = function(number_of_events) {
-      return this.esm.remove_excessive_user_events().then((function(_this) {
+      return q.all([this.esm.remove_superseded_events(), this.esm.remove_excessive_user_events()]).then((function(_this) {
         return function() {
           return _this.count_events();
         };

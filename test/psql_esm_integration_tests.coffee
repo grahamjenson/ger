@@ -92,10 +92,6 @@ describe "remove_non_unique_events", ->
       .then( -> esm.count_events())
       .then( (count) -> 
         count.should.equal 1 
-        esm.get_oldest_event()
-      )
-      .then( (event) -> 
-        event.created_at.should.equal "2014-01-01"
       )
 
 describe "remove_superseded_events", ->
@@ -321,6 +317,14 @@ describe '#things_people_have_actioned', ->
         ('t1' in things).should.equal true
       ) 
 
+  it 'should not return the same item twice', ->
+    init_esm()
+    .then (esm) ->
+      q.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
+      .then( -> esm.things_people_have_actioned('a',['p1','p2']))
+      .then( (things) ->
+        things.length.should.equal 1
+      ) 
 
 describe '#people_jaccard_metric', ->
   it 'returns the jaccard distance of the two peoples action', ->

@@ -89,6 +89,7 @@ class EventStoreMapper
   
   events_for_people_action_things: (people, action, things) ->
     return q.fcall(->[]) if people.length == 0 || things.length == 0
+
     @knex("#{@schema}.events").where(action: action).whereIn('person', people).whereIn('thing', things)
 
   has_person_actioned_thing: (person, action, thing) ->
@@ -125,19 +126,19 @@ class EventStoreMapper
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex("#{@schema}.events").select('thing', 'created_at').where(person: person, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').distinct('thing').where(person: person, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex("#{@schema}.events").select('person', 'created_at').where(thing: thing, action: action).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('person', 'created_at').distinct('person').where(thing: thing, action: action).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.person for r in rows)
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex("#{@schema}.events").select('thing', 'created_at').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
+    @knex("#{@schema}.events").select('thing', 'created_at').distinct('thing').where(action: action).whereIn('person', people).orderBy('created_at', 'desc')
     .then( (rows) ->
       (r.thing for r in rows)
     )
@@ -227,13 +228,15 @@ class EventStoreMapper
 
   remove_superseded_events: ->
     #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
+    q.when(true)
 
   remove_excessive_user_events: ->
     #find members with most events and truncate them down
-
+    q.when(true)
+    
   remove_events_till_size: (number_of_events) ->
     #removes old events till there is only number_of_events left
-
+    q.when(true)
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables
