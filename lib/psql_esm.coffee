@@ -88,24 +88,32 @@ class EventStoreMapper
   add_action: (action) ->
     @set_action_weight(action, 1, false)
 
-  add_event_to_db: (person, action, thing, expires_at = null) ->
-    now = new Date().toISOString()
-    @knex("#{@schema}.events").insert({person: person, action: action, thing: thing, created_at: now, expires_at: expires_at})
-
-  set_action_weight: (action, weight, overwrite = true) ->
-    now = new Date().toISOString()
-    
-    insert = @knex("#{@schema}.actions").insert({action: action, weight: weight, created_at: now, updated_at: now}).toString()
+  upsert: (table, insert_attr, identity_attr, update_attr) ->
+    insert = @knex(table).insert(insert_attr).toString()
     #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
     insert = insert.replace(/\svalues\s\(/, " select ")[..-2]
 
-    update_attr = {action: action, updated_at: now}
-    update_attr["weight"] = weight if overwrite
-    update = @knex("#{@schema}.actions").where(action: action).update(update_attr).toString()
+    update = @knex(table).where(identity_attr).update(update_attr).toString()
 
     #defined here http://www.the-art-of-web.com/sql/upsert/
-    query = "BEGIN; LOCK TABLE #{@schema}.actions IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
+    query = "BEGIN; LOCK TABLE #{table} IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
     @knex.raw(query)
+
+  add_event_to_db: (person, action, thing, expires_at = null) ->
+    now = new Date().toISOString()
+    insert_attr = {person: person, action: action, thing: thing, created_at: now, expires_at: expires_at}
+    identity_attr = {person: person, action: action, thing: thing}
+    update_attr = {created_at: now, expires_at: expires_at}
+    @upsert("#{@schema}.events", insert_attr, identity_attr, update_attr)
+
+  set_action_weight: (action, weight, overwrite = true) ->
+    now = new Date().toISOString()
+    insert_attr =  {action: action, weight: weight, created_at: now, updated_at: now}
+
+    identity_attr = {action: action}
+    update_attr = {action: action, updated_at: now}
+    update_attr["weight"] = weight if overwrite
+    @upsert("#{@schema}.actions", insert_attr, identity_attr, update_attr)
     
 
   

@@ -28,6 +28,19 @@ esmfn = create_psql_esm
 init_ger = ->
   esmfn().then( (esm) -> new GER(esm))
 
+describe '#event', ->
+  it 'should upsert same events', ->
+    init_ger()
+    .then (ger) ->
+      q.all([
+        ger.event('p1','buy','c'),
+        ger.event('p1','buy','c'),
+      ])
+      .then(-> ger.count_events())
+      .then((count) ->
+        count.should.equal 1
+      )
+
 describe '#count_events', ->
   it 'should return 2 for 2 events', ->
     init_ger()
