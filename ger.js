@@ -330,6 +330,10 @@
       });
     };
 
+    GER.prototype.find_event = function(person, action, thing) {
+      return this.esm.find_event(person, action, thing);
+    };
+
     GER.prototype.set_action_weight = function(action, weight) {
       return this.esm.set_action_weight(action, weight).then(function() {
         return {

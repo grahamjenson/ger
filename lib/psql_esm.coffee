@@ -99,6 +99,18 @@ class EventStoreMapper
     query = "BEGIN; LOCK TABLE #{table} IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
     @knex.raw(query)
 
+  find_event: (person, action, thing) ->
+    @knex("#{@schema}.events")
+    .select("person", "action", "thing", "created_at", "expires_at")
+    .where(person: person, action: action, thing: thing)
+    .limit(1)
+    .then((rows)->
+      if rows.length > 0
+        return rows[0]
+      else
+        return null
+    )
+
   add_event_to_db: (person, action, thing, expires_at = null) ->
     now = new Date().toISOString()
     insert_attr = {person: person, action: action, thing: thing, created_at: now, expires_at: expires_at}

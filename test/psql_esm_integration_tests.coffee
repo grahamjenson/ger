@@ -26,6 +26,28 @@ init_esm = ->
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
 
+describe "find_event", ->
+  it "should return null if no event matches", ->
+    init_esm()
+    .then (esm) ->
+      esm.find_event('p','a','t')
+      .then( (event) ->
+        true.should.equal event == null
+      )
+
+  it "should return an event if one matches", ->
+    init_esm()
+    .then (esm) ->
+      esm.add_event('p','a','t')
+      .then( ->
+        esm.find_event('p','a','t')
+      )
+      .then( (event) ->
+        event.person.should.equal 'p' 
+        event.action.should.equal 'a'
+        event.thing.should.equal 't'
+      )
+
 describe "remove_expired_events", ->
   it "removes the events passed their expiry date", ->
     init_esm()
@@ -53,7 +75,13 @@ describe "remove_expired_events", ->
         esm.remove_expired_events()
       )
       .then( -> esm.count_events())
-      .then( (count) -> count.should.equal 2 )
+      .then( (count) -> 
+        count.should.equal 2 
+        esm.find_event('p2','a','t')
+      )
+      .then( (event) ->
+        event.expires_at.getTime().should.equal (new Date(2050,10,10)).getTime() 
+      )
 
 describe "remove_non_unique_events", ->
   it "remove all events that are not unique", ->
@@ -91,7 +119,12 @@ describe "remove_non_unique_events", ->
       )
       .then( -> esm.count_events())
       .then( (count) -> 
-        count.should.equal 1 
+        count.should.equal 1
+        esm.find_event('person','action','thing')
+      )
+      .then( (event) ->
+        expected_created_at = new Date('2014-01-01')
+        event.created_at.getFullYear().should.equal expected_created_at.getFullYear() 
       )
 
 describe "remove_superseded_events", ->
