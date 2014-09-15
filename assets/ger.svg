@@ -34,15 +34,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.0601156"
-     inkscape:cx="266.80115"
-     inkscape:cy="1030.0397"
+     inkscape:cx="294.86677"
+     inkscape:cy="750.0842"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1332"
      inkscape:window-height="983"
-     inkscape:window-x="321"
-     inkscape:window-y="24"
+     inkscape:window-x="144"
+     inkscape:window-y="13"
      inkscape:window-maximized="0" />
   <metadata
      id="metadata7">
@@ -52,7 +52,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -80,47 +80,27 @@
        inkscape:connector-curvature="0"
        id="path4041"
        d="M 239.03326,532.88115 C 179.17044,522.81136 129.18351,485.25789 101.93287,429.88228 86.180471,397.87202 83.875426,387.75234 84.142083,351.77627 84.673792,280.0402 124.40811,220.28967 192.49401,188.84195 c 29.72941,-13.73149 40.82974,-15.82915 83.74784,-15.82606 42.12218,0.003 54.1303,2.18481 80.79132,14.67886 38.15922,17.88241 74.63404,53.27386 92.6622,89.90995 11.25334,22.8686 13.45527,35.43977 13.45527,76.81906 0,41.10453 -2.17091,53.6615 -12.83044,74.2138 -28.34739,54.65561 -79.88819,92.66917 -140.9508,103.95718 -35.52294,6.56679 -33.06012,6.55677 -70.33614,0.28644 l 0,0 z"
-       style="fill:#369496;fill-opacity:1;stroke:#c9f86e;stroke-width:27.97344971;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+       style="fill:#369496;fill-opacity:1;stroke:#c9f86e;stroke-width:27.97344971;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+       inkscape:export-xdpi="13.866153"
+       inkscape:export-ydpi="13.866153" />
     <path
        style="fill:#c1c1c3;fill-opacity:1;stroke:#000000;stroke-width:10.76032829;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
        d="m 100.05137,284.18173 c 124.25913,-82.67897 349.89257,-98.5248 306.8242,26.05039 5.15265,110.79503 -23.87489,200.20037 -101.38539,204.52071 -124.37934,2.99549 -157.0806,-138.42932 -205.43881,-230.5711 z"
        id="path3846"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc"
-       inkscape:export-filename="/Users/grahamj/path3952.png"
-       inkscape:export-xdpi="100.34805"
-       inkscape:export-ydpi="100.34805" />
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+       inkscape:export-xdpi="13.866153"
+       inkscape:export-ydpi="13.866153" />
     <path
        style="fill:#959496;fill-opacity:1;stroke:#000000;stroke-width:6.91099977;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
        d="M 239.13604,219.76145 204.19959,115.70803 265.85215,218.42744 z"
        id="path3903"
        inkscape:connector-curvature="0"
-       inkscape:export-filename="/Users/grahamj/path3952.png"
-       inkscape:export-xdpi="100.34805"
-       inkscape:export-ydpi="100.34805" />
-    <path
-       style="fill:none;stroke:#000000;stroke-width:4.55637693;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 285.12407,494.23952 72.74866,-57.02076"
-       id="path3911"
-       inkscape:connector-curvature="0"
-       inkscape:export-filename="/Users/grahamj/path3952.png"
-       inkscape:export-xdpi="100.34805"
-       inkscape:export-ydpi="100.34805" />
-    <path
-       style="fill:#e1152e;fill-opacity:1;stroke:#000000;stroke-width:4.2792325;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 316.20194,470.61256 12.72573,17.42028 16.54344,-17.42028 -11.45315,-14.51692 z"
-       id="path3950"
-       inkscape:connector-curvature="0"
-       inkscape:export-filename="/Users/grahamj/path3952.png"
-       inkscape:export-xdpi="100.34805"
-       inkscape:export-ydpi="100.34805" />
-    <path
-       style="fill:none;stroke:#000000;stroke-width:3.00000043;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
-       d="m 340.17465,478.73434 -9.33813,-9.33813"
-       id="path3952"
-       inkscape:connector-curvature="0"
-       inkscape:export-xdpi="100.34805"
-       inkscape:export-ydpi="100.34805" />
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+       inkscape:export-xdpi="13.866153"
+       inkscape:export-ydpi="13.866153" />
     <text
        xml:space="preserve"
        style="font-size:143.16378784px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -137,12 +117,18 @@
        style="fill:#c8f86e;fill-opacity:1;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
        d="m 176.71723,436.59348 c -45.61968,-14.99803 -59.82886,-69.3922 -26.90722,-103.00353 25.2025,-25.73047 70.11685,-25.73047 95.31934,0 30.27818,30.91248 21.5482,79.09033 -17.9529,99.07606 -8.64351,4.37322 -13.35922,5.40796 -26.70501,5.85975 -9.80434,0.3319 -19.18933,-0.43152 -23.75421,-1.93228 z"
        id="path3170"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+       inkscape:export-xdpi="13.866153"
+       inkscape:export-ydpi="13.866153" />
     <path
        style="fill:#c8f86e;fill-opacity:1;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
        d="m 363.92606,418.28752 c -20.54391,-3.45578 -37.69858,-16.3435 -47.05054,-35.34748 -5.40596,-10.98538 -6.19701,-14.45829 -6.1055,-26.80467 0.18247,-24.61862 13.81862,-45.12399 37.18455,-55.91632 10.20264,-4.71242 14.01208,-5.4323 28.74085,-5.43124 14.45562,0.001 18.57661,0.74979 27.72622,5.03754 13.0956,6.13694 25.61315,18.28269 31.80011,30.85558 3.86196,7.84812 4.61762,12.16233 4.61762,26.36302 0,14.10638 -0.74502,18.41572 -4.40319,25.46892 -9.72835,18.75689 -27.41628,31.8025 -48.37194,35.67636 -12.19088,2.25361 -11.34568,2.25017 -24.13818,0.0983 l 0,0 z"
        id="path3172"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+       inkscape:export-xdpi="13.866153"
+       inkscape:export-ydpi="13.866153" />
     <path
        style="fill:#c8f86e;fill-opacity:1;stroke:#000000;stroke-width:7.35768843;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
        d=""
@@ -152,6 +138,47 @@
        inkscape:connector-curvature="0"
        id="path4142"
        d="m 202.63023,127.70351 c -3.07425,-0.51714 -5.64133,-2.4457 -7.04079,-5.28951 -0.80896,-1.6439 -0.92735,-2.16359 -0.91365,-4.01114 0.0273,-3.68402 2.06786,-6.75251 5.56442,-8.3675 1.52676,-0.70519 2.09681,-0.81291 4.30087,-0.81275 2.16319,1.5e-4 2.77987,0.1122 4.14905,0.75383 1.95967,0.91835 3.83283,2.73589 4.75867,4.61732 0.57791,1.17443 0.69099,1.82002 0.69099,3.94506 0,2.11092 -0.11148,2.75579 -0.65891,3.81125 -1.45577,2.80685 -4.10265,4.75903 -7.23853,5.33872 -1.82428,0.33724 -1.6978,0.33673 -3.61212,0.0147 l 0,0 z"
-       style="fill:#c8f86e;fill-opacity:1;stroke:#000000;stroke-width:7.01236439;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+       style="fill:#c8f86e;fill-opacity:1;stroke:#000000;stroke-width:7.01236439;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+       inkscape:export-xdpi="13.866153"
+       inkscape:export-ydpi="13.866153" />
+    <rect
+       style="opacity:0;fill:#000000;fill-opacity:1;stroke:#c9f86e;stroke-width:11.58643627000000009;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect2997"
+       width="712.42389"
+       height="471.08713"
+       x="-59.577557"
+       y="93.12265"
+       inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger300x200.png"
+       inkscape:export-xdpi="37.293621"
+       inkscape:export-ydpi="37.293621" />
+    <g
+       id="g3773"
+       transform="translate(3.7731738,-0.94329337)">
+      <path
+         style="fill:none;stroke:#000000;stroke-width:5.45196819;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         d="m 269.53588,499.45148 87.04797,-68.22863"
+         id="path3767"
+         inkscape:connector-curvature="0"
+         inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+         inkscape:export-xdpi="13.866153"
+         inkscape:export-ydpi="13.866153" />
+      <path
+         style="fill:#e1152e;fill-opacity:1;stroke:#000000;stroke-width:5.12034893;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         d="m 306.72235,471.18046 15.22706,20.84437 19.79519,-20.84437 -13.70436,-17.37033 z"
+         id="path3769"
+         inkscape:connector-curvature="0"
+         inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png"
+         inkscape:export-xdpi="13.866153"
+         inkscape:export-ydpi="13.866153" />
+      <path
+         style="fill:none;stroke:#000000;stroke-width:3.58967376;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         d="M 335.40707,480.89864 324.23346,469.72503"
+         id="path3771"
+         inkscape:connector-curvature="0"
+         inkscape:export-xdpi="13.866153"
+         inkscape:export-ydpi="13.866153"
+         inkscape:export-filename="/Users/grahamj/repos/ger/assets/ger70x70.png" />
+    </g>
   </g>
 </svg>
