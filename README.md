@@ -8,38 +8,44 @@ Read more here [Good Enough Recommendations with GER](http://maori.geek.nz/post/
 
 #Quick Start Guide
 
-Install GER
+Install `ger` with `npm`:
 
 ```bash
 npm install ger
 ```
 
-First create a database connection with knex:
+require `ger` into your code:
 
 ```javascript
-var g = require('../ger')
+var g = require('ger')
 var GER = g.GER
 ```
 
-Need to create a [knex](http://knexjs.org/) connection:
+Create a [knex](http://knexjs.org/) connection to Postgres:
 
 ```javascript
 var knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'root', database : 'ger'}})
 ```
 
-Then create a Postgres Event Store Mapper (ESM), which is the mapping between GER and the persistence layer:
+Initialise a Postgres Event Store Mapper (ESM), which is the mapping between GER and the persistence layer:
 
 ```javascript
 var psql_esm = new g.PsqlESM(knex)
+```
 
+Initialize the tables in PostGres:
+
+```
 psql_esm.init_tables() //create the tables if they don't exist
 ```
 
-Then create the GER instance by passing the ESM
+Then create the GER instance by passing the ESM:
 
 ```javascript
 var ger = new GER(psql_esm);
 ```
+
+Now you are ready to use GER.
 
 #Overview
 Using a recommendations engine in an application can get greater engagement from its users, and add value that it would otherwise not have been able to. The reason why many applications don't use recommendations engines is that there is significant overhead in implementing a custom engine and many off-the-shelf engines have overcomplicated APIs that do not suite an applications development.

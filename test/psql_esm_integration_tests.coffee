@@ -52,7 +52,7 @@ describe "remove_expired_events", ->
   it "removes the events passed their expiry date", ->
     init_esm()
     .then (esm) ->
-      esm.add_event('p','a','t', new Date(0).toISOString())
+      esm.add_event('p','a','t', {expires_at: new Date(0).toISOString()} )
       .then( ->
         esm.count_events()
       )
@@ -66,7 +66,7 @@ describe "remove_expired_events", ->
   it "does not remove events that have no expiry date or future date", ->
     init_esm()
     .then (esm) ->
-      bb.all([esm.add_event('p1','a','t'),  esm.add_event('p2','a','t', new Date(2050,10,10)), esm.add_event('p3','a','t', new Date(0).toISOString())])
+      bb.all([esm.add_event('p1','a','t'),  esm.add_event('p2','a','t', {expires_at:new Date(2050,10,10)}), esm.add_event('p3','a','t', {expires_at: new Date(0).toISOString()})])
       .then( ->
         esm.count_events()
       )

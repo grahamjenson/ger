@@ -198,12 +198,12 @@ class GER
   count_events: ->
     @esm.count_events()
 
-  event: (person, action, thing, expires_at = null) ->
-    @esm.add_event(person,action,thing, expires_at)
+  event: (person, action, thing, dates = {}) ->
+    @esm.add_event(person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
 
-  action: (action, weight=1) ->
-    @esm.set_action_weight(action, weight)
+  action: (action, weight=1, override = true) ->
+    @esm.set_action_weight(action, weight, override)
     .then( -> {action: action, weight: weight}) 
 
   find_event: (person, action, thing) ->

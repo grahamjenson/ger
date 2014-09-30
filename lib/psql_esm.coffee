@@ -79,8 +79,10 @@ class EventStoreMapper
   init_tables: ->
     init_tables(@knex,@schema)
 
-  add_event: (person, action, thing, expires_at = null) ->
-    @add_event_to_db(person, action, thing, expires_at)
+  add_event: (person, action, thing, dates = {}) ->
+    expires_at = dates.expires_at
+    created_at = dates.created_at || new Date().toISOString()
+    @add_event_to_db(person, action, thing, created_at, expires_at)
 
   upsert: (table, insert_attr, identity_attr, update_attr) ->
     insert = @knex(table).insert(insert_attr).toString()
@@ -105,11 +107,10 @@ class EventStoreMapper
         return null
     )
 
-  add_event_to_db: (person, action, thing, expires_at = null) ->
-    now = new Date().toISOString()
-    insert_attr = {person: person, action: action, thing: thing, created_at: now, expires_at: expires_at}
+  add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
+    insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
     identity_attr = {person: person, action: action, thing: thing}
-    update_attr = {created_at: now, expires_at: expires_at}
+    update_attr = {created_at: created_at, expires_at: expires_at}
     @upsert("#{@schema}.events", insert_attr, identity_attr, update_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
