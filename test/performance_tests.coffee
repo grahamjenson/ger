@@ -8,7 +8,7 @@ sinon = require 'sinon'
 PsqlESM = require('../lib/psql_esm')
 
 GER = require('../ger').GER
-q = require 'q'
+bb = require 'bluebird'
 
 Readable = require('stream').Readable;
 
@@ -19,7 +19,7 @@ create_psql_esm = ->
   #in
   psql_esm = new PsqlESM(knex)
   #drop the current tables, reinit the tables, return the esm
-  q.fcall(-> PsqlESM.drop_tables(knex))
+  bb.try(-> PsqlESM.drop_tables(knex))
   .then( -> PsqlESM.init_tables(knex))
   .then( -> psql_esm)
 
@@ -47,14 +47,14 @@ describe 'performance tests', ->
     this.timeout(60000);
     init_ger()
     .then((ger) ->
-      q.fcall( ->
+      bb.try( ->
 
         st = new Date().getTime()
         
         promises = []
         for x in [1..1000]
           promises.push ger.action(sample(actions) , sample([1..10]))
-        q.all(promises)
+        bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
@@ -67,7 +67,7 @@ describe 'performance tests', ->
         promises = []
         for x in [1..500]
           promises.push ger.event(sample(people), sample(actions) , sample(things))
-        q.all(promises)
+        bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
@@ -96,7 +96,7 @@ describe 'performance tests', ->
         promises = []
         for x in [1..100]
           promises.push ger.ordered_similar_people(sample(people))
-        q.all(promises)
+        bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
@@ -109,7 +109,7 @@ describe 'performance tests', ->
         promises = []
         for x in [1..100]
           promises.push ger.recommendations_for_person(sample(people), sample(actions))
-        q.all(promises)
+        bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
@@ -122,7 +122,7 @@ describe 'performance tests', ->
         promises = []
         for x in [1..100]
           promises.push ger.recommendations_for_thing(sample(things), sample(actions))
-        q.all(promises)
+        bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st

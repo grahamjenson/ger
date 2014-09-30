@@ -4,7 +4,7 @@ chaiAsPromised = require("chai-as-promised")
 chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
-q = require 'q'
+bb = require 'bluebird'
 
 
 g = require('../ger')
@@ -19,7 +19,7 @@ create_psql_esm = ->
   #in
   psql_esm = new PsqlESM(knex)
   #drop the current tables, reinit the tables, return the esm
-  q.fcall(-> PsqlESM.drop_tables(knex))
+  bb.try(-> PsqlESM.drop_tables(knex))
   .then( -> PsqlESM.init_tables(knex))
   .then( -> psql_esm)
 
@@ -32,7 +32,7 @@ describe '#event', ->
   it 'should upsert same events', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('buy'),
         ger.event('p1','buy','c'),
         ger.event('p1','buy','c'),
@@ -46,7 +46,7 @@ describe '#count_events', ->
   it 'should return 2 for 2 events', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.event('p1','buy','c'),
         ger.event('p1','view','c'),
       ])
@@ -59,7 +59,7 @@ describe '#probability_of_person_actioning_thing', ->
   it 'should return 1 if the person has already actioned the object', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.event('p1','buy','c'),
         ger.event('p1','view','c'),
       ])
@@ -72,7 +72,7 @@ describe '#probability_of_person_actioning_thing', ->
   it 'should return 0 if the person has never interacted with the thing', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.event('p1','buy','c'),
         ger.event('p1','view','c'),
       ])
@@ -94,12 +94,12 @@ describe '#probability_of_person_actioning_thing', ->
   it 'should return the sum of the weights of the action', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('view', 5),
         ger.action('like', 10),
       ])
       .then( -> 
-        q.all([
+        bb.all([
           ger.event('p1','view','c'),
           ger.event('p1','like','c')
         ])
@@ -113,7 +113,7 @@ describe 'recommendations_for_thing', ->
   it 'should take a thing and action and return people that it reccommends', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('view'),
         ger.action('buy'),
         ger.event('p1','view','c'),
@@ -133,7 +133,7 @@ describe 'recommendations_for_person', ->
   it 'should reccommend basic things', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('view'),
         ger.action('buy'),
         ger.event('p1','buy','a'),
@@ -150,7 +150,7 @@ describe 'recommendations_for_person', ->
   it 'should take a person and action to reccommend things', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('view'),
         ger.action('buy'),
         ger.event('p1','buy','a'),
@@ -176,7 +176,7 @@ describe 'recommendations_for_person', ->
   it 'should take a person and reccommend some things', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('view'),
 
         ger.event('p1','view','a'),
@@ -200,7 +200,7 @@ describe 'similar things', ->
   it 'should take a thing action and return similar things', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('action1'),
         ger.event('p1','action1','thing1'),
         ger.event('p1','action1','thing2'),
@@ -212,7 +212,7 @@ describe 'similar people', ->
   it 'should take a person action and return similar people', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('action1'),
         ger.event('p1','action1','thing1'),
         ger.event('p2','action1','thing1'),
@@ -224,7 +224,7 @@ describe 'ordered_similar_things', ->
   it 'should take a person and return promise for an ordered list of similar things', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('action1'),
         ger.event('p1','action1','a'),
         ger.event('p1','action1','b'),
@@ -246,7 +246,7 @@ describe 'ordered_similar_people', ->
   it 'asd should take a person and return promise for an ordered list of similar people', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('action1'),
         ger.event('p1','action1','a'),
         ger.event('p2','action1','a'),
@@ -275,7 +275,7 @@ describe 'setting action weights', ->
       ger.action('buybuy', 10)
       .then( (val) -> ger.action('viewview', 1))
       .then( ->
-        q.all([
+        bb.all([
           ger.event('p1', 'buybuy', 'a'),
           ger.event('p1', 'buybuy', 'b'),
           ger.event('p1', 'buybuy', 'c'),
@@ -292,35 +292,35 @@ describe 'setting action weights', ->
   it 'should work multiple at the time', ->
     init_ger()
     .then (ger) ->
-      q.all([
+      bb.all([
         ger.action('viewview', 1),
         ger.action('buybuy', 10),
       ])
       .then(-> ger.event('p1', 'buybuy', 'a'))
-      .then(-> ger.get_action_weight('buybuy'))
-      .then((weight) -> weight.should.equal 10)
+      .then(-> ger.get_action('buybuy'))
+      .then((action) -> action.weight.should.equal 10)
 
   it 'should override existing weight', ->
     init_ger()
     .then (ger) ->
       ger.event('p1', 'buy', 'a')
       .then(-> ger.action('buy', 10))
-      .then(-> ger.get_action_weight('buy'))
-      .then((weight) -> weight.should.equal 10)
+      .then(-> ger.get_action('buy'))
+      .then((action) -> action.weight.should.equal 10)
 
   it 'should add the action with a weight to a sorted set', ->
     init_ger()
     .then (ger) ->
       ger.action('buy', 10)
-      .then(-> ger.get_action_weight('buy'))
-      .then((weight) -> weight.should.equal 10)
+      .then(-> ger.get_action('buy'))
+      .then((action) -> action.weight.should.equal 10)
 
   it 'should default the action weight to 1', ->
     init_ger()
     .then (ger) ->
       ger.action('buy')
-      .then(-> ger.get_action_weight('buy'))
-      .then((weight) -> weight.should.equal 1)
+      .then(-> ger.get_action('buy'))
+      .then((action) -> action.weight.should.equal 1)
       .then(-> ger.action('buy', 10))
-      .then(-> ger.get_action_weight('buy'))
-      .then((weight) -> weight.should.equal 10)
+      .then(-> ger.get_action('buy'))
+      .then((action) -> action.weight.should.equal 10)

@@ -9,7 +9,7 @@ path = require 'path'
 
 PsqlESM = require('../lib/psql_esm')
 
-q = require 'q'
+bb = require 'bluebird'
 
 fs = require('fs');
 
@@ -22,7 +22,7 @@ init_esm = ->
   #in
   psql_esm = new PsqlESM(knex)
   #drop the current tables, reinit the tables, return the esm
-  q.fcall(-> psql_esm.drop_tables())
+  bb.try(-> psql_esm.drop_tables())
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
 
@@ -66,7 +66,7 @@ describe "remove_expired_events", ->
   it "does not remove events that have no expiry date or future date", ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p1','a','t'),  esm.add_event('p2','a','t', new Date(2050,10,10)), esm.add_event('p3','a','t', new Date(0).toISOString())])
+      bb.all([esm.add_event('p1','a','t'),  esm.add_event('p2','a','t', new Date(2050,10,10)), esm.add_event('p3','a','t', new Date(0).toISOString())])
       .then( ->
         esm.count_events()
       )
@@ -161,7 +161,7 @@ describe "expires at", ->
   it 'should accept an expiry date', ->
     init_esm()
     .then (esm) ->
-      q.all([
+      bb.all([
         esm.set_action_weight('a', 1)
         esm.add_event('p','a','t', new Date().toISOString())
       ])
@@ -188,7 +188,7 @@ describe "#bootstrap", ->
       rs.push(null);
 
       esm.bootstrap(rs)
-      .then( (returned_count) -> q.all([returned_count, esm.count_events()]))
+      .then( (returned_count) -> bb.all([returned_count, esm.count_events()]))
       .spread( (returned_count, count) -> 
         count.should.equal 3
         returned_count.should.equal 3
@@ -208,10 +208,10 @@ describe "Schemas for multitenancy", ->
     psql_esm1 = new PsqlESM(knex, "schema1")
     psql_esm2 = new PsqlESM(knex, "schema2")
 
-    q.all([psql_esm1.drop_tables(),psql_esm2.drop_tables()])
-    .then( -> q.all([psql_esm1.init_tables(),psql_esm2.init_tables()]) )
+    bb.all([psql_esm1.drop_tables(),psql_esm2.drop_tables()])
+    .then( -> bb.all([psql_esm1.init_tables(),psql_esm2.init_tables()]) )
     .then( ->
-      q.all([
+      bb.all([
         psql_esm1.add_event('p','a','t')
         psql_esm1.add_event('p1','a','t')
 
@@ -219,7 +219,7 @@ describe "Schemas for multitenancy", ->
       ])
     )
     .then( ->
-      q.all([psql_esm1.count_events(), psql_esm2.count_events() ]) 
+      bb.all([psql_esm1.count_events(), psql_esm2.count_events() ]) 
     )
     .spread((c1,c2) ->
       c1.should.equal 2
@@ -290,7 +290,7 @@ describe '#has_person_actioned_thing', ->
     .then (esm) ->
       esm.add_event('p','a','t')
       .then( ->
-        q.all([esm.has_person_actioned_thing('p', 'a', 't'), esm.has_person_actioned_thing('p', 'a', 'not_t')])
+        bb.all([esm.has_person_actioned_thing('p', 'a', 't'), esm.has_person_actioned_thing('p', 'a', 'not_t')])
       )
       .spread( (t1, t2) ->
         t1.should.equal true
@@ -301,7 +301,7 @@ describe '#get_actions_of_person_thing_with_weights', ->
   it 'should return action and weights', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.set_action_weight('a2',1), esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
+      bb.all([esm.set_action_weight('a2',1), esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
       .then( -> esm.set_action_weight('a',10))
       .then( -> esm.get_actions_of_person_thing_with_weights('p','t'))
       .then( (action_weights) ->
@@ -315,7 +315,7 @@ describe '#get_ordered_action_set_with_weights', ->
   it 'should return actions with weights', ->
     init_esm()
     .then (esm) ->
-      q.all([ esm.set_action_weight('a2',1) , esm.add_event('p','a','t'), esm.add_event('p','a2','t')])
+      bb.all([ esm.set_action_weight('a2',1) , esm.add_event('p','a','t'), esm.add_event('p','a2','t')])
       .then( -> esm.set_action_weight('a',10))
       .then( -> esm.get_ordered_action_set_with_weights())
       .then( (action_weights) ->
@@ -330,7 +330,7 @@ describe '#get_things_that_actioned_person', ->
   it 'should return list of things', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p','a','t'),esm.add_event('p','a','t1')])
+      bb.all([esm.add_event('p','a','t'),esm.add_event('p','a','t1')])
       .then( -> esm.get_things_that_actioned_person('p','a'))
       .then( (things) ->
         ('t' in things).should.equal true
@@ -341,7 +341,7 @@ describe '#get_people_that_actioned_thing', ->
   it 'should return list of people', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')])
+      bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')])
       .then( -> esm.get_people_that_actioned_thing('t','a'))
       .then( (people) ->
         ('p1' in people).should.equal true
@@ -353,7 +353,7 @@ describe '#things_people_have_actioned', ->
   it 'should return list of things that people have actioned', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
+      bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
       .then( -> esm.things_people_have_actioned('a',['p1','p2']))
       .then( (things) ->
         ('t' in things).should.equal true
@@ -363,7 +363,7 @@ describe '#things_people_have_actioned', ->
   it 'should not return the same item twice', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
+      bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
       .then( -> esm.things_people_have_actioned('a',['p1','p2']))
       .then( (things) ->
         things.length.should.equal 1
@@ -393,7 +393,7 @@ describe '#people_jaccard_metric', ->
   it 'returns the jaccard distance of the two peoples action', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t'), esm.add_event('p2','a','t1')])
+      bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t'), esm.add_event('p2','a','t1')])
       .then( -> esm.people_jaccard_metric('p1', 'p2', 'a'))
       .then( (jm) ->
         jm.should.equal 0.5

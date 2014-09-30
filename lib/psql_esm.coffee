@@ -1,4 +1,4 @@
-q = require 'q'
+bb = require 'bluebird'
 fs = require 'fs'
 split = require 'split'
 pg = require('pg');
@@ -13,10 +13,10 @@ unique_rows = (rows, row) ->
 get_list_to_size = (fn, i, list, size) =>
   #recursive promise that will resolve till either the end
   if list.length > size
-    return q.fcall(-> list)
+    return bb.try(-> list)
   fn(i)
   .then( (new_list) =>
-    return q.fcall(-> list) if new_list == null 
+    return bb.try(-> list) if new_list == null 
     new_list = list.concat new_list
     i = i + 1
     get_list_to_size(fn, i, new_list, size)
@@ -54,15 +54,15 @@ init_action_table = (knex, schema) ->
 
 #CLASS ACTIONS
 drop_tables = (knex, schema = 'public') ->
-  q.all( [
+  bb.all( [
     knex.schema.dropTableIfExists("#{schema}.events"),
     knex.schema.dropTableIfExists("#{schema}.actions")
   ])
   .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS #{schema}"))
   
 init_tables = (knex, schema = 'public') ->
-  q.when(knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{schema}"))
-  .then( => q.all([init_events_table(knex, schema), init_action_table(knex, schema)]))
+  knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{schema}")
+  .then( => bb.all([init_events_table(knex, schema), init_action_table(knex, schema)]))
 
 class EventStoreMapper
   
@@ -124,7 +124,7 @@ class EventStoreMapper
 
   
   events_for_people_action_things: (people, action, things) ->
-    return q.fcall(->[]) if people.length == 0 || things.length == 0
+    return bb.try(->[]) if people.length == 0 || things.length == 0
 
     @knex("#{@schema}.events").where(action: action).whereIn('person', people).whereIn('thing', things).limit(@upper_limit)
 
@@ -155,7 +155,7 @@ class EventStoreMapper
     )
 
   get_things_that_actioned_people: (people, action) =>
-    return q.fcall(->[]) if people.length == 0
+    return bb.try(->[]) if people.length == 0
     @knex("#{@schema}.events")
     .select('thing', 'created_at')
     .where(action: action)
@@ -168,7 +168,7 @@ class EventStoreMapper
     )
 
   get_people_that_actioned_things: (things, action) =>
-    return q.fcall(->[]) if things.length == 0
+    return bb.try(->[]) if things.length == 0
     @knex("#{@schema}.events")
     .select('person', 'created_at')
     .where(action: action)
@@ -216,7 +216,7 @@ class EventStoreMapper
 
     intersection = @knex.raw("#{q1} INTERSECT #{q2}")
     union = @knex.raw("#{q1} UNION #{q2}")
-    q.all([intersection, union])
+    bb.all([intersection, union])
     .spread((int_count, uni_count) ->
       ret = int_count.rowCount / uni_count.rowCount
       if isNaN(ret)
@@ -230,7 +230,7 @@ class EventStoreMapper
 
     intersection = @knex.raw("#{q1} INTERSECT #{q2}")
     union = @knex.raw("#{q1} UNION #{q2}")
-    q.all([intersection, union])
+    bb.all([intersection, union])
     .spread((int_count, uni_count) ->
       ret = int_count.rowCount / uni_count.rowCount
       if isNaN(ret)
@@ -268,7 +268,7 @@ class EventStoreMapper
     runner.ensureConnection()
     .then( (connection) =>
       runner.connection = connection
-      deferred = q.defer()
+      deferred = bb.defer()
       pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at) FROM STDIN CSV"));
       
       counter = new CounterStream()
@@ -298,11 +298,11 @@ class EventStoreMapper
 
   remove_superseded_events: ->
     #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
-    q.when(true)
+    bb.try(-> true)
 
   remove_excessive_user_events: ->
     #find members with most events and truncate them down
-    q.when(true)
+    bb.try(-> true)
     
   remove_events_till_size: (number_of_events) ->
     #removes old events till there is only number_of_events left

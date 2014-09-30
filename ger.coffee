@@ -1,4 +1,4 @@
-q = require 'q'
+bb = require 'bluebird'
 
 Utils =
   flatten: (arr) ->
@@ -50,7 +50,7 @@ class GER
 
             fn = (i) => 
               if i >= action_weights.length
-                return q.fcall(-> null)
+                return bb.try(-> null)
               else
                 @["similar_#{plural[v.object]}_for_action_with_weights"](object, action_weights[i].key, action_weights[i].weight)
 
@@ -79,10 +79,10 @@ class GER
   get_list_to_size: (fn, i, list, size) =>
     #recursive promise that will resolve till either the end
     if list.length > size
-      return q.fcall(-> list)
+      return bb.try(-> list)
     fn(i)
     .then( (new_list) =>
-      return q.fcall(-> list) if new_list == null 
+      return bb.try(-> list) if new_list == null 
       new_list = list.concat new_list
       i = i + 1
       @get_list_to_size(fn, i, new_list, size)
@@ -140,8 +140,8 @@ class GER
   recommendations_for_thing: (thing, action) ->
     @esm.get_people_that_actioned_thing(thing, action)
     .then( (people) =>
-      list_of_promises = q.all( (@ordered_similar_people(p) for p in people) )
-      q.all( [people, list_of_promises] )
+      list_of_promises = bb.all( (@ordered_similar_people(p) for p in people) )
+      bb.all( [people, list_of_promises] )
     )
     .spread( (people, peoples_lists) =>
       people_weights = Utils.flatten(peoples_lists)
@@ -176,7 +176,7 @@ class GER
       people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
       
       people = (ps.person for ps in people_weights)
-      q.all([people_weights, @esm.things_people_have_actioned(action, people)])
+      bb.all([people_weights, @esm.things_people_have_actioned(action, people)])
     )
     .spread( ( people_weights, things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
@@ -209,9 +209,9 @@ class GER
   find_event: (person, action, thing) ->
     @esm.find_event(person, action, thing)
 
-
-  get_action_weight:(action) ->
+  get_action:(action) ->
     @esm.get_action_weight(action)
+    .then( (weight) -> {action: action, weight: weight})
 
   bootstrap: (stream) ->
     #filename should be person,action,thing,date
@@ -223,13 +223,13 @@ class GER
 
   compact_database: ->
     # Do some smart (lossless) things to shrink the size of the database
-    q.all( [ @esm.remove_expired_events(), @esm.remove_non_unique_events()] )
+    bb.all( [ @esm.remove_expired_events(), @esm.remove_non_unique_events()] )
 
 
   compact_database_to_size: (number_of_events) ->
     # Smartly Cut (lossy) the tail of the database (based on created_at) to a defined size
     #STEP 1
-    q.all([@esm.remove_superseded_events() , @esm.remove_excessive_user_events()])
+    bb.all([@esm.remove_superseded_events() , @esm.remove_excessive_user_events()])
     .then( => @count_events())
     .then( (count) => 
       if count <= number_of_events

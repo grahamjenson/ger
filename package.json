@@ -13,7 +13,7 @@
   ],
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
   "dependencies"  : {
-    "q": "1.0.1",
+    "bluebird": "2.3.4",
     "knex" : "0.6.22",
     "pg" : "3.4.1",
     "pg-copy-streams": "0.2.4",
