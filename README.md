@@ -1,3 +1,6 @@
+
+<img src="./assets/ger300x200.png" align="right" alt="GER logo" />
+
 Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine.
 GER is built to be easy to use and integrate into any application.
 
@@ -38,45 +41,43 @@ Then create the GER instance by passing the ESM
 var ger = new GER(psql_esm);
 ```
 
-#The GER API
+#Overview
+Using a recommendations engine in an application can get greater engagement from its users, and add value that it would otherwise not have been able to. The reason why many applications don't use recommendations engines is that there is significant overhead in implementing a custom engine and many off-the-shelf engines have overcomplicated APIs that do not suite an applications development.
 
-There are four concepts for GER
+This documentation describes **GER** (Good Enough Recommendations), a recommendation engine that is scalable, easily usable and good enough for your application.
 
-1. person:String 
-2. thing:String
-3. action:String which has a weight:Integer (defaults to 1)
+#Good Enough Recommendations (GER)
 
 **All functions from GER return a promise.**
 
-To add an event to GER use:
+A recommendation engine is a secondary consideration to a product; it is not the highest priority on your list right now, but it is probably on your list. GER's core goal is to let developers easily integrate a recommendation engine that works for their product, but is not overly complex to get up and running. As your product grows and becomes successful, GER can be fine tuned to provide more targeted recommendations. Initially though, **it will just work**.
+
+#GER and its API
+
+GER is a [collaborative filtering](http://en.wikipedia.org/wiki/Collaborative_filtering) engine using the [Jaccard metric](http://en.wikipedia.org/wiki/Jaccard_index). This means that GER looks at past events of a person, finds similar people, then recommends things that those similar users are doing. Basically, events go into GER and recommendations come out.
+
+## Events
+An event is simply a triple: a **person:*String***, an **action:*String*** and a **thing:*String***. For example, **bob** **view** **product_2**. 
 
 ```javascript
 ger.event("person", "action", "thing");
 ```
 
-An actions weight can be changed, the higher the weight the more important it is for GER predictions.
+
+## Recommendations 
+
+To query GER for a list of recommendations you ask what a **person** would like to **action**? For example, to ask GER what would **bob** like to **view**:
+
+```
+ger.recommendations_for_person("bob", "view")
+```
+
+This will return a list of **thing**s with weights 
+
+## Actions
+Each action has a weight (defaulting to 1) which determines how important it is to GER's predictions, e.g. **buying** is more important than **viewing**. The weight of an action can be altered with:
 
 ```
 ger.action("action", 10)
 ```
-
-GER can be queried to recommend things a "person" might like to "action":
-
-```
-ger.recommendations_for_person("person", "action")
-```
-
-Or ask what people might "action" a "thing".
-
-```
-ger.recommendations_for_thing("thing", "action")
-```
-
-GER can be queried for similar people or things.
-
-```
-ger.ordered_similar_people("person")
-ger.ordered_similar_things("thing")
-```
-
 

@@ -12,8 +12,13 @@ bb = require 'bluebird'
 
 Readable = require('stream').Readable;
 
-knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
-
+knex = require('knex')
+  client: 'pg',
+  connection: 
+    host: '127.0.0.1', 
+    user : 'root', 
+    password : 'abcdEF123456', 
+    database : 'ger_test'
 
 create_psql_esm = ->
   #in
@@ -80,7 +85,7 @@ describe 'performance tests', ->
 
         rs = new Readable();
         for x in [1..20000]
-          rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01\n")
+          rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,\n")
         rs.push(null);
 
         ger.bootstrap(rs)

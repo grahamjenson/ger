@@ -214,7 +214,7 @@ class GER
     .then( (weight) -> {action: action, weight: weight})
 
   bootstrap: (stream) ->
-    #filename should be person,action,thing,date
+    #filename should be person, action, thing, created_at, expires_at
     #this will require manually adding the actions
     @esm.bootstrap(stream)
     

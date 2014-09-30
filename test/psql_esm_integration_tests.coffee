@@ -88,8 +88,8 @@ describe "remove_non_unique_events", ->
     init_esm()
     .then (esm) ->
       rs = new Readable();
-      rs.push('person,action,thing,2013-01-01\n');
-      rs.push('person,action,thing,2014-01-01\n');
+      rs.push('person,action,thing,2013-01-01,\n');
+      rs.push('person,action,thing,2014-01-01,\n');
       rs.push(null);
       esm.bootstrap(rs)
       .then( ->
@@ -106,8 +106,8 @@ describe "remove_non_unique_events", ->
     init_esm()
     .then (esm) ->    
       rs = new Readable();
-      rs.push('person,action,thing,2013-01-01\n');
-      rs.push('person,action,thing,2014-01-01\n');
+      rs.push('person,action,thing,2013-01-01,\n');
+      rs.push('person,action,thing,2014-01-01,\n');
       rs.push(null);
       esm.bootstrap(rs)
       .then( ->
@@ -138,10 +138,10 @@ describe "remove_events_till_size", ->
     init_esm()
     .then (esm) ->    
       rs = new Readable();
-      rs.push('person,action,thing,2013-01-01\n');
-      rs.push('person,action,thing,2014-01-01\n');
-      rs.push('person,action,thing,2013-01-01\n');
-      rs.push('person,action,thing,2014-01-01\n');
+      rs.push('person,action,thing,2013-01-01,\n');
+      rs.push('person,action,thing,2014-01-01,\n');
+      rs.push('person,action,thing,2013-01-01,\n');
+      rs.push('person,action,thing,2014-01-01,\n');
       rs.push(null);
       esm.bootstrap(rs)
       .then( ->
@@ -182,9 +182,9 @@ describe "#bootstrap", ->
     init_esm()
     .then (esm) ->
       rs = new Readable();
-      rs.push('person,action,thing,2014-01-01\n');
-      rs.push('person,action,thing1,2014-01-01\n');
-      rs.push('person,action,thing2,2014-01-01\n');
+      rs.push('person,action,thing,2014-01-01,\n');
+      rs.push('person,action,thing1,2014-01-01,\n');
+      rs.push('person,action,thing2,2014-01-01,\n');
       rs.push(null);
 
       esm.bootstrap(rs)
@@ -374,9 +374,9 @@ describe '#people_jaccard_metric', ->
     init_esm()
     .then (esm) ->
       rs = new Readable();
-      rs.push('p1,a,t,2014-01-01\n');
-      rs.push('p1,a,t,2014-01-01\n');
-      rs.push('p2,a,t,2014-01-01\n');
+      rs.push('p1,a,t,2014-01-01,\n');
+      rs.push('p1,a,t,2014-01-01,\n');
+      rs.push('p2,a,t,2014-01-01,\n');
       rs.push(null);
       esm.bootstrap(rs)
       .then( ->

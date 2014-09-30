@@ -261,7 +261,7 @@ class EventStoreMapper
     .then (count) -> parseInt(count[0].count)
 
   bootstrap: (stream) ->
-    #stream of  person,action,thing,date CSV
+    #stream of  person, action, thing, created_at, expires_at CSV
     #this will require manually adding the actions
 
     runner = new @knex.client.Runner(@knex.client)
@@ -269,7 +269,7 @@ class EventStoreMapper
     .then( (connection) =>
       runner.connection = connection
       deferred = bb.defer()
-      pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at) FROM STDIN CSV"));
+      pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
       
       counter = new CounterStream()
       stream.pipe(split(/^/gm)).pipe(counter).pipe(pg_stream)

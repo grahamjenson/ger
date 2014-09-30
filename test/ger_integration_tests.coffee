@@ -12,7 +12,16 @@ GER = g.GER
 
 PsqlESM = g.PsqlESM
 
-knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
+knex = g.knex
+  client: 'pg',
+  pool:
+    min: 2,
+    max: 10
+  connection: 
+    host: '127.0.0.1', 
+    user : 'root', 
+    password : 'abcdEF123456', 
+    database : 'ger_test'
 
 
 create_psql_esm = ->
