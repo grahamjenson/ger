@@ -80,10 +80,7 @@ class EventStoreMapper
     init_tables(@knex,@schema)
 
   add_event: (person, action, thing, expires_at = null) ->
-    q.all([
-      @add_action(action),
-      @add_event_to_db(person, action, thing, expires_at)
-    ])
+    @add_event_to_db(person, action, thing, expires_at)
 
   add_action: (action) ->
     @set_action_weight(action, 1, false)

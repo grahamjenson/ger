@@ -161,7 +161,10 @@ describe "expires at", ->
   it 'should accept an expiry date', ->
     init_esm()
     .then (esm) ->
-      esm.add_event('p','a','t', new Date().toISOString())
+      q.all([
+        esm.set_action_weight('a', 1)
+        esm.add_event('p','a','t', new Date().toISOString())
+      ])
       .then( ->
         esm.count_actions()
       )
@@ -249,20 +252,6 @@ describe '#initial tables', ->
       )
 
 describe '#add_event', ->
-  it 'should add the action to the actions table', ->
-    init_esm()
-    .then (esm) ->
-      esm.add_event('p','a','t')
-      .then( ->
-        esm.count_actions()
-      )
-      .then( (count) ->
-        count.should.equal 1
-        esm.has_action('a')
-      )
-      .then( (has_action) ->
-        has_action.should.equal true
-      )
 
   it 'should add the event to the events table', ->
     init_esm()
@@ -312,7 +301,7 @@ describe '#get_actions_of_person_thing_with_weights', ->
   it 'should return action and weights', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
+      q.all([esm.set_action_weight('a2',1), esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
       .then( -> esm.set_action_weight('a',10))
       .then( -> esm.get_actions_of_person_thing_with_weights('p','t'))
       .then( (action_weights) ->
@@ -326,7 +315,7 @@ describe '#get_ordered_action_set_with_weights', ->
   it 'should return actions with weights', ->
     init_esm()
     .then (esm) ->
-      q.all([esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
+      q.all([ esm.set_action_weight('a2',1) , esm.add_event('p','a','t'), esm.add_event('p','a2','t')])
       .then( -> esm.set_action_weight('a',10))
       .then( -> esm.get_ordered_action_set_with_weights())
       .then( (action_weights) ->

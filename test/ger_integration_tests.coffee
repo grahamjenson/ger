@@ -114,6 +114,8 @@ describe 'recommendations_for_thing', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('view'),
+        ger.action('buy'),
         ger.event('p1','view','c'),
 
         ger.event('p2','view','c'),
@@ -132,6 +134,8 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('view'),
+        ger.action('buy'),
         ger.event('p1','buy','a'),
         ger.event('p1','view','a'),
 
@@ -147,6 +151,8 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('view'),
+        ger.action('buy'),
         ger.event('p1','buy','a'),
         ger.event('p1','view','a'),
 
@@ -171,6 +177,8 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('view'),
+
         ger.event('p1','view','a'),
 
         ger.event('p2','view','a'),
@@ -193,6 +201,7 @@ describe 'similar things', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('action1'),
         ger.event('p1','action1','thing1'),
         ger.event('p1','action1','thing2'),
       ])
@@ -204,6 +213,7 @@ describe 'similar people', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('action1'),
         ger.event('p1','action1','thing1'),
         ger.event('p2','action1','thing1'),
       ])
@@ -215,6 +225,7 @@ describe 'ordered_similar_things', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('action1'),
         ger.event('p1','action1','a'),
         ger.event('p1','action1','b'),
         ger.event('p1','action1','c'),
@@ -236,6 +247,7 @@ describe 'ordered_similar_people', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('action1'),
         ger.event('p1','action1','a'),
         ger.event('p2','action1','a'),
         ger.event('p3','action1','a'),
