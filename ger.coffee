@@ -213,9 +213,6 @@ class GER
   get_action_weight:(action) ->
     @esm.get_action_weight(action)
 
-  add_action: (action) ->
-    @esm.add_action(action)
-
   bootstrap: (stream) ->
     #filename should be person,action,thing,date
     #this will require manually adding the actions

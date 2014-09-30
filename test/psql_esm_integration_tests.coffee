@@ -268,20 +268,20 @@ describe '#add_event', ->
         has_event.should.equal true
       )
 
-describe 'add_action and set_action_weight', ->
-  it 'should add action of weight 1, then set action should change it', ->
+describe 'set_action_weight', ->
+  it 'should not overwrite if set to false', ->
     init_esm()
     .then (esm) ->
-      esm.add_action('a')
+      esm.set_action_weight('a', 1)
       .then( ->
         esm.get_action_weight('a')
       )
       .then( (weight) ->
         weight.should.equal 1
-        esm.set_action_weight('a', 10).then( -> esm.get_action_weight('a'))
+        esm.set_action_weight('a', 10, false).then( -> esm.get_action_weight('a'))
       )
       .then( (weight) ->
-        weight.should.equal 10
+        weight.should.equal 1
       )
 
 describe '#has_person_actioned_thing', ->

@@ -318,19 +318,9 @@ describe 'setting action weights', ->
   it 'should default the action weight to 1', ->
     init_ger()
     .then (ger) ->
-      ger.add_action('buy')
+      ger.action('buy')
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 1)
       .then(-> ger.action('buy', 10))
-      .then(-> ger.get_action_weight('buy'))
-      .then((weight) -> weight.should.equal 10)
-
-  it 'add_action should not override action s', ->
-    init_ger()
-    .then (ger) ->
-      ger.action('buy', 10)
-      .then(-> ger.get_action_weight('buy'))
-      .then((weight) -> weight.should.equal 10)
-      .then(-> ger.add_action('buy'))
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 10)

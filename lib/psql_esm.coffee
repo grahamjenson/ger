@@ -82,9 +82,6 @@ class EventStoreMapper
   add_event: (person, action, thing, expires_at = null) ->
     @add_event_to_db(person, action, thing, expires_at)
 
-  add_action: (action) ->
-    @set_action_weight(action, 1, false)
-
   upsert: (table, insert_attr, identity_attr, update_attr) ->
     insert = @knex(table).insert(insert_attr).toString()
     #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
