@@ -57,7 +57,7 @@ ger.event("person", "action", "thing");
 An actions weight can be changed, the higher the weight the more important it is for GER predictions.
 
 ```
-ger.set_action_weight("action", 10)
+ger.action("action", 10)
 ```
 
 GER can be queried to recommend things a "person" might like to "action":

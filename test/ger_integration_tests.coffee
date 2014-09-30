@@ -33,6 +33,7 @@ describe '#event', ->
     init_ger()
     .then (ger) ->
       q.all([
+        ger.action('buy'),
         ger.event('p1','buy','c'),
         ger.event('p1','buy','c'),
       ])
@@ -83,7 +84,7 @@ describe '#probability_of_person_actioning_thing', ->
   it 'should return the weight of the action', ->
     init_ger()
     .then (ger) ->
-      ger.set_action_weight('view', 5)
+      ger.action('view', 5)
       .then(-> ger.event('p1','view','c'))
       .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
       .then((probability) ->
@@ -94,8 +95,8 @@ describe '#probability_of_person_actioning_thing', ->
     init_ger()
     .then (ger) ->
       q.all([
-        ger.set_action_weight('view', 5),
-        ger.set_action_weight('like', 10),
+        ger.action('view', 5),
+        ger.action('like', 10),
       ])
       .then( -> 
         q.all([
@@ -259,8 +260,8 @@ describe 'setting action weights', ->
   it 'should work getting all weights', ->
     init_ger()
     .then (ger) ->
-      ger.set_action_weight('buybuy', 10)
-      .then( (val) -> ger.set_action_weight('viewview', 1))
+      ger.action('buybuy', 10)
+      .then( (val) -> ger.action('viewview', 1))
       .then( ->
         q.all([
           ger.event('p1', 'buybuy', 'a'),
@@ -280,8 +281,8 @@ describe 'setting action weights', ->
     init_ger()
     .then (ger) ->
       q.all([
-        ger.set_action_weight('viewview', 1),
-        ger.set_action_weight('buybuy', 10),
+        ger.action('viewview', 1),
+        ger.action('buybuy', 10),
       ])
       .then(-> ger.event('p1', 'buybuy', 'a'))
       .then(-> ger.get_action_weight('buybuy'))
@@ -291,14 +292,14 @@ describe 'setting action weights', ->
     init_ger()
     .then (ger) ->
       ger.event('p1', 'buy', 'a')
-      .then(-> ger.set_action_weight('buy', 10))
+      .then(-> ger.action('buy', 10))
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 10)
 
   it 'should add the action with a weight to a sorted set', ->
     init_ger()
     .then (ger) ->
-      ger.set_action_weight('buy', 10)
+      ger.action('buy', 10)
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 10)
 
@@ -308,14 +309,14 @@ describe 'setting action weights', ->
       ger.add_action('buy')
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 1)
-      .then(-> ger.set_action_weight('buy', 10))
+      .then(-> ger.action('buy', 10))
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 10)
 
-  it 'add_action should not override set_action_weight s', ->
+  it 'add_action should not override action s', ->
     init_ger()
     .then (ger) ->
-      ger.set_action_weight('buy', 10)
+      ger.action('buy', 10)
       .then(-> ger.get_action_weight('buy'))
       .then((weight) -> weight.should.equal 10)
       .then(-> ger.add_action('buy'))

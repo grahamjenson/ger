@@ -202,12 +202,13 @@ class GER
     @esm.add_event(person,action,thing, expires_at)
     .then( -> {person: person, action: action, thing: thing})
 
-  find_event: (person, action, thing) ->
-    @esm.find_event(person, action, thing)
-    
-  set_action_weight: (action, weight) ->
+  action: (action, weight=1) ->
     @esm.set_action_weight(action, weight)
     .then( -> {action: action, weight: weight}) 
+
+  find_event: (person, action, thing) ->
+    @esm.find_event(person, action, thing)
+
 
   get_action_weight:(action) ->
     @esm.get_action_weight(action)

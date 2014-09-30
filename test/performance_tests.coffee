@@ -53,13 +53,13 @@ describe 'performance tests', ->
         
         promises = []
         for x in [1..1000]
-          promises.push ger.set_action_weight(sample(actions) , sample([1..10]))
+          promises.push ger.action(sample(actions) , sample([1..10]))
         q.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
           pe = time/1000
-          console.log "#{pe}ms per set_action_weight"
+          console.log "#{pe}ms per action"
         )
       )
       .then( ->
