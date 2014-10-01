@@ -5,11 +5,6 @@ pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
 
 
-unique_rows = (rows, row) ->
-  unique = {}
-  (unique[r[row]] = r[row] for r in rows)
-  Object.keys(unique)
-
 get_list_to_size = (fn, i, list, size) =>
   #recursive promise that will resolve till either the end
   if list.length > size
@@ -159,10 +154,10 @@ class EventStoreMapper
     return bb.try(->[]) if people.length == 0
     @knex("#{@schema}.events")
     .select('person', 'thing').max('created_at')
+    .groupBy('person','thing')
+    .orderByRaw('MAX(created_at) DESC')
     .where(action: action)
     .whereIn('person', people)
-    .orderByRaw('MAX(created_at) DESC')
-    .groupBy('person','thing')
     .limit(@upper_limit)
     .then( (rows) ->
       #Do not make distinct -- Graham
@@ -173,11 +168,11 @@ class EventStoreMapper
     return bb.try(->[]) if things.length == 0
     @knex("#{@schema}.events")
     .select('person', 'thing').max('created_at')
+    .groupBy('person','thing')
+    .orderByRaw('MAX(created_at) DESC')
     .where(action: action)
     .whereIn('thing', things)
-    .orderByRaw('MAX(created_at) DESC')
     .limit(@upper_limit)
-    .groupBy('person','thing')
     .then( (rows) ->
       #Need to make distinct for person, action, thing
       (r.person for r in rows)
@@ -185,32 +180,36 @@ class EventStoreMapper
 
   get_things_that_actioned_person: (person, action) =>
     @knex("#{@schema}.events")
-    .select('thing', 'created_at')
+    .select('person', 'thing').max('created_at')
+    .groupBy('person','thing')
+    .orderByRaw('MAX(created_at) DESC')
     .where(person: person, action: action)
-    .orderBy('created_at', 'desc')
     .limit(@things_limit)
     .then( (rows) ->
-      unique_rows(rows, 'thing')
+      (r.thing for r in rows)
     )
 
   get_people_that_actioned_thing: (thing, action) =>
     @knex("#{@schema}.events")
-    .select('person', 'created_at')
+    .select('person', 'thing').max('created_at')
+    .groupBy('person','thing')
+    .orderByRaw('MAX(created_at) DESC')
     .where(thing: thing, action: action)
-    .orderBy('created_at', 'desc')
     .limit(@people_limit)
     .then( (rows) ->
-      unique_rows(rows, 'person')
+      (r.person for r in rows)
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex("#{@schema}.events").select('thing', 'created_at')
+    @knex("#{@schema}.events")
+    .select('thing').max('created_at')
+    .groupBy('thing')
+    .orderByRaw('MAX(created_at) DESC')
     .where(action: action)
     .whereIn('person', people)
-    .orderBy('created_at', 'desc')
     .limit(@things_limit)
     .then( (rows) ->
-      unique_rows(rows, 'thing')
+      (r.thing for r in rows)
     )
 
   things_jaccard_metric: (thing1, thing2, action) ->
