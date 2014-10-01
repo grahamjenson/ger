@@ -100,13 +100,13 @@ describe 'performance tests', ->
         st = new Date().getTime()
         promises = []
         for x in [1..100]
-          promises.push ger.ordered_similar_people(sample(people))
+          promises.push ger.weighted_similar_people(sample(people))
         bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
           pe = time/100
-          console.log "#{pe}ms per ordered_similar_people"
+          console.log "#{pe}ms per weighted_similar_people"
         )
       )
       .then( ->

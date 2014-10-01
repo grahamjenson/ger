@@ -43,7 +43,7 @@ class GER
           )
 
 
-        @["ordered_similar_#{plural[v.object]}"] = (object) ->
+        @["weighted_similar_#{plural[v.object]}"] = (object) ->
           #TODO expencive call, could be cached for a few days as ordered set
           @esm.get_ordered_action_set_with_weights()
           .then( (action_weights) =>
@@ -141,7 +141,7 @@ class GER
   recommendations_for_thing: (thing, action) ->
     @esm.get_people_that_actioned_thing(thing, action)
     .then( (people) =>
-      list_of_promises = bb.all( (@ordered_similar_people(p) for p in people) )
+      list_of_promises = bb.all( (@weighted_similar_people(p) for p in people) )
       bb.all( [people, list_of_promises] )
     )
     .spread( (people, peoples_lists) =>
@@ -170,7 +170,7 @@ class GER
     #recommendations for object action from similar people
     #recommendations for object action from object, only looking at what they have already done
     #then join the two objects and sort
-    @ordered_similar_people(person)
+    @weighted_similar_people(person)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
       people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}

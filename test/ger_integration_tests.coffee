@@ -226,7 +226,7 @@ describe 'similar people', ->
       .then(-> ger.similar_people_for_action('p1', 'action1'))
       .then((people) -> ('p2' in people).should.equal true)
 
-describe 'ordered_similar_things', ->
+describe 'weighted_similar_things', ->
   it 'should take a person and return promise for an ordered list of similar things', ->
     init_ger()
     .then (ger) ->
@@ -241,14 +241,14 @@ describe 'ordered_similar_things', ->
 
         ger.event('p3','action1','d')
       ])
-      .then(-> ger.ordered_similar_things('a'))
+      .then(-> ger.weighted_similar_things('a'))
       .then((things) ->
         things[0].thing.should.equal 'b'
         things[1].thing.should.equal 'c'
         things.length.should.equal 2
       )
 
-describe 'ordered_similar_people', ->
+describe 'weighted_similar_people', ->
   it 'asd should take a person and return promise for an ordered list of similar people', ->
     init_ger()
     .then (ger) ->
@@ -263,7 +263,7 @@ describe 'ordered_similar_people', ->
 
         ger.event('p4','action1','d')
       ])
-      .then(-> ger.ordered_similar_people('p1'))
+      .then(-> ger.weighted_similar_people('p1'))
       .then((people) ->
         people[0].person.should.equal 'p3'
         people[0].weight.should.equal 2
