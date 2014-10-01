@@ -122,7 +122,14 @@ class EventStoreMapper
   events_for_people_action_things: (people, action, things) ->
     return bb.try(->[]) if people.length == 0 || things.length == 0
 
-    @knex("#{@schema}.events").where(action: action).whereIn('person', people).whereIn('thing', things).limit(@upper_limit)
+    @knex("#{@schema}.events")
+    .select('person', 'thing').max('created_at')
+    .groupBy('person','thing')
+    .orderByRaw('MAX(created_at) DESC')
+    .where(action: action)
+    .whereIn('person', people)
+    .whereIn('thing', things)
+    .limit(@upper_limit)
 
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
