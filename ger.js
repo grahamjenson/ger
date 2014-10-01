@@ -333,6 +333,9 @@
 
     GER.prototype.get_action = function(action) {
       return this.esm.get_action_weight(action).then(function(weight) {
+        if (weight === null) {
+          return null;
+        }
         return {
           action: action,
           weight: weight

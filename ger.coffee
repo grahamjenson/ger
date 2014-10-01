@@ -191,7 +191,10 @@ class GER
 
   get_action:(action) ->
     @esm.get_action_weight(action)
-    .then( (weight) -> {action: action, weight: weight})
+    .then( (weight) -> 
+      return null if weight == null
+      {action: action, weight: weight}
+    )
 
   bootstrap: (stream) ->
     #filename should be person, action, thing, created_at, expires_at

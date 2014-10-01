@@ -61,3 +61,4 @@ describe "person exploits,", ->
         recs[0].thing.should.equal 't1'
         recs[0].weight.should.equal 1/2
       )
+
