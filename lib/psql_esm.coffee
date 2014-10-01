@@ -158,10 +158,11 @@ class EventStoreMapper
   get_things_that_actioned_people: (people, action) =>
     return bb.try(->[]) if people.length == 0
     @knex("#{@schema}.events")
-    .select('thing', 'created_at')
+    .select('person', 'thing').max('created_at')
     .where(action: action)
     .whereIn('person', people)
-    .orderBy('created_at', 'desc')
+    .orderByRaw('MAX(created_at) DESC')
+    .groupBy('person','thing')
     .limit(@upper_limit)
     .then( (rows) ->
       #Do not make distinct -- Graham
@@ -171,13 +172,14 @@ class EventStoreMapper
   get_people_that_actioned_things: (things, action) =>
     return bb.try(->[]) if things.length == 0
     @knex("#{@schema}.events")
-    .select('person', 'created_at')
+    .select('person', 'thing').max('created_at')
     .where(action: action)
     .whereIn('thing', things)
-    .orderBy('created_at', 'desc')
+    .orderByRaw('MAX(created_at) DESC')
     .limit(@upper_limit)
+    .groupBy('person','thing')
     .then( (rows) ->
-      #Do not make distinct -- Graham
+      #Need to make distinct for person, action, thing
       (r.person for r in rows)
     )
 

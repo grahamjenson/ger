@@ -14,9 +14,6 @@ PsqlESM = g.PsqlESM
 
 knex = g.knex
   client: 'pg',
-  pool:
-    min: 2,
-    max: 10
   connection: 
     host: '127.0.0.1', 
     user : 'root', 

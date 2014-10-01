@@ -48,6 +48,7 @@ class GER
           @esm.get_ordered_action_set_with_weights()
           .then( (action_weights) =>
 
+            # Recursively build a list of similar objects
             fn = (i) => 
               if i >= action_weights.length
                 return bb.try(-> null)
@@ -171,7 +172,6 @@ class GER
     #then join the two objects and sort
     @ordered_similar_people(person)
     .then( (people_weights) =>
-
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
       people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
       
