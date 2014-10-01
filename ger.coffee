@@ -43,9 +43,9 @@ class GER
 
         @["weighted_similar_#{plural[v.object]}"] = (object) ->
           #TODO expencive call, could be cached for a few days as ordered set
+          total_action_weight = 0
           @esm.get_ordered_action_set_with_weights()
           .then( (action_weights) =>
-
             # Recursively build a list of similar objects
             fn = (i) => 
               if i >= action_weights.length
@@ -58,22 +58,19 @@ class GER
           .then( (object_weights) =>
             #join the weights together
             temp = {}
+            total_weight = 0
             for ows in object_weights
               for p, w of ows
                   continue if p == undefined || w == NaN
                   temp[p] = 0 if p not of temp
                   temp[p] += w
+                  total_weight += w
 
-            pw = ([k, w] for k, w of temp).sort((a, b) -> b[1] - a[1])[...@esm.similar_objects_limit]
+            pw = ([k, (w/total_weight)] for k, w of temp).sort((a, b) -> b[1] - a[1])[...@esm.similar_objects_limit]
+            #manually add the initial object as if they have the same jaccard metric as the most similar person
+            pw.unshift([object, 1] )
+
             
-            #manually add the initial object as if they have 100% jaccard metric, which is a sum of all action weights +1 for good measure
-            if pw[0]
-              top_weight = pw[0][1]
-            else
-              top_weight = 1
-            #TODO remove +10 refactor tests
-            pw.unshift([object, top_weight + 10 ] )
-
             ret = {map: {}, people : [] , total_weight: 0, ordered_list : pw}
             for person_weight in pw
               person = person_weight[0]
@@ -125,13 +122,8 @@ class GER
       things_weight = {}
       for e in events 
         things_weight[e.thing] = 0 if e.thing not of things_weight
-        things_weight[e.thing] += people_weights.map[e.person]
-
-      normal_weights = {}
-      for thing, weight of things_weight
-        normal_weights[thing] = (weight/people_weights.total_weight)
-
-      normal_weights
+        things_weight[e.thing] += people_weights.map[e.person]/people_weights.total_weight
+      things_weight
     )
 
 
@@ -176,6 +168,7 @@ class GER
       ret = []
       for ts in sorted_things
         temp = {weight: ts[1], thing: ts[0]}
+        throw "ERROR" if ts[1] > 1
         ret.push(temp)
       ret
     ) 

@@ -28,7 +28,7 @@
     "coffee-script": "1.7.1"
   },
   "scripts": {
-    "build": "./node_modules/.bin/coffee -c ger.coffee lib/psql_esm.coffee lib/memory_esm.coffee",
+    "build": "./node_modules/.bin/coffee -c ger.coffee lib/psql_esm.coffee",
     "test": "mocha"
   },
   "main"          : "ger.js",

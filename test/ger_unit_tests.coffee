@@ -13,6 +13,7 @@ knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', pass
 PsqlESM = g.PsqlESM
 
 bb = require 'bluebird'
+bb.Promise.longStackTraces();
 
 init_ger = ->
   return new GER(new PsqlESM(knex))
@@ -44,7 +45,7 @@ describe '#weighted_similar_people', ->
     .then((people) ->
       people.ordered_list[0][0].should.equal 'p1'
       people.ordered_list[1][0].should.equal 'p3'
-      people.ordered_list[1][1].should.equal 2
+      people.ordered_list[1][1].should.equal 2/3
       people.ordered_list[2][0].should.equal 'p2'
     )
 

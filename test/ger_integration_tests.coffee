@@ -5,7 +5,7 @@ chai.use(chaiAsPromised)
 
 sinon = require 'sinon'
 bb = require 'bluebird'
-
+bb.Promise.longStackTraces();
 
 g = require('../ger')
 GER = g.GER
@@ -153,7 +153,7 @@ describe 'recommendations_for_person', ->
         item_weights.length.should.equal 1
       )
 
-  it 'should sdf take a person and action to reccommend things', ->
+  it 'should take a person and action to reccommend things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -171,11 +171,10 @@ describe 'recommendations_for_person', ->
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
       .then((item_weights) ->
-        #p1 already bought a, making it very likely to buy again
-        #2/3 people buy c, 1/3 people buys d.
+        #p1 is similar to (p1 by 1), p2 by .5, and (p3 by .5)
+        #p1 buys a (a is 1), p2 and p3 buys c (.5 + .5=1) and p2 buys d (.5)
         items = (i.thing for i in item_weights)
-        items[0].should.equal 'a'
-        items[1].should.equal 'c'
+        (items[0] == 'a' or items[0] == 'c').should.equal true
         items[2].should.equal 'd'
       )
 
@@ -227,7 +226,7 @@ describe 'similar people', ->
       .then((people) -> ('p2' in people).should.equal true)
 
 describe 'weighted_similar_things', ->
-  it 'should take a person and return promise for an ordered list of similar things', ->
+  it 'should sdf take a person and return promise for an ordered list of similar things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -243,8 +242,10 @@ describe 'weighted_similar_things', ->
       ])
       .then(-> ger.weighted_similar_things('a'))
       .then((things) ->
-        things.map['b'].should.equal 2
-        things.map['c'].should.equal 1
+        #a actions p1, p2, and b actions p1 and p2, and c actions p1
+        #a is 
+        things.map['b'].should.equal 2/3
+        things.map['c'].should.equal 1/3
         things.ordered_list.length.should.equal 3
       )
 
@@ -267,9 +268,9 @@ describe 'weighted_similar_people', ->
       .then((people) ->
         people.ordered_list[0][0].should.equal 'p1'
         people.ordered_list[1][0].should.equal 'p3'
-        people.ordered_list[1][1].should.equal 2
+        people.ordered_list[1][1].should.equal 2/3
         people.ordered_list[2][0].should.equal 'p2'
-        people.ordered_list[2][1].should.equal 1
+        people.ordered_list[2][1].should.equal 1/3
         people.ordered_list.length.should.equal 3
       )
 
