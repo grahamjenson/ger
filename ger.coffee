@@ -33,12 +33,10 @@ class GER
           @["similar_#{plural[v.object]}_for_action"](object, action)
           .then( (objects) =>
             #add weights
-            temp = []
+            temp = {}
             for o in objects
-              t = {} 
-              t[v.object] = o
-              t.weight = weight
-              temp.push t
+              temp[o] = 0 if o not of temp
+              temp[o] += weight
             temp
           )
 
@@ -60,10 +58,10 @@ class GER
           .then( (object_weights) =>
             #join the weights together
             temp = {}
-            for ow in object_weights
-              if temp[ow[v.object]] == undefined
-                temp[ow[v.object]] = 0
-              temp[ow[v.object]] += ow.weight
+            for ows in object_weights
+              for p,w of ows
+                temp[p] = 0 if p not of temp
+                temp[p] += w
             
             res = []
             for p,w of temp

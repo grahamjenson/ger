@@ -39,10 +39,11 @@ describe '#weighted_similar_people', ->
   it 'should return a list of similar people ordered by similarity', ->
     ger = init_ger()
     sinon.stub(ger.esm, 'get_ordered_action_set_with_weights', -> bb.try -> [{key: 'a', weight: 1}])
-    sinon.stub(ger, 'similar_people_for_action_with_weights', -> bb.try -> [{person: 'p3', weight: 1}, {person: 'p3', weight: 1}, {person: 'p2', weight: 1}] )
+    sinon.stub(ger, 'similar_people_for_action_with_weights', -> bb.try -> [{'p3': 1}, {'p3': 1}, {'p2': 1}] )
     ger.weighted_similar_people('p1')
     .then((people) -> 
       people[0].person.should.equal 'p3'
+      people[0].weight.should.equal 2
       people[1].person.should.equal 'p2'
     )
 
