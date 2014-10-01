@@ -9,6 +9,7 @@ PsqlESM = require('../lib/psql_esm')
 
 GER = require('../ger').GER
 bb = require 'bluebird'
+bb.Promise.longStackTraces();
 
 Readable = require('stream').Readable;
 

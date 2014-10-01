@@ -21,7 +21,7 @@ init_ger = ->
 describe '#recommendations_for_person', ->
   it 'should return a list of reccommended items', ->
     ger = init_ger()
-    sinon.stub(ger,'weighted_similar_people', () -> bb.try(-> [{person: 'p1', weight: 1}, {person: 'p2', weight: 3}]))
+    sinon.stub(ger,'weighted_similar_people', () -> bb.try(-> {map: {'p1':1, 'p2':3}, people : ['p1','p2'] , total_weight: 4, ordered_list : [['p2',3],['p1',1]]}))
     sinon.stub(ger.esm,'things_people_have_actioned', -> bb.try(-> ['t1','t2']))
     sinon.stub(ger, 'weighted_probabilities_to_action_things_by_people', (things, action, people_weights) -> 
       return {'t1':0.2 , 't2': 0.5}
@@ -41,10 +41,11 @@ describe '#weighted_similar_people', ->
     sinon.stub(ger.esm, 'get_ordered_action_set_with_weights', -> bb.try -> [{key: 'a', weight: 1}])
     sinon.stub(ger, 'similar_people_for_action_with_weights', -> bb.try -> [{'p3': 1}, {'p3': 1}, {'p2': 1}] )
     ger.weighted_similar_people('p1')
-    .then((people) -> 
-      people[0].person.should.equal 'p3'
-      people[0].weight.should.equal 2
-      people[1].person.should.equal 'p2'
+    .then((people) ->
+      people.ordered_list[0][0].should.equal 'p1'
+      people.ordered_list[1][0].should.equal 'p3'
+      people.ordered_list[1][1].should.equal 2
+      people.ordered_list[2][0].should.equal 'p2'
     )
 
 

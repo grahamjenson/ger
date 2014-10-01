@@ -59,19 +59,30 @@ class GER
             #join the weights together
             temp = {}
             for ows in object_weights
-              for p,w of ows
-                temp[p] = 0 if p not of temp
-                temp[p] += w
+              for p, w of ows
+                  continue if p == undefined || w == NaN
+                  temp[p] = 0 if p not of temp
+                  temp[p] += w
+
+            pw = ([k, w] for k, w of temp).sort((a, b) -> b[1] - a[1])[...@esm.similar_objects_limit]
             
-            res = []
-            for p,w of temp
-              continue if p == object
-              r = {}
-              r[v.object] = p
-              r.weight = w
-              res.push r
-            res = res.sort((x, y) -> y.weight - x.weight)
-            res[...@esm.similar_objects_limit] #Cut it off with similar objects limit
+            #manually add the initial object as if they have 100% jaccard metric, which is a sum of all action weights +1 for good measure
+            if pw[0]
+              top_weight = pw[0][1]
+            else
+              top_weight = 1
+            #TODO remove +10 refactor tests
+            pw.unshift([object, top_weight + 10 ] )
+
+            ret = {map: {}, people : [] , total_weight: 0, ordered_list : pw}
+            for person_weight in pw
+              person = person_weight[0]
+              weight = person_weight[1]
+              ret.people.push person
+              ret.total_weight += weight
+
+              ret.map[person] = weight
+            ret
           )
 
           
@@ -109,28 +120,16 @@ class GER
     # [person, action, subject]
     # 
     # return [[subject, weight]]
-    total_weights = 0
-    people = []
-    people_keys = {}
-    for p in people_weights
-      total_weights += p.weight
-      people.push p.person
-      people_keys[p.person] = p.weight
-
-    total_weight = (p.weight for p in people_weights).reduce( (x,y) -> x + y )
-
-    @esm.events_for_people_action_things(people, action, things)
+    @esm.events_for_people_action_things(people_weights.people, action, things)
     .then( (events) ->
       things_weight = {}
-      for e in events
-        weight = people_keys[e.person]
-        if things_weight[e.thing] == undefined
-          things_weight[e.thing] = 0
-        things_weight[e.thing] += weight
+      for e in events 
+        things_weight[e.thing] = 0 if e.thing not of things_weight
+        things_weight[e.thing] += people_weights.map[e.person]
 
       normal_weights = {}
       for thing, weight of things_weight
-        normal_weights[thing] = (weight/total_weight)
+        normal_weights[thing] = (weight/people_weights.total_weight)
 
       normal_weights
     )
@@ -143,19 +142,12 @@ class GER
       bb.all( [people, list_of_promises] )
     )
     .spread( (people, peoples_lists) =>
-      people_weights = Utils.flatten(peoples_lists)
-
       temp = {}
-      for ps in people_weights
-        temp[ps.person] = ps.weight
-
-      for p in people
-        if temp[p]
-          temp[p] += @INITIAL_PERSON_WEIGHT
-        else
-          temp[p] = @INITIAL_PERSON_WEIGHT
-
-      temp
+      for pl in peoples_lists
+        for person, weight of pl.map
+          temp[person] = 0 if person not of temp
+          temp[person] += weight
+      temp 
     )
     .then( (recommendations) ->
       weighted_people = ([person, weight] for person, weight of recommendations)
@@ -171,10 +163,7 @@ class GER
     @weighted_similar_people(person)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      people_weights.push {weight: @INITIAL_PERSON_WEIGHT, person: person}
-      
-      people = (ps.person for ps in people_weights)
-      bb.all([people_weights, @esm.things_people_have_actioned(action, people)])
+      bb.all([people_weights, @esm.things_people_have_actioned(action, people_weights.people)])
     )
     .spread( ( people_weights, things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects

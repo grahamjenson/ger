@@ -153,7 +153,7 @@ describe 'recommendations_for_person', ->
         item_weights.length.should.equal 1
       )
 
-  it 'should take a person and action to reccommend things', ->
+  it 'should sdf take a person and action to reccommend things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -243,9 +243,9 @@ describe 'weighted_similar_things', ->
       ])
       .then(-> ger.weighted_similar_things('a'))
       .then((things) ->
-        things[0].thing.should.equal 'b'
-        things[1].thing.should.equal 'c'
-        things.length.should.equal 2
+        things.map['b'].should.equal 2
+        things.map['c'].should.equal 1
+        things.ordered_list.length.should.equal 3
       )
 
 describe 'weighted_similar_people', ->
@@ -265,11 +265,12 @@ describe 'weighted_similar_people', ->
       ])
       .then(-> ger.weighted_similar_people('p1'))
       .then((people) ->
-        people[0].person.should.equal 'p3'
-        people[0].weight.should.equal 2
-        people[1].person.should.equal 'p2'
-        people[1].weight.should.equal 1
-        people.length.should.equal 2
+        people.ordered_list[0][0].should.equal 'p1'
+        people.ordered_list[1][0].should.equal 'p3'
+        people.ordered_list[1][1].should.equal 2
+        people.ordered_list[2][0].should.equal 'p2'
+        people.ordered_list[2][1].should.equal 1
+        people.ordered_list.length.should.equal 3
       )
 
 
