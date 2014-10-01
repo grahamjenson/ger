@@ -1,19 +1,19 @@
 var CopyToQueryStream = require('./copy-to')
 
 module.exports = {
-  to: function(txt) {
-    return new CopyToQueryStream(txt)
+  to: function(txt, options) {
+    return new CopyToQueryStream(txt, options)
   },
-  from: function (txt) {
-    return new CopyStreamQuery(txt)
+  from: function (txt, options) {
+    return new CopyStreamQuery(txt, options)
   }
 }
 
 var Transform = require('stream').Transform
 var util = require('util')
 
-var CopyStreamQuery = function(text) {
-  Transform.call(this)
+var CopyStreamQuery = function(text, options) {
+  Transform.call(this, options)
   this.text = text
   this._listeners = null
   this._copyOutResponse = null

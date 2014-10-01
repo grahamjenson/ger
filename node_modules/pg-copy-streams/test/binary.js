@@ -20,9 +20,11 @@ var testBinaryCopy = function() {
   var toClient = client()
 
   queries = [
-    'CREATE TABLE data (num BIGINT, word TEXT)',
+    'DROP TABLE IF EXISTS data',
+    'CREATE TABLE IF NOT EXISTS data (num BIGINT, word TEXT)',
     'INSERT INTO data (num, word) VALUES (1, \'hello\'), (2, \'other thing\'), (3, \'goodbye\')',
-    'CREATE TABLE data_copy (LIKE data INCLUDING ALL)'
+    'DROP TABLE IF EXISTS data_copy',
+    'CREATE TABLE IF NOT EXISTS data_copy (LIKE data INCLUDING ALL)'
   ]
 
   async.eachSeries(queries, _.bind(fromClient.query, fromClient), function(err) {

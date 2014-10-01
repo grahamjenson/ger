@@ -83,6 +83,18 @@ var parseBool = function(val) {
   return val === 't';
 };
 
+var parseBoolArray = function(val) {
+  if(!val) { return null; }
+  var p = arrayParser.create(val, function(entry){
+    if(entry !== null) {
+      entry = parseBool(entry);
+    }
+    return entry;
+  });
+
+  return p.parse();
+};
+
 var parseIntegerArray = function(val) {
   if(!val) { return null; }
   var p = arrayParser.create(val, function(entry){
@@ -233,6 +245,7 @@ var init = function(register) {
   register(1082, parseDate); // date
   register(1114, parseDate); // timestamp without timezone
   register(1184, parseDate); // timestamp
+  register(1000, parseBoolArray);
   register(1005, parseIntegerArray); // _int2
   register(1007, parseIntegerArray); // _int4
   register(1016, parseBigIntegerArray); // _int8

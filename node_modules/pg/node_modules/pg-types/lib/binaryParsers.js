@@ -241,6 +241,7 @@ var init = function(register) {
   register(16, parseBool);
   register(1114, parseDate.bind(null, false));
   register(1184, parseDate.bind(null, true));
+  register(1000, parseArray);
   register(1007, parseArray);
   register(1016, parseArray);
   register(1008, parseArray);

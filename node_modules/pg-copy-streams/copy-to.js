@@ -1,12 +1,12 @@
-module.exports = function(txt) {
-  return new CopyStreamQuery(txt)
+module.exports = function(txt, options) {
+  return new CopyStreamQuery(txt, options)
 }
 
 var Transform = require('stream').Transform
 var util = require('util')
 
-var CopyStreamQuery = function(text) {
-  Transform.call(this)
+var CopyStreamQuery = function(text, options) {
+  Transform.call(this, options)
   this.text = text
   this._listeners = {}
   this._copyOutResponse = null
