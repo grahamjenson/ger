@@ -286,9 +286,6 @@
             weight: ts[1],
             thing: ts[0]
           };
-          if (ts[1] > 1) {
-            throw "ERROR";
-          }
           ret.push(temp);
         }
         return ret;

@@ -168,7 +168,6 @@ class GER
       ret = []
       for ts in sorted_things
         temp = {weight: ts[1], thing: ts[0]}
-        throw "ERROR" if ts[1] > 1
         ret.push(temp)
       ret
     ) 
