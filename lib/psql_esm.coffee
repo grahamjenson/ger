@@ -272,22 +272,19 @@ class EventStoreMapper
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
     #this will require manually adding the actions
-
-    runner = new @knex.client.Runner(@knex.client)
-    runner.ensureConnection()
+    @knex.client.acquireConnection()
     .then( (connection) =>
-      runner.connection = connection
       deferred = bb.defer()
-      pg_stream = runner.connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
-      
+      pg_stream = connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
       counter = new CounterStream()
       stream.pipe(split(/^/gm)).pipe(counter).pipe(pg_stream)
       .on('end', -> deferred.resolve(counter.count))
       .on('error', (error) -> deferred.reject(error))
-      
-      deferred.promise
+      deferred.promise.finally( => @knex.client.releaseConnection(connection))
     )
-    .finally( -> runner.cleanupConnection())
+
+
+
     
   # DATABASE CLEANING METHODS
 

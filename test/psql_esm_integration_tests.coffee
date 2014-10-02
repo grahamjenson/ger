@@ -10,6 +10,7 @@ path = require 'path'
 PsqlESM = require('../lib/psql_esm')
 
 bb = require 'bluebird'
+bb.Promise.longStackTraces();
 
 fs = require('fs');
 
@@ -193,7 +194,27 @@ describe "expires at", ->
         has_action.should.equal true
       )
 
+bootstream = ->
+  rs = new Readable();
+  rs.push('person,action,thing,2014-01-01,\n');
+  rs.push('person,action,thing1,2014-01-01,\n');
+  rs.push('person,action,thing2,2014-01-01,\n');
+  rs.push(null);
+  rs
+
 describe "#bootstrap", ->
+
+  it 'should sdf not exhaust the pg connections', ->
+    init_esm()
+    .then (esm) ->
+      promises = ( esm.bootstrap(bootstream()) for i in [1..50] )
+      bb.all(promises)
+      .then( ->
+        esm.add_event('p','a','t', new Date().toISOString())
+      )
+      .then( () -> 
+
+      )
 
   it 'should load a set cof events from a file into the database', -> 
     init_esm()
