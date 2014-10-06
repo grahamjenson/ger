@@ -31,8 +31,8 @@
     "build": "./node_modules/.bin/coffee -c ger.coffee lib/psql_esm.coffee",
     "test": "mocha"
   },
-  "main"          : "ger.js",
-  "version"       : "0.0.25",
+  "main"          : "ger.coffee",
+  "version"       : "0.0.26",
   "license"       : "MIT",
   "repository": {
     "type": "git",

@@ -30,10 +30,11 @@ class CounterStream extends Transform
 init_events_table = (knex, schema) ->
   knex.schema.createTable("#{schema}.events",(table) ->
     table.increments();
-    table.string('person').index().notNullable()
-    table.string('action').index().notNullable()
-    table.string('thing').index().notNullable()
+    table.string('person').notNullable()
+    table.string('action').notNullable()
+    table.string('thing').notNullable()
     table.timestamp('created_at').notNullable()
+    table.index(['person','action','thing'], 'event_person_action_thing_index');
     table.timestamp('expires_at')
   )
   
