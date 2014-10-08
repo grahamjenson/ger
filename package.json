@@ -16,8 +16,7 @@
     "bluebird": "2.3.4",
     "knex" : "0.7.0",
     "pg" : "3.5.0",
-    "pg-copy-streams": "0.3.0",
-    "split": "0.3.0"
+    "pg-copy-streams": "0.3.0"
   },
   "devDependencies": {
     "q-io": "1.11.3", 

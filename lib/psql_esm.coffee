@@ -1,6 +1,5 @@
 bb = require 'bluebird'
 fs = require 'fs'
-split = require 'split'
 pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
 
@@ -21,8 +20,8 @@ Transform = require('stream').Transform;
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
     @count |= 0
-    if chunk.toString().trim() != ''
-      @count += 1
+    for ch in chunk
+      @count += 1 if ch == 10
     @push(chunk)
     done()
 
@@ -278,7 +277,7 @@ class EventStoreMapper
       deferred = bb.defer()
       pg_stream = connection.query(copyFrom("COPY #{@schema}.events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
       counter = new CounterStream()
-      stream.pipe(split(/^/gm)).pipe(counter).pipe(pg_stream)
+      stream.pipe(counter).pipe(pg_stream)
       .on('end', -> deferred.resolve(counter.count))
       .on('error', (error) -> deferred.reject(error))
       deferred.promise.finally( => @knex.client.releaseConnection(connection))
