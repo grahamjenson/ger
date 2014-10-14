@@ -117,18 +117,20 @@ class EventStoreMapper
     @upsert("#{@schema}.actions", insert_attr, identity_attr, update_attr)
     
 
-  
-  events_for_people_action_things: (people, action, things) ->
-    return bb.try(->[]) if people.length == 0 || things.length == 0
-
+  person_thing_query: ->
     @knex("#{@schema}.events")
     .select('person', 'thing').max('created_at')
     .groupBy('person','thing')
     .orderByRaw('MAX(created_at) DESC')
+    .limit(@upper_limit)
+
+  events_for_people_action_things: (people, action, things) ->
+    return bb.try(->[]) if people.length == 0 || things.length == 0
+
+    @person_thing_query()
     .where(action: action)
     .whereIn('person', people)
     .whereIn('thing', things)
-    .limit(@upper_limit)
 
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
@@ -158,13 +160,9 @@ class EventStoreMapper
 
   get_things_that_actioned_people: (people, action) =>
     return bb.try(->[]) if people.length == 0
-    @knex("#{@schema}.events")
-    .select('person', 'thing').max('created_at')
-    .groupBy('person','thing')
-    .orderByRaw('MAX(created_at) DESC')
+    @person_thing_query()
     .where(action: action)
     .whereIn('person', people)
-    .limit(@upper_limit)
     .then( (rows) ->
       #Do not make distinct -- Graham
       (r.thing for r in rows)
@@ -172,23 +170,16 @@ class EventStoreMapper
 
   get_people_that_actioned_things: (things, action) =>
     return bb.try(->[]) if things.length == 0
-    @knex("#{@schema}.events")
-    .select('person', 'thing').max('created_at')
-    .groupBy('person','thing')
-    .orderByRaw('MAX(created_at) DESC')
+    @person_thing_query()
     .where(action: action)
     .whereIn('thing', things)
-    .limit(@upper_limit)
     .then( (rows) ->
       #Need to make distinct for person, action, thing
       (r.person for r in rows)
     )
 
   get_things_that_actioned_person: (person, action) =>
-    @knex("#{@schema}.events")
-    .select('person', 'thing').max('created_at')
-    .groupBy('person','thing')
-    .orderByRaw('MAX(created_at) DESC')
+    @person_thing_query()
     .where(person: person, action: action)
     .limit(@things_limit)
     .then( (rows) ->
@@ -196,10 +187,7 @@ class EventStoreMapper
     )
 
   get_people_that_actioned_thing: (thing, action) =>
-    @knex("#{@schema}.events")
-    .select('person', 'thing').max('created_at')
-    .groupBy('person','thing')
-    .orderByRaw('MAX(created_at) DESC')
+    @person_thing_query()
     .where(thing: thing, action: action)
     .limit(@people_limit)
     .then( (rows) ->
@@ -216,6 +204,38 @@ class EventStoreMapper
     .limit(@things_limit)
     .then( (rows) ->
       (r.thing for r in rows)
+    )
+
+  get_jaccard_distances_between_things_for_action: (thing, things, action, weight = 1) ->
+    return bb.try(->[]) if things.length == 0
+    v_things = ("('#{p}')" for p in things)
+    s1 = @knex("#{@schema}.events").select('person').groupBy('person').where(thing: thing, action: action).orderByRaw('MAX(created_at) DESC').toString()
+    s2 = @knex("#{@schema}.events").select('person').groupBy('person').whereRaw('thing = cthing').where(action: action).orderByRaw('MAX(created_at) DESC').toString()
+
+    intersection = @knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
+    union = @knex.raw("(select count(*) from ((#{s1}) UNION (#{s2})) as uni)::float").toString()
+
+    @knex.raw("select cthing , (#{intersection} / #{union}) as jaccard from (VALUES #{v_things} ) AS t (cthing)")
+    .then( (rows) ->
+      temp = {}
+      (temp[row.cthing] = row.jaccard * weight for row in rows.rows)
+      temp
+    )
+
+  get_jaccard_distances_between_people_for_action: (person, people, action, weight = 1) ->
+    return bb.try(->[]) if people.length == 0
+    v_people = ("('#{p}')" for p in people)
+    s1 = @knex("#{@schema}.events").select('thing').groupBy('thing').where(person: person, action: action).orderByRaw('MAX(created_at) DESC').toString()
+    s2 = @knex("#{@schema}.events").select('thing').groupBy('thing').whereRaw('person = cperson').where(action: action).orderByRaw('MAX(created_at) DESC').toString()
+
+    intersection = @knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
+    union = @knex.raw("(select count(*) from ((#{s1}) UNION (#{s2})) as uni)::float").toString()
+
+    @knex.raw("select cperson , (#{intersection} / #{union}) as jaccard from (VALUES #{v_people} ) AS t (cperson)")
+    .then( (rows) ->
+      temp = {}
+      (temp[row.cperson] = row.jaccard * weight for row in rows.rows)
+      temp
     )
 
   things_jaccard_metric: (thing1, thing2, action) ->

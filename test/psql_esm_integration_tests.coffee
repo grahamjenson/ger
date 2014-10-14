@@ -50,7 +50,7 @@ describe "find_event", ->
       )
 
 describe "get_people_that_actioned_things", ->
-  it "asd should select people ordered by created_at", ->
+  it "should select people ordered by created_at", ->
     now = new Date().toISOString()
     ages_ago = new Date(0).toISOString()
     init_esm({upper_limit: 10})
@@ -204,17 +204,7 @@ bootstream = ->
 
 describe "#bootstrap", ->
 
-  it 'should sdf not exhaust the pg connections', ->
-    init_esm()
-    .then (esm) ->
-      promises = ( esm.bootstrap(bootstream()) for i in [1..50] )
-      bb.all(promises)
-      .then( ->
-        esm.add_event('p','a','t', new Date().toISOString())
-      )
-      .then( () -> 
-
-      )
+  it 'should not exhaust the pg connections'
 
   it 'should load a set cof events from a file into the database', -> 
     init_esm()
@@ -386,6 +376,20 @@ describe '#get_people_that_actioned_thing', ->
         ('p2' in people).should.equal true
       ) 
 
+
+describe '#get_jaccard_distances_between_people_for_action', ->
+  it 'asd should return an object of people to jaccard distance', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.add_event('p1','a','t1'),
+        esm.add_event('p1','a','t2'),
+        esm.add_event('p2','a','t2')
+      ])
+      .then( -> esm.get_jaccard_distances_between_people_for_action('p1',['p2'],'a'))
+      .then( (jaccards) ->
+        jaccards['p2'].should.equal 1/2
+      )     
 
 describe '#things_people_have_actioned', ->
   it 'should return list of things that people have actioned', ->

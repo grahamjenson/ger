@@ -17,33 +17,14 @@ class GER
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
           @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
-          .then( (subjects) => bb.all([subjects, @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action)]))
-          .spread( (object_subjects, objects) => [object_subjects, _.unique(objects)])
+          .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
+          .then( (objects) => _.unique(objects))
 
         @["similar_#{plural[v.object]}_for_action_with_weights"] = (object, action, weight) =>
           @["similar_#{plural[v.object]}_for_action"](object, action)
-          .spread( (object_subjects, objects) =>
+          .then( (objects) =>
             #TODO try move this to SQL, @esm["get_jaccard_distances_between_#{plural[v.object]}_for_action"](object, objects, action)
-            promises = []
-            for o in objects
-              continue if o == object
-              promises.push bb.all([o, @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](o, action)])
-
-            bb.all(promises).then((similar_objects_subjects) ->
-
-              #console.log object_subjects, similar_objects_subjects
-              object_weights = {}
-              for similar_object_subjects in similar_objects_subjects
-                similar_object = similar_object_subjects[0]
-                similar_object_subjects = similar_object_subjects[1]
-                #calc jaccard
-                inter = _.intersection(similar_object_subjects, object_subjects).length
-                uni = _.union(similar_object_subjects, object_subjects).length
-                object_weights[similar_object] = inter/uni * weight
-              object_weights[object] = 1 * weight # add jaccard 1 * weight for original object
-              #console.log object_weights
-              object_weights
-            )
+            @esm["get_jaccard_distances_between_#{plural[v.object]}_for_action"](object, objects, action, weight)
           )
 
 

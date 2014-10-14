@@ -20,6 +20,8 @@ knex = g.knex
     password : 'abcdEF123456', 
     database : 'ger_test'
 
+compare_floats = (f1,f2) ->
+  Math.abs(f1 - f2) < 0.00001
 
 create_psql_esm = ->
   #in
@@ -211,7 +213,7 @@ describe 'similar things', ->
         ger.event('p1','action1','thing2'),
       ])
       .then(-> ger.similar_things_for_action('thing1', 'action1'))
-      .spread((thing_people, things) -> ('thing2' in things).should.equal true)
+      .then((things) -> ('thing2' in things).should.equal true)
      
 describe 'similar people', ->
   it 'should take a person action and return similar people', ->
@@ -223,7 +225,7 @@ describe 'similar people', ->
         ger.event('p2','action1','thing1'),
       ])
       .then(-> ger.similar_people_for_action('p1', 'action1'))
-      .spread((person_things, people) -> ('p2' in people).should.equal true)
+      .then(( people) -> ('p2' in people).should.equal true)
 
 describe 'weighted_similar_things', ->
   it 'should take a person and return promise for an ordered list of similar things', ->
@@ -292,9 +294,9 @@ describe 'weighted_similar_people', ->
       .then((people) ->
         people.ordered_list[0][0].should.equal 'p1'
         people.ordered_list[1][0].should.equal 'p3'
-        people.ordered_list[1][1].should.equal 2/3
+        compare_floats( people.ordered_list[1][1], 2/3).should.equal true
         people.ordered_list[2][0].should.equal 'p2'
-        people.ordered_list[2][1].should.equal 1/3
+        compare_floats( people.ordered_list[2][1],1/3).should.equal true
         people.ordered_list.length.should.equal 3
       )
 
