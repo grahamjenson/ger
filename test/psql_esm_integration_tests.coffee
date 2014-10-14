@@ -410,34 +410,3 @@ describe '#things_people_have_actioned', ->
       .then( (things) ->
         things.length.should.equal 1
       ) 
-
-describe '#people_jaccard_metric', ->
-  it 'will not change for identical events', ->
-    init_esm()
-    .then (esm) ->
-      rs = new Readable();
-      rs.push('p1,a,t,2014-01-01,\n');
-      rs.push('p1,a,t,2014-01-01,\n');
-      rs.push('p2,a,t,2014-01-01,\n');
-      rs.push(null);
-      esm.bootstrap(rs)
-      .then( ->
-        esm.count_events()
-      )
-      .then( (count) ->
-        count.should.equal 3
-        esm.people_jaccard_metric('p1', 'p2', 'a')
-      )
-      .then( (jm) ->
-        jm.should.equal 1
-      ) 
-
-  it 'returns the jaccard distance of the two peoples action', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t'), esm.add_event('p2','a','t1')])
-      .then( -> esm.people_jaccard_metric('p1', 'p2', 'a'))
-      .then( (jm) ->
-        jm.should.equal 0.5
-      ) 
-

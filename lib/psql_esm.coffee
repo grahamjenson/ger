@@ -238,35 +238,6 @@ class EventStoreMapper
       temp
     )
 
-  things_jaccard_metric: (thing1, thing2, action) ->
-    q1 = @knex("#{@schema}.events").select('person').distinct().where(thing: thing1, action: action).toString()
-    q2 = @knex("#{@schema}.events").select('person').distinct().where(thing: thing2, action: action).toString()
-
-    intersection = @knex.raw("#{q1} INTERSECT #{q2}")
-    union = @knex.raw("#{q1} UNION #{q2}")
-    bb.all([intersection, union])
-    .spread((int_count, uni_count) ->
-      ret = int_count.rowCount / uni_count.rowCount
-      if isNaN(ret)
-        return 0
-      return ret
-    )
-
-  people_jaccard_metric: (person1, person2, action) ->
-    q1 = @knex("#{@schema}.events").select('thing').distinct().where(person: person1, action: action).toString()
-    q2 = @knex("#{@schema}.events").select('thing').distinct().where(person: person2, action: action).toString()
-
-    intersection = @knex.raw("#{q1} INTERSECT #{q2}")
-    union = @knex.raw("#{q1} UNION #{q2}")
-    bb.all([intersection, union])
-    .spread((int_count, uni_count) ->
-      ret = int_count.rowCount / uni_count.rowCount
-      if isNaN(ret)
-        return 0
-      return ret
-    )
-
-
   #knex wrapper functions
   has_event: (person, action, thing) ->
     @knex("#{@schema}.events").where({person: person, action: action, thing: thing})
