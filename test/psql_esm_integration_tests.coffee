@@ -378,7 +378,7 @@ describe '#get_people_that_actioned_thing', ->
 
 
 describe '#get_jaccard_distances_between_people_for_action', ->
-  it 'asd should return an object of people to jaccard distance', ->
+  it 'should return an object of people to jaccard distance', ->
     init_esm()
     .then (esm) ->
       bb.all([
@@ -391,22 +391,43 @@ describe '#get_jaccard_distances_between_people_for_action', ->
         jaccards['p2'].should.equal 1/2
       )     
 
+  it 'should not be effected by multiple events of the same type', ->
+    init_esm()
+    .then (esm) ->
+      rs = new Readable();
+      rs.push('p1,a,t1,2013-01-01,\n');
+      rs.push('p1,a,t2,2013-01-01,\n');
+      rs.push('p2,a,t2,2013-01-01,\n');
+      rs.push('p2,a,t2,2013-01-01,\n');
+      rs.push('p2,a,t2,2013-01-01,\n');
+      rs.push(null);
+      esm.bootstrap(rs)
+      .then( -> esm.get_jaccard_distances_between_people_for_action('p1',['p2'],'a'))
+      .then( (jaccards) ->
+        jaccards['p2'].should.equal 1/2
+      )   
+
 describe '#things_people_have_actioned', ->
   it 'should return list of things that people have actioned', ->
     init_esm()
     .then (esm) ->
       bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
       .then( -> esm.things_people_have_actioned('a',['p1','p2']))
-      .then( (things) ->
-        ('t' in things).should.equal true
-        ('t1' in things).should.equal true
+      .then( (people_things) ->
+        people_things['p1'].should.contain 't'
+        people_things['p1'].length.should.equal 1
+        people_things['p2'].should.contain 't1'
+        people_things['p2'].length.should.equal 1
       ) 
 
-  it 'should not return the same item twice', ->
+  it 'should return the same item for different people', ->
     init_esm()
     .then (esm) ->
       bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
       .then( -> esm.things_people_have_actioned('a',['p1','p2']))
-      .then( (things) ->
-        things.length.should.equal 1
+      .then( (people_things) ->
+        people_things['p1'].should.contain 't'
+        people_things['p1'].length.should.equal 1
+        people_things['p2'].should.contain 't'
+        people_things['p2'].length.should.equal 1
       ) 

@@ -4,18 +4,6 @@ pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
 
 
-get_list_to_size = (fn, i, list, size) =>
-  #recursive promise that will resolve till either the end
-  if list.length > size
-    return bb.try(-> list)
-  fn(i)
-  .then( (new_list) =>
-    return bb.try(-> list) if new_list == null 
-    new_list = list.concat new_list
-    i = i + 1
-    get_list_to_size(fn, i, new_list, size)
-  )
-
 Transform = require('stream').Transform;
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
@@ -124,14 +112,6 @@ class EventStoreMapper
     .orderByRaw('MAX(created_at) DESC')
     .limit(@upper_limit)
 
-  events_for_people_action_things: (people, action, things) ->
-    return bb.try(->[]) if people.length == 0 || things.length == 0
-
-    @person_thing_query()
-    .where(action: action)
-    .whereIn('person', people)
-    .whereIn('thing', things)
-
   has_person_actioned_thing: (person, action, thing) ->
     @has_event(person,action,thing)
 
@@ -195,15 +175,15 @@ class EventStoreMapper
     )
 
   things_people_have_actioned: (action, people) ->
-    @knex("#{@schema}.events")
-    .select('thing').max('created_at')
-    .groupBy('thing')
-    .orderByRaw('MAX(created_at) DESC')
+    @person_thing_query()
     .where(action: action)
     .whereIn('person', people)
-    .limit(@things_limit)
     .then( (rows) ->
-      (r.thing for r in rows)
+      temp = {}
+      for r in rows
+        temp[r.person] = [] if temp[r.person] == undefined
+        temp[r.person].push r.thing
+      temp
     )
 
   get_jaccard_distances_between_things_for_action: (thing, things, action, weight = 1) ->

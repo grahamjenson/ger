@@ -64,7 +64,6 @@ class GER
 
           )
 
-          
   get_list_to_size: (fn, i, list, size) =>
     #recursive promise that will resolve till either the end
     if list.length > size
@@ -76,8 +75,6 @@ class GER
       i = i + 1
       @get_list_to_size(fn, i, new_list, size)
     )
-
-
 
   probability_of_person_actioning_thing: (object, action, subject) =>
       #probability of actions s
@@ -92,21 +89,6 @@ class GER
           .then( (action_weights) -> (as.weight for as in action_weights))
           .then( (action_weights) -> action_weights.reduce( ((x,y) -> x+y ), 0 ))
       )
-
-
-  weighted_probabilities_to_action_things_by_people : (things, action, people_weights) =>
-    #select events where person is in object_weights and subject is in subjects
-    # [person, action, subject]
-    # 
-    # return [[subject, weight]]
-    @esm.events_for_people_action_things(people_weights.people, action, things)
-    .then( (events) ->
-      things_weight = {}
-      for e in events 
-        things_weight[e.thing] = 0 if e.thing not of things_weight
-        things_weight[e.thing] += people_weights.map[e.person]
-      things_weight
-    )
 
 
   recommendations_for_thing: (thing, action) ->
@@ -139,9 +121,15 @@ class GER
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
       bb.all([people_weights, @esm.things_people_have_actioned(action, people_weights.people)])
     )
-    .spread( ( people_weights, things) =>
+    .spread( ( people_weights, people_things) =>
+      people_things
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
-      @weighted_probabilities_to_action_things_by_people(things, action, people_weights)
+      things_weight = {}
+      for person, things of people_things
+        for thing in things
+          things_weight[thing] = 0 if things_weight[thing] == undefined
+          things_weight[thing] += people_weights.map[person]
+      things_weight
     )
     .then( (recommendations) ->
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
