@@ -16,7 +16,8 @@
     "bluebird": "2.3.4",
     "knex" : "0.7.0",
     "pg" : "3.5.0",
-    "pg-copy-streams": "0.3.0"
+    "pg-copy-streams": "0.3.0",
+    "underscore": "1.7.0"
   },
   "devDependencies": {
     "q-io": "1.11.3", 
@@ -31,7 +32,7 @@
     "test": "mocha"
   },
   "main"          : "ger.coffee",
-  "version"       : "0.0.28",
+  "version"       : "0.0.29",
   "license"       : "MIT",
   "repository": {
     "type": "git",

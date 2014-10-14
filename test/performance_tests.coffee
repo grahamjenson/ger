@@ -58,26 +58,26 @@ describe 'performance tests', ->
         st = new Date().getTime()
         
         promises = []
-        for x in [1..1000]
+        for x in [1..100]
           promises.push ger.action(sample(actions) , sample([1..10]))
         bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
-          pe = time/1000
+          pe = time/100
           console.log "#{pe}ms per action"
         )
       )
       .then( ->
         st = new Date().getTime()
         promises = []
-        for x in [1..500]
+        for x in [1..2000]
           promises.push ger.event(sample(people), sample(actions) , sample(things))
         bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
-          pe = time/500
+          pe = time/2000
           console.log "#{pe}ms per event"
         )
       )
@@ -134,6 +134,16 @@ describe 'performance tests', ->
           time = et-st
           pe = time/100
           console.log "#{pe}ms per recommendations_for_thing"
+        )
+      )
+      .then( ->
+        st = new Date().getTime()
+        ger.compact_database()
+        .then(->
+          et = new Date().getTime()
+          time = et-st
+          pe = time
+          console.log "#{pe}ms for compact"
         )
       )
     )

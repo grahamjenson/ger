@@ -211,7 +211,7 @@ describe 'similar things', ->
         ger.event('p1','action1','thing2'),
       ])
       .then(-> ger.similar_things_for_action('thing1', 'action1'))
-      .then((things) -> ('thing2' in things).should.equal true)
+      .spread((thing_people, things) -> ('thing2' in things).should.equal true)
      
 describe 'similar people', ->
   it 'should take a person action and return similar people', ->
@@ -223,10 +223,10 @@ describe 'similar people', ->
         ger.event('p2','action1','thing1'),
       ])
       .then(-> ger.similar_people_for_action('p1', 'action1'))
-      .then((people) -> ('p2' in people).should.equal true)
+      .spread((person_things, people) -> ('p2' in people).should.equal true)
 
 describe 'weighted_similar_things', ->
-  it 'should sdf take a person and return promise for an ordered list of similar things', ->
+  it 'should take a person and return promise for an ordered list of similar things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -244,17 +244,41 @@ describe 'weighted_similar_things', ->
       .then((things) ->
         #a actions p1, p2, and b actions p1 and p2, and c actions p1
         #a is 
-        things.map['b'].should.equal 2/3
-        things.map['c'].should.equal 1/3
+        things.map['b'].should.equal 1
+        things.map['c'].should.equal 1/2
         things.ordered_list.length.should.equal 3
       )
 
 describe 'weighted_similar_people', ->
-  it 'asd should take a person and return promise for an ordered list of similar people', ->
+  it 'should return a list of similar people weighted with jaccard distance', ->
     init_ger()
     .then (ger) ->
       bb.all([
         ger.action('action1'),
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+        ger.event('p3','action1','a'),
+
+        ger.event('p1','action1','b'),
+        ger.event('p3','action1','b'),
+
+        ger.event('p4','action1','d')
+      ])
+      .then(-> ger.weighted_similar_people('p1'))
+      .then((people) ->
+
+        people.map['p1'].should.equal 1
+        people.map['p3'].should.equal 1
+        people.map['p2'].should.equal 1/2
+        people.ordered_list.length.should.equal 3
+      )
+
+  it 'should handle a non associated event on person', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('action1'),
+        ger.event('p1','action1','not')
         ger.event('p1','action1','a'),
         ger.event('p2','action1','a'),
         ger.event('p3','action1','a'),

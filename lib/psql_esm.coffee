@@ -32,7 +32,7 @@ init_events_table = (knex, schema) ->
     table.string('person').notNullable().index()
     table.string('action').notNullable()
     table.string('thing').notNullable().index()
-    table.timestamp('created_at').notNullable()
+    table.timestamp('created_at').notNullable().index()
     table.timestamp('expires_at')
   )
   
@@ -297,9 +297,10 @@ class EventStoreMapper
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
     query = "DELETE FROM #{@schema}.events e1 
     USING #{@schema}.events e2 
-    WHERE e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
+    WHERE e1.id <> e2.id AND e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
     (e1.created_at < e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id) )" #LEXICOGRAPHIC ORDERING for created at then id
     @knex.raw(query)
+
 
   remove_superseded_events: ->
     #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a

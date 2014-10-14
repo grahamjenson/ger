@@ -43,10 +43,8 @@ describe '#weighted_similar_people', ->
     sinon.stub(ger, 'similar_people_for_action_with_weights', -> bb.try -> [{'p3': 1}, {'p3': 1}, {'p2': 1}] )
     ger.weighted_similar_people('p1')
     .then((people) ->
-      people.ordered_list[0][0].should.equal 'p1'
-      people.ordered_list[1][0].should.equal 'p3'
-      people.ordered_list[1][1].should.equal 2/3
-      people.ordered_list[2][0].should.equal 'p2'
+      people.ordered_list[0][0].should.equal 'p3'
+      people.ordered_list[1][0].should.equal 'p2'
     )
 
 

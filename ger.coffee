@@ -1,12 +1,5 @@
 bb = require 'bluebird'
-
-Utils =
-  flatten: (arr) ->
-    arr.reduce ((xs, el) ->
-      if Array.isArray el
-        xs.concat Utils.flatten el
-      else
-        xs.concat [el]), []
+_ = require 'underscore'
 
 class GER
 
@@ -24,20 +17,33 @@ class GER
         @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
           #return a list of similar objects, later will be breadth first search till some number is found
           @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
-          .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
-          .then( (objects) => Utils.flatten(objects)) #flatten list
-          .then( (objects) => objects.filter (s_object) -> s_object isnt object) #remove original object
-
+          .then( (subjects) => bb.all([subjects, @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action)]))
+          .spread( (object_subjects, objects) => [object_subjects, _.unique(objects)])
 
         @["similar_#{plural[v.object]}_for_action_with_weights"] = (object, action, weight) =>
           @["similar_#{plural[v.object]}_for_action"](object, action)
-          .then( (objects) =>
-            #add weights
-            temp = {}
+          .spread( (object_subjects, objects) =>
+            #TODO try move this to SQL, @esm["get_jaccard_distances_between_#{plural[v.object]}_for_action"](object, objects, action)
+            promises = []
             for o in objects
-              temp[o] = 0 if o not of temp
-              temp[o] += weight
-            temp
+              continue if o == object
+              promises.push bb.all([o, @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](o, action)])
+
+            bb.all(promises).then((similar_objects_subjects) ->
+
+              #console.log object_subjects, similar_objects_subjects
+              object_weights = {}
+              for similar_object_subjects in similar_objects_subjects
+                similar_object = similar_object_subjects[0]
+                similar_object_subjects = similar_object_subjects[1]
+                #calc jaccard
+                inter = _.intersection(similar_object_subjects, object_subjects).length
+                uni = _.union(similar_object_subjects, object_subjects).length
+                object_weights[similar_object] = inter/uni * weight
+              object_weights[object] = 1 * weight # add jaccard 1 * weight for original object
+              #console.log object_weights
+              object_weights
+            )
           )
 
 
@@ -58,28 +64,23 @@ class GER
           .then( (object_weights) =>
             #join the weights together
             temp = {}
-            total_weight = 0
             for ows in object_weights
               for p, w of ows
                   continue if p == undefined || w == NaN
                   temp[p] = 0 if p not of temp
                   temp[p] += w
-                  total_weight += w
 
-            pw = ([k, (w/total_weight)] for k, w of temp).sort((a, b) -> b[1] - a[1])[...@esm.similar_objects_limit]
-            #manually add the initial object as if they have the same jaccard metric as the most similar person
-            pw.unshift([object, 1] )
-
+            #normalise the list of and sort and truncate object weights
+            pw = ([k, w] for k, w of temp).sort((a, b) -> b[1] - a[1])[...@esm.similar_objects_limit]
             
-            ret = {map: {}, people : [] , total_weight: 0, ordered_list : pw}
+            ret = {map: temp, people : [] , total_weight: 0, ordered_list : pw}
             for person_weight in pw
               person = person_weight[0]
               weight = person_weight[1]
               ret.people.push person
               ret.total_weight += weight
-
-              ret.map[person] = weight
             ret
+
           )
 
           
@@ -122,7 +123,7 @@ class GER
       things_weight = {}
       for e in events 
         things_weight[e.thing] = 0 if e.thing not of things_weight
-        things_weight[e.thing] += people_weights.map[e.person]/people_weights.total_weight
+        things_weight[e.thing] += people_weights.map[e.person]
       things_weight
     )
 
