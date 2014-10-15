@@ -63,59 +63,6 @@ describe '#count_events', ->
         count.should.equal 2
       )
 
-describe '#probability_of_person_actioning_thing', ->
-  it 'should return 1 if the person has already actioned the object', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.event('p1','buy','c'),
-        ger.event('p1','view','c'),
-      ])
-      .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
-      .then((probability) ->
-        probability.should.equal 1
-      )
-    
-
-  it 'should return 0 if the person has never interacted with the thing', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.event('p1','buy','c'),
-        ger.event('p1','view','c'),
-      ])
-      .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'd'))
-      .then((probability) ->
-        probability.should.equal 0
-      )
-
-  it 'should return the weight of the action', ->
-    init_ger()
-    .then (ger) ->
-      ger.action('view', 5)
-      .then(-> ger.event('p1','view','c'))
-      .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
-      .then((probability) ->
-        probability.should.equal 5
-      )
-
-  it 'should return the sum of the weights of the action', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.action('view', 5),
-        ger.action('like', 10),
-      ])
-      .then( -> 
-        bb.all([
-          ger.event('p1','view','c'),
-          ger.event('p1','like','c')
-        ])
-      )
-      .then(-> ger.probability_of_person_actioning_thing('p1', 'buy', 'c'))
-      .then((probability) ->
-        probability.should.equal 15
-      )
 
 
 describe 'recommendations_for_person', ->

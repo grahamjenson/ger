@@ -112,16 +112,6 @@ class EventStoreMapper
     .orderByRaw('MAX(created_at) DESC')
     .limit(@upper_limit)
 
-  has_person_actioned_thing: (person, action, thing) ->
-    @has_event(person,action,thing)
-
-  get_actions_of_person_thing_with_weights: (person, thing) ->
-    @knex("#{@schema}.events")
-    .select("#{@schema}.events.action as key", "#{@schema}.actions.weight")
-    .leftJoin("#{@schema}.actions", "#{@schema}.events.action", "#{@schema}.actions.action")
-    .where(person: person, thing: thing)
-    .orderBy('weight', 'desc')
-    .limit(@upper_limit)
 
   get_ordered_action_set_with_weights: ->
     @knex("#{@schema}.actions")
@@ -136,16 +126,6 @@ class EventStoreMapper
         return parseInt(rows[0].weight)
       else
         return null
-    )
-
-  get_things_that_actioned_people: (people, action) =>
-    return bb.try(->[]) if people.length == 0
-    @person_thing_query()
-    .where(action: action)
-    .whereIn('person', people)
-    .then( (rows) ->
-      #Do not make distinct -- Graham
-      (r.thing for r in rows)
     )
 
   get_people_that_actioned_things: (things, action) =>
@@ -164,14 +144,6 @@ class EventStoreMapper
     .limit(@things_limit)
     .then( (rows) ->
       (r.thing for r in rows)
-    )
-
-  get_people_that_actioned_thing: (thing, action) =>
-    @person_thing_query()
-    .where(thing: thing, action: action)
-    .limit(@people_limit)
-    .then( (rows) ->
-      (r.person for r in rows)
     )
 
   things_people_have_actioned: (action, people) ->
@@ -216,7 +188,6 @@ class EventStoreMapper
     distances = []
     for action, i in actions
       distances.push @get_query_for_jaccard_distances_between_people_for_action(person, action, i,)
-
 
     @knex.raw("select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)")
     .then( (rows) ->

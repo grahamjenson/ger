@@ -312,32 +312,6 @@ describe 'set_action_weight', ->
         weight.should.equal 1
       )
 
-describe '#has_person_actioned_thing', ->
-  it 'should return things people', ->
-    init_esm()
-    .then (esm) ->
-      esm.add_event('p','a','t')
-      .then( ->
-        bb.all([esm.has_person_actioned_thing('p', 'a', 't'), esm.has_person_actioned_thing('p', 'a', 'not_t')])
-      )
-      .spread( (t1, t2) ->
-        t1.should.equal true
-        t2.should.equal false
-      )
-
-describe '#get_actions_of_person_thing_with_weights', ->
-  it 'should return action and weights', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([esm.set_action_weight('a2',1), esm.add_event('p','a','t'),esm.add_event('p','a2','t')])
-      .then( -> esm.set_action_weight('a',10))
-      .then( -> esm.get_actions_of_person_thing_with_weights('p','t'))
-      .then( (action_weights) ->
-        action_weights[0].key.should.equal 'a'
-        action_weights[0].weight.should.equal 10
-        action_weights[1].key.should.equal 'a2'
-        action_weights[1].weight.should.equal 1
-      )
 
 describe '#get_ordered_action_set_with_weights', ->
   it 'should return actions with weights', ->
@@ -364,18 +338,6 @@ describe '#get_things_that_actioned_person', ->
         ('t' in things).should.equal true
         ('t1' in things).should.equal true
       ) 
-
-describe '#get_people_that_actioned_thing', ->
-  it 'should return list of people', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t')])
-      .then( -> esm.get_people_that_actioned_thing('t','a'))
-      .then( (people) ->
-        ('p1' in people).should.equal true
-        ('p2' in people).should.equal true
-      ) 
-
 
 describe '#get_jaccard_distances_between_people', ->
   it 'should return an object of people to jaccard distance', ->

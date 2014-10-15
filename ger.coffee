@@ -57,21 +57,6 @@ class GER
       temp
     )
 
-  probability_of_person_actioning_thing: (object, action, subject) =>
-      #probability of actions s
-      #if it has already actioned it then it is 100%
-      @esm.has_person_actioned_thing(object, action, subject)
-      .then((inc) => 
-        if inc 
-          return 1
-        else
-          #TODO should return action_weight/total_action_weights e.g. view = 1 and buy = 10, return should equal 1/11
-          @esm.get_actions_of_person_thing_with_weights(object, subject)
-          .then( (action_weights) -> (as.weight for as in action_weights))
-          .then( (action_weights) -> action_weights.reduce( ((x,y) -> x+y ), 0 ))
-      )
-
-
   recommendations_for_person: (person, action) ->
     #recommendations for object action from similar people
     #recommendations for object action from object, only looking at what they have already done
