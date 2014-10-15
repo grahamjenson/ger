@@ -196,6 +196,25 @@ describe 'weighted_similar_people', ->
         Object.keys(people_weights).length.should.equal 3
       )
 
+  it 'asd should not use actions with 0 or negative weights', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('action1'),
+        ger.action('neg_action', 0),
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+
+        ger.event('p1','neg_action','a'),
+        ger.event('p3','neg_action','a'),
+
+      ])
+      .then(-> ger.weighted_similar_people('p1','a'))
+      .then((people_weights) ->
+        people_weights['p1'].should.exist
+        people_weights['p2'].should.exist
+        Object.keys(people_weights).length.should.equal 2
+      )   
 
 describe 'setting action weights', ->
 

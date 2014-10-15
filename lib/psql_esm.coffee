@@ -50,9 +50,6 @@ class EventStoreMapper
   
   #INSTANCE ACTIONS
   constructor: (@knex, @schema = 'public', limits = {}) ->
-    @similar_objects_limit = limits.similar_objects_limit || 100
-    @things_limit = limits.things_limit  || 100
-    @people_limit = limits.people_limit || 100
     @upper_limit = limits.upper_limit || 1000
 
   drop_tables: ->
@@ -138,10 +135,10 @@ class EventStoreMapper
       (r.person for r in rows)
     )
 
-  get_things_that_actioned_person: (person, action) =>
+  get_things_that_actioned_person: (person, action, limit = 100) =>
     @person_thing_query()
     .where(person: person, action: action)
-    .limit(@things_limit)
+    .limit(limit)
     .then( (rows) ->
       (r.thing for r in rows)
     )
@@ -158,7 +155,7 @@ class EventStoreMapper
       temp
     )
 
-  get_recent_people_for_action: (action, limit = @people_limit) ->
+  get_recent_people_for_action: (action, limit = 100) ->
     q = @knex("#{@schema}.events")
     .select('person')
     .orderByRaw('created_at DESC')

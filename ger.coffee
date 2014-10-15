@@ -28,7 +28,7 @@ class GER
     @esm.get_ordered_action_set_with_weights()
     .then( (action_weights) =>
       actions = {}
-      (actions[aw.key] = aw.weight for aw in action_weights)
+      (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
       bb.all([actions, @related_people(object, actions)])
     )
     .spread( (actions, objects) =>
