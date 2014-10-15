@@ -6,74 +6,41 @@ class GER
   constructor: (@esm) ->
     @INITIAL_PERSON_WEIGHT = 10
 
-    plural =
-      'person' : 'people'
-      'thing' : 'things'
 
-    #defining mirror methods (methods that need to be reversable)
-    for v in [{object: 'person', subject: 'thing'}, {object: 'thing', subject: 'person'}]
-      do (v) =>
-        ####################### GET SIMILAR OBJECTS TO OBJECT #################################
-        @["similar_#{plural[v.object]}_for_action"] = (object, action) =>
-          #return a list of similar objects, later will be breadth first search till some number is found
-          @esm["get_#{plural[v.subject]}_that_actioned_#{v.object}"](object, action)
-          .then( (subjects) => @esm["get_#{plural[v.object]}_that_actioned_#{plural[v.subject]}"](subjects, action))
-          .then( (objects) => _.unique(objects))
+  ####################### GET SIMILAR OBJECTS TO OBJECT #################################
+  similar_people_for_action: (object, action) =>
+    #return a list of similar objects, later will be breadth first search till some number is found
+    @esm.get_things_that_actioned_person(object, action)
+    .then( (subjects) => @esm.get_people_that_actioned_things(subjects, action))
+    .then( (objects) => _.unique(objects))
 
-        @["similar_#{plural[v.object]}_for_action_with_weights"] = (object, action, weight) =>
-          @["similar_#{plural[v.object]}_for_action"](object, action)
-          .then( (objects) =>
-            #TODO try move this to SQL, @esm["get_jaccard_distances_between_#{plural[v.object]}_for_action"](object, objects, action)
-            @esm["get_jaccard_distances_between_#{plural[v.object]}_for_action"](object, objects, action, weight)
-          )
+  similar_people_for_action_with_weights: (object, action, weight) =>
+    @similar_people_for_action(object, action)
+    .then( (objects) =>
+      #TODO try move this to SQL, @esm.get_jaccard_distances_between_people_for_action"](object, objects, action)
+      @esm.get_jaccard_distances_between_people_for_action(object, objects, action, weight)
+    )
 
 
-        @["weighted_similar_#{plural[v.object]}"] = (object) ->
-          #TODO expencive call, could be cached for a few days as ordered set
-          total_action_weight = 0
-          @esm.get_ordered_action_set_with_weights()
-          .then( (action_weights) =>
-            # Recursively build a list of similar objects
-            fn = (i) => 
-              if i >= action_weights.length
-                return bb.try(-> null)
-              else
-                @["similar_#{plural[v.object]}_for_action_with_weights"](object, action_weights[i].key, action_weights[i].weight)
+  weighted_similar_people: (object) ->
+    total_action_weight = 0
+    @esm.get_ordered_action_set_with_weights()
+    .then( (action_weights) =>
+      promises = []
+      for action_weight in action_weights
+        promises.push @similar_people_for_action_with_weights(object, action_weight.key, action_weight.weight)
 
-            @get_list_to_size(fn, 0, [], @esm.similar_objects_limit)  
-          ) 
-          .then( (object_weights) =>
-            #join the weights together
-            temp = {}
-            for ows in object_weights
-              for p, w of ows
-                  continue if p == undefined || w == NaN
-                  temp[p] = 0 if p not of temp
-                  temp[p] += w
-
-            #normalise the list of and sort and truncate object weights
-            pw = ([k, w] for k, w of temp).sort((a, b) -> b[1] - a[1])[...@esm.similar_objects_limit]
-            
-            ret = {map: temp, people : [] , total_weight: 0, ordered_list : pw}
-            for person_weight in pw
-              person = person_weight[0]
-              weight = person_weight[1]
-              ret.people.push person
-              ret.total_weight += weight
-            ret
-
-          )
-
-  get_list_to_size: (fn, i, list, size) =>
-    #recursive promise that will resolve till either the end
-    if list.length > size
-      return bb.try(-> list)
-    fn(i)
-    .then( (new_list) =>
-      return bb.try(-> list) if new_list == null 
-      new_list = list.concat new_list
-      i = i + 1
-      @get_list_to_size(fn, i, new_list, size)
+      bb.all(promises)
+    ) 
+    .then( (object_weights) =>
+      #join the weights together
+      temp = {}
+      for ows in object_weights
+        for p, w of ows
+            continue if p == undefined || w == NaN
+            temp[p] = 0 if p not of temp
+            temp[p] += w
+      temp
     )
 
   probability_of_person_actioning_thing: (object, action, subject) =>
@@ -91,27 +58,6 @@ class GER
       )
 
 
-  recommendations_for_thing: (thing, action) ->
-    @esm.get_people_that_actioned_thing(thing, action)
-    .then( (people) =>
-      list_of_promises = bb.all( (@weighted_similar_people(p) for p in people) )
-      bb.all( [people, list_of_promises] )
-    )
-    .spread( (people, peoples_lists) =>
-      temp = {}
-      for pl in peoples_lists
-        for person, weight of pl.map
-          temp[person] = 0 if person not of temp
-          temp[person] += weight
-      temp 
-    )
-    .then( (recommendations) ->
-      weighted_people = ([person, weight] for person, weight of recommendations)
-      sorted_people = weighted_people.sort((x, y) -> y[1] - x[1])
-      for ts in sorted_people
-        temp = {weight: ts[1], person: ts[0]}
-    )
-
   recommendations_for_person: (person, action) ->
     #recommendations for object action from similar people
     #recommendations for object action from object, only looking at what they have already done
@@ -119,16 +65,15 @@ class GER
     @weighted_similar_people(person)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      bb.all([people_weights, @esm.things_people_have_actioned(action, people_weights.people)])
+      bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights))])
     )
     .spread( ( people_weights, people_things) =>
-      people_things
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
       things_weight = {}
       for person, things of people_things
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
-          things_weight[thing] += people_weights.map[person]
+          things_weight[thing] += people_weights[person]
       things_weight
     )
     .then( (recommendations) ->

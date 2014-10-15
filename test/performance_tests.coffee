@@ -125,19 +125,6 @@ describe 'performance tests', ->
       )
       .then( ->
         st = new Date().getTime()
-        promises = []
-        for x in [1..100]
-          promises.push ger.recommendations_for_thing(sample(things), sample(actions))
-        bb.all(promises)
-        .then(->
-          et = new Date().getTime()
-          time = et-st
-          pe = time/100
-          console.log "#{pe}ms per recommendations_for_thing"
-        )
-      )
-      .then( ->
-        st = new Date().getTime()
         ger.compact_database()
         .then(->
           et = new Date().getTime()
