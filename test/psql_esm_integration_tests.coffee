@@ -377,7 +377,7 @@ describe '#get_people_that_actioned_thing', ->
       ) 
 
 
-describe '#get_jaccard_distances_between_people_for_action', ->
+describe '#get_jaccard_distances_between_people', ->
   it 'should return an object of people to jaccard distance', ->
     init_esm()
     .then (esm) ->
@@ -386,9 +386,9 @@ describe '#get_jaccard_distances_between_people_for_action', ->
         esm.add_event('p1','a','t2'),
         esm.add_event('p2','a','t2')
       ])
-      .then( -> esm.get_jaccard_distances_between_people_for_action('p1',['p2'],'a'))
+      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a']))
       .then( (jaccards) ->
-        jaccards['p2'].should.equal 1/2
+        jaccards['p2']['a'].should.equal 1/2
       )     
 
   it 'should not be effected by multiple events of the same type', ->
@@ -402,9 +402,9 @@ describe '#get_jaccard_distances_between_people_for_action', ->
       rs.push('p2,a,t2,2013-01-01,\n');
       rs.push(null);
       esm.bootstrap(rs)
-      .then( -> esm.get_jaccard_distances_between_people_for_action('p1',['p2'],'a'))
+      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a']))
       .then( (jaccards) ->
-        jaccards['p2'].should.equal 1/2
+        jaccards['p2']['a'].should.equal 1/2
       )   
 
 describe '#things_people_have_actioned', ->

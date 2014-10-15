@@ -120,7 +120,7 @@ describe '#probability_of_person_actioning_thing', ->
 
 describe 'recommendations_for_person', ->
   
-  it 'should reccommend basic things', ->
+  it 'asd should reccommend basic things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -186,18 +186,6 @@ describe 'recommendations_for_person', ->
       )
 
      
-describe 'similar people', ->
-  it 'should take a person action and return similar people', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.action('action1'),
-        ger.event('p1','action1','thing1'),
-        ger.event('p2','action1','thing1'),
-      ])
-      .then(-> ger.similar_people_for_action('p1', 'action1'))
-      .then(( people) -> ('p2' in people).should.equal true)
-
 
 describe 'weighted_similar_people', ->
   it 'should return a list of similar people weighted with jaccard distance', ->

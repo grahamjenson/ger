@@ -3,43 +3,44 @@ _ = require 'underscore'
 
 class GER
 
-  constructor: (@esm) ->
+  constructor: (@esm, @person_selection_algorithm = 'weighted_similar_people') ->
     @INITIAL_PERSON_WEIGHT = 10
 
+  ####################### Random similar people  #################################
+  random_people: (object, action) ->
 
-  ####################### GET SIMILAR OBJECTS TO OBJECT #################################
-  similar_people_for_action: (object, action) =>
-    #return a list of similar objects, later will be breadth first search till some number is found
+  ####################### Related people  #################################
+  related_people_for_action: (object, action) ->
     @esm.get_things_that_actioned_person(object, action)
     .then( (subjects) => @esm.get_people_that_actioned_things(subjects, action))
-    .then( (objects) => _.unique(objects))
 
-  similar_people_for_action_with_weights: (object, action, weight) =>
-    @similar_people_for_action(object, action)
-    .then( (objects) =>
-      #TODO try move this to SQL, @esm.get_jaccard_distances_between_people_for_action"](object, objects, action)
-      @esm.get_jaccard_distances_between_people_for_action(object, objects, action, weight)
-    )
+  related_people: (object, action, actions) ->
+    promises = []
+    for ac, weight of actions
+      promises.push @related_people_for_action(object, ac, weight)
+    bb.all(promises)
+    .then((objects) -> _.unique(_.flatten(objects)))
 
+  ####################### Weighted people  #################################
 
-  weighted_similar_people: (object) ->
-    total_action_weight = 0
+  weighted_similar_people: (object, action) ->
     @esm.get_ordered_action_set_with_weights()
     .then( (action_weights) =>
-      promises = []
-      for action_weight in action_weights
-        promises.push @similar_people_for_action_with_weights(object, action_weight.key, action_weight.weight)
-
-      bb.all(promises)
-    ) 
-    .then( (object_weights) =>
-      #join the weights together
+      actions = {}
+      (actions[aw.key] = aw.weight for aw in action_weights)
+      bb.all([actions, @related_people(object, action, actions)])
+    )
+    .spread( (actions, objects) =>
+      bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
+    )
+    .spread( (actions, object_weights) =>
+      # join the weights together
       temp = {}
-      for ows in object_weights
-        for p, w of ows
-            continue if p == undefined || w == NaN
-            temp[p] = 0 if p not of temp
-            temp[p] += w
+      for person, weights of object_weights
+        for ac, weight of weights
+          temp[person] = 0 if person not of temp
+          temp[person] += weight * actions[ac]
+
       temp
     )
 
@@ -62,7 +63,7 @@ class GER
     #recommendations for object action from similar people
     #recommendations for object action from object, only looking at what they have already done
     #then join the two objects and sort
-    @weighted_similar_people(person)
+    @[@person_selection_algorithm](person,action)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
       bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights))])

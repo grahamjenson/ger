@@ -186,35 +186,37 @@ class EventStoreMapper
       temp
     )
 
-  get_jaccard_distances_between_things_for_action: (thing, things, action, weight = 1) ->
-    return bb.try(->[]) if things.length == 0
-    v_things = ("('#{p}')" for p in things)
-    s1 = @knex("#{@schema}.events").select('person').groupBy('person').where(thing: thing, action: action).orderByRaw('MAX(created_at) DESC').toString()
-    s2 = @knex("#{@schema}.events").select('person').groupBy('person').whereRaw('thing = cthing').where(action: action).orderByRaw('MAX(created_at) DESC').toString()
+  get_random_people_who_actioned: (action) ->
+    @knex("#{@schema}.events").select('person').groupBy('person').where(thing: thing, action: action).orderByRaw('MAX(created_at) DESC').toString()
 
-    intersection = @knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
-    union = @knex.raw("(select count(*) from ((#{s1}) UNION (#{s2})) as uni)::float").toString()
 
-    @knex.raw("select cthing , (#{intersection} / #{union}) as jaccard from (VALUES #{v_things} ) AS t (cthing)")
-    .then( (rows) ->
-      temp = {}
-      (temp[row.cthing] = row.jaccard * weight for row in rows.rows)
-      temp
-    )
-
-  get_jaccard_distances_between_people_for_action: (person, people, action, weight = 1) ->
-    return bb.try(->[]) if people.length == 0
-    v_people = ("('#{p}')" for p in people)
+  get_query_for_jaccard_distances_between_people_for_action: (person, action, action_i) ->
     s1 = @knex("#{@schema}.events").select('thing').groupBy('thing').where(person: person, action: action).orderByRaw('MAX(created_at) DESC').toString()
     s2 = @knex("#{@schema}.events").select('thing').groupBy('thing').whereRaw('person = cperson').where(action: action).orderByRaw('MAX(created_at) DESC').toString()
 
     intersection = @knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
-    union = @knex.raw("(select count(*) from ((#{s1}) UNION (#{s2})) as uni)::float").toString()
+    # case statement is needed for divide by zero problem
+    union = @knex.raw("(select (case count(*) when 0 then 1 else count(*) end) from ((#{s1}) UNION (#{s2})) as uni)::float").toString()
+    
+    # dont put the name of the action in the sql stopping sql injection
+    "(#{intersection} / #{union}) as action_#{action_i}"
 
-    @knex.raw("select cperson , (#{intersection} / #{union}) as jaccard from (VALUES #{v_people} ) AS t (cperson)")
+
+  get_jaccard_distances_between_people: (person, people, actions) ->
+    return bb.try(->[]) if people.length == 0
+    v_people = ("('#{p}')" for p in people)
+    distances = []
+    for action, i in actions
+      distances.push @get_query_for_jaccard_distances_between_people_for_action(person, action, i,)
+
+    
+    @knex.raw("select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)")
     .then( (rows) ->
       temp = {}
-      (temp[row.cperson] = row.jaccard * weight for row in rows.rows)
+      for row in rows.rows
+        temp[row.cperson] = {}
+        for action, i in actions
+          temp[row.cperson][action] = row["action_#{i}"]
       temp
     )
 
