@@ -53,7 +53,7 @@ class EventStoreMapper
     @similar_objects_limit = limits.similar_objects_limit || 100
     @things_limit = limits.things_limit  || 100
     @people_limit = limits.people_limit || 100
-    @upper_limit = limits.upper_limit || 10000
+    @upper_limit = limits.upper_limit || 1000
 
   drop_tables: ->
     drop_tables(@knex,@schema)
@@ -186,9 +186,17 @@ class EventStoreMapper
       temp
     )
 
-  get_random_people_who_actioned: (action) ->
-    @knex("#{@schema}.events").select('person').groupBy('person').where(thing: thing, action: action).orderByRaw('MAX(created_at) DESC').toString()
+  get_recent_people_for_action: (action, limit = @people_limit) ->
+    q = @knex("#{@schema}.events")
+    .select('person')
+    .orderByRaw('created_at DESC')
+    .limit(limit)
+    .where(action: action).toString()
 
+    @knex.raw(q)
+    .then( (rows) ->
+      (row.person for row in rows.rows)
+    )
 
   get_query_for_jaccard_distances_between_people_for_action: (person, action, action_i) ->
     s1 = @knex("#{@schema}.events").select('thing').groupBy('thing').where(person: person, action: action).orderByRaw('MAX(created_at) DESC').toString()
@@ -209,7 +217,7 @@ class EventStoreMapper
     for action, i in actions
       distances.push @get_query_for_jaccard_distances_between_people_for_action(person, action, i,)
 
-    
+
     @knex.raw("select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)")
     .then( (rows) ->
       temp = {}

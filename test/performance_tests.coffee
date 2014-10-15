@@ -101,7 +101,7 @@ describe 'performance tests', ->
         st = new Date().getTime()
         promises = []
         for x in [1..100]
-          promises.push ger.weighted_similar_people(sample(people))
+          promises.push ger.weighted_similar_people(sample(people), sample(actions))
         bb.all(promises)
         .then(->
           et = new Date().getTime()

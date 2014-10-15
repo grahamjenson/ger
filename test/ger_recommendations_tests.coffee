@@ -59,6 +59,6 @@ describe "person exploits,", ->
         #real person to t1 is 0, bad_person to t1 is 1
         #t1 = (bad_person t1)/(real_person + bad_person) 
         recs[0].thing.should.equal 't1'
-        recs[0].weight.should.equal 1
+        recs[0].weight.should.equal .5
       )
 

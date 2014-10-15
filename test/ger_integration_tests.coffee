@@ -120,7 +120,7 @@ describe '#probability_of_person_actioning_thing', ->
 
 describe 'recommendations_for_person', ->
   
-  it 'asd should reccommend basic things', ->
+  it 'should reccommend basic things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -185,7 +185,23 @@ describe 'recommendations_for_person', ->
         
       )
 
-     
+   it 'asd should reccommend recent things to a person if they have no other recommendations', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view'),
+
+        ger.event('p2','view','a'),
+        ger.event('p2','view','c'),
+        ger.event('p2','view','d'),
+
+        ger.event('p3','view','a'),
+        ger.event('p3','view','c')
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'view'))
+      .then((item_weights) ->
+        item_weights.length.should.equal 3
+      )    
 
 describe 'weighted_similar_people', ->
   it 'should return a list of similar people weighted with jaccard distance', ->
@@ -202,7 +218,7 @@ describe 'weighted_similar_people', ->
 
         ger.event('p4','action1','d')
       ])
-      .then(-> ger.weighted_similar_people('p1'))
+      .then(-> ger.weighted_similar_people('p1', 'a'))
       .then((people_weights) ->
 
         people_weights['p1'].should.equal 1
@@ -226,7 +242,7 @@ describe 'weighted_similar_people', ->
 
         ger.event('p4','action1','d')
       ])
-      .then(-> ger.weighted_similar_people('p1'))
+      .then(-> ger.weighted_similar_people('p1','a'))
       .then((people_weights) ->
         compare_floats( people_weights['p3'], 2/3).should.equal true
         compare_floats( people_weights['p2'] ,1/3).should.equal true
