@@ -49,8 +49,7 @@ init_tables = (knex, schema = 'public') ->
 class EventStoreMapper
   
   #INSTANCE ACTIONS
-  constructor: (@knex, @schema = 'public', limits = {}) ->
-    @upper_limit = limits.upper_limit || 1000
+  constructor: (@knex, @schema = 'public') ->
 
   drop_tables: ->
     drop_tables(@knex,@schema)
@@ -102,12 +101,12 @@ class EventStoreMapper
     @upsert("#{@schema}.actions", insert_attr, identity_attr, update_attr)
     
 
-  person_thing_query: ->
+  person_thing_query: (limit)->
     @knex("#{@schema}.events")
     .select('person', 'thing').max('created_at')
     .groupBy('person','thing')
     .orderByRaw('MAX(created_at) DESC')
-    .limit(@upper_limit)
+    .limit(limit)
 
 
   get_ordered_action_set_with_weights: ->
@@ -125,9 +124,9 @@ class EventStoreMapper
         return null
     )
 
-  get_people_that_actioned_things: (things, action) =>
+  get_people_that_actioned_things: (things, action, limit = 100) =>
     return bb.try(->[]) if things.length == 0
-    @person_thing_query()
+    @person_thing_query(limit)
     .where(action: action)
     .whereIn('thing', things)
     .then( (rows) ->
@@ -136,15 +135,14 @@ class EventStoreMapper
     )
 
   get_things_that_actioned_person: (person, action, limit = 100) =>
-    @person_thing_query()
+    @person_thing_query(limit)
     .where(person: person, action: action)
-    .limit(limit)
     .then( (rows) ->
       (r.thing for r in rows)
     )
 
-  things_people_have_actioned: (action, people) ->
-    @person_thing_query()
+  things_people_have_actioned: (action, people, limit = 100) ->
+    @person_thing_query(limit)
     .where(action: action)
     .whereIn('person', people)
     .then( (rows) ->

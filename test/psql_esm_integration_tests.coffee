@@ -19,9 +19,9 @@ Readable = require('stream').Readable;
 knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
 
-init_esm = (limits = {}) ->
+init_esm = () ->
   #in
-  psql_esm = new PsqlESM(knex, 'public', limits)
+  psql_esm = new PsqlESM(knex, 'public')
   #drop the current tables, reinit the tables, return the esm
   bb.try(-> psql_esm.drop_tables())
   .then( -> psql_esm.init_tables())
@@ -50,16 +50,16 @@ describe "find_event", ->
       )
 
 describe "get_people_that_actioned_things", ->
-  it "should select people ordered by created_at", ->
+  it "should accept limit", ->
     now = new Date().toISOString()
     ages_ago = new Date(0).toISOString()
-    init_esm({upper_limit: 10})
+    init_esm()
     .then (esm) ->
       promises = (esm.add_event("p#{i}",'a','t', { created_at: now }) for i in [0...10])
       promises.push esm.add_event("old_person",'a','t', { created_at: ages_ago })
       bb.all(promises)
       .then( ->
-        esm.get_people_that_actioned_things(['t'], 'a')
+        esm.get_people_that_actioned_things(['t'], 'a', 10)
       )
       .then( (people) ->
         ("old_person" not in people).should.equal true
