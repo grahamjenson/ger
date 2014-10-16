@@ -156,7 +156,8 @@ class EventStoreMapper
   get_recent_people_for_action: (action, limit = 100) ->
     q = @knex("#{@schema}.events")
     .select('person')
-    .orderByRaw('created_at DESC')
+    .groupBy('person')
+    .orderByRaw('MAX(created_at) DESC')
     .limit(limit)
     .where(action: action).toString()
 

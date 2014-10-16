@@ -11,14 +11,15 @@ class GER
     @esm.get_recent_people_for_action(action, limit)
 
   ####################### Related people  #################################
-  related_people_for_action: (object, action) ->
+  related_people_for_action: (object, action, limit) ->
+    #TODO make this a single sql call
     @esm.get_things_that_actioned_person(object, action)
-    .then( (subjects) => @esm.get_people_that_actioned_things(subjects, action))
+    .then( (subjects) => @esm.get_people_that_actioned_things(subjects, action, limit))
 
-  related_people: (object, actions) ->
+  related_people: (object, actions, limit) ->
     promises = []
     for ac, weight of actions
-      promises.push @related_people_for_action(object, ac, weight)
+      promises.push @related_people_for_action(object, ac, limit)
     bb.all(promises)
     .then((objects) -> _.flatten(objects))
 
@@ -29,16 +30,10 @@ class GER
     .then( (action_weights) =>
       actions = {}
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions)])
+      bb.all([actions, @related_people(object, actions, 40), @recent_people_for_action(action, 10)])
     )
-    .spread( (actions, objects) =>
-      if objects.length == 0 # TODO under a limit
-        bb.all([actions, @recent_people_for_action(action, 50)])
-      else
-        bb.all([actions, objects])
-    )
-    .spread( (actions, objects) =>
-      bb.all([actions, _.unique(objects)])
+    .spread( (actions, related_people, recent_people) =>
+      bb.all([actions, _.unique(related_people.concat recent_people)])
     )  
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
@@ -68,11 +63,21 @@ class GER
     )
     .spread( ( people_weights, people_things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
+      total_weight = 0
+      for person, weight of people_weights
+        total_weight += weight
+
+      #TODO total weight = 0
       things_weight = {}
       for person, things of people_things
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
           things_weight[thing] += people_weights[person]
+
+      if total_weight != 0
+        for thing, weight of things_weight
+          things_weight[thing] = weight/total_weight 
+
       things_weight
     )
     .then( (recommendations) ->
