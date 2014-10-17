@@ -141,6 +141,18 @@ class EventStoreMapper
       (r.thing for r in rows)
     )
 
+  get_related_people: (person, actions, limit = 100) ->
+    @knex("#{@schema}.events as e")
+    .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action'))
+    .select('f.person')
+    .where('e.person',person)
+    .whereIn('e.action', actions)
+    .distinct('f.person')
+    .limit(limit)
+    .then((rows) ->
+      (r.person for r in rows)
+    )
+
   things_people_have_actioned: (action, people, limit = 100) ->
     @person_thing_query(limit)
     .where(action: action)

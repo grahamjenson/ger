@@ -10,18 +10,9 @@ class GER
   recent_people_for_action: (action, limit) ->
     @esm.get_recent_people_for_action(action, limit)
 
-  ####################### Related people  #################################
-  related_people_for_action: (object, action, limit) ->
-    #TODO make this a single sql call
-    @esm.get_things_that_actioned_person(object, action)
-    .then( (subjects) => @esm.get_people_that_actioned_things(subjects, action, limit))
 
   related_people: (object, actions, limit) ->
-    promises = []
-    for ac, weight of actions
-      promises.push @related_people_for_action(object, ac, limit)
-    bb.all(promises)
-    .then((objects) -> _.flatten(objects))
+    @esm.get_related_people(object, Object.keys(actions), limit)
 
   ####################### Weighted people  #################################
 
@@ -30,10 +21,10 @@ class GER
     .then( (action_weights) =>
       actions = {}
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions, 40), @recent_people_for_action(action, 10)])
+      bb.all([actions, @related_people(object, actions, 40)])
     )
-    .spread( (actions, related_people, recent_people) =>
-      bb.all([actions, _.unique(related_people.concat recent_people)])
+    .spread( (actions, related_people) =>
+      bb.all([actions, _.unique(related_people)])
     )  
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])

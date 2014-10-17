@@ -14,6 +14,7 @@ PsqlESM = g.PsqlESM
 
 knex = g.knex
   client: 'pg',
+  #debug: true
   connection: 
     host: '127.0.0.1', 
     user : 'root', 
@@ -130,25 +131,7 @@ describe 'recommendations_for_person', ->
         item_weights[1].thing.should.equal 'c'
         item_weights[2].thing.should.equal 'd'
         
-      )
-
-   it 'asd should reccommend recent things to a person if they have no other recommendations', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.action('view'),
-
-        ger.event('p2','view','a'),
-        ger.event('p2','view','c'),
-        ger.event('p2','view','d'),
-
-        ger.event('p3','view','a'),
-        ger.event('p3','view','c')
-      ])
-      .then(-> ger.recommendations_for_person('p1', 'view'))
-      .then((item_weights) ->
-        item_weights.length.should.equal 3
-      )    
+      )   
 
 describe 'weighted_similar_people', ->
   it 'should return a list of similar people weighted with jaccard distance', ->
@@ -167,7 +150,6 @@ describe 'weighted_similar_people', ->
       ])
       .then(-> ger.weighted_similar_people('p1', 'a'))
       .then((people_weights) ->
-
         people_weights['p1'].should.equal 1
         people_weights['p3'].should.equal 1
         people_weights['p2'].should.equal 1/2
@@ -196,7 +178,7 @@ describe 'weighted_similar_people', ->
         Object.keys(people_weights).length.should.equal 3
       )
 
-  it 'asd should not use actions with 0 or negative weights', ->
+  it 'should not use actions with 0 or negative weights', ->
     init_ger()
     .then (ger) ->
       bb.all([
