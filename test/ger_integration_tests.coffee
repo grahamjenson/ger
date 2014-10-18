@@ -148,7 +148,7 @@ describe 'weighted_similar_people', ->
 
         ger.event('p4','action1','d')
       ])
-      .then(-> ger.weighted_similar_people('p1', 'a'))
+      .then(-> ger.weighted_similar_people('p1', 'action1'))
       .then((people_weights) ->
         people_weights['p1'].should.equal 1
         people_weights['p3'].should.equal 1
@@ -171,7 +171,7 @@ describe 'weighted_similar_people', ->
 
         ger.event('p4','action1','d')
       ])
-      .then(-> ger.weighted_similar_people('p1','a'))
+      .then(-> ger.weighted_similar_people('p1','action1'))
       .then((people_weights) ->
         compare_floats( people_weights['p3'], 2/3).should.equal true
         compare_floats( people_weights['p2'] ,1/3).should.equal true
@@ -191,7 +191,7 @@ describe 'weighted_similar_people', ->
         ger.event('p3','neg_action','a'),
 
       ])
-      .then(-> ger.weighted_similar_people('p1','a'))
+      .then(-> ger.weighted_similar_people('p1','action1'))
       .then((people_weights) ->
         people_weights['p1'].should.exist
         people_weights['p2'].should.exist

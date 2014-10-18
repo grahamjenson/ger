@@ -11,8 +11,8 @@ class GER
     @esm.get_recent_people_for_action(action, limit)
 
 
-  related_people: (object, actions, limit) ->
-    @esm.get_related_people(object, Object.keys(actions), limit)
+  related_people: (object, actions, action, limit) ->
+    @esm.get_related_people(object, Object.keys(actions), action, limit)
 
   ####################### Weighted people  #################################
 
@@ -21,11 +21,11 @@ class GER
     .then( (action_weights) =>
       actions = {}
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions, 40)])
+      bb.all([actions, @related_people(object, actions, action, 150)])
     )
     .spread( (actions, related_people) =>
-      bb.all([actions, _.unique(related_people)])
-    )  
+      bb.all([actions, @esm.filter_people_by_action(related_people, action)])
+    )
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
     )

@@ -141,15 +141,27 @@ class EventStoreMapper
       (r.thing for r in rows)
     )
 
-  get_related_people: (person, actions, limit = 100) ->
+  get_related_people: (person, actions, action, limit = 100) ->
+    #TODO next step is to find things related people have actioned
+    #Then find the jaccard distances for those people to rate those things
     @knex("#{@schema}.events as e")
     .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action'))
-    .select('f.person')
     .where('e.person',person)
     .whereIn('e.action', actions)
-    .distinct('f.person')
+    .select('f.person')
+    .groupBy('f.person').max('f.created_at')
+    .orderByRaw('max(f.created_at) DESC')
     .limit(limit)
     .then((rows) ->
+      (r.person for r in rows)
+    )
+
+  filter_people_by_action: (people, action) ->
+    @knex("#{@schema}.events")
+    .distinct('person')
+    .where(action: action)
+    .whereIn('person', people)
+    .then( (rows) ->
       (r.person for r in rows)
     )
 

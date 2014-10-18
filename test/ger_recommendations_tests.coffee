@@ -33,6 +33,38 @@ create_psql_esm = ->
 init_ger = ->
   create_psql_esm().then( (esm) -> new GER(esm))
 
+describe "weights", ->
+  it "weights should represent the amount of actions needed to outweight them", ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.action('buy', 5),
+        ger.event('p1','view','a'),
+        ger.event('p1','buy','b'),
+
+        ger.event('p6','buy','b'),
+        ger.event('p6','buy','x'),
+
+        ger.event('p2','view','a'),
+        ger.event('p3','view','a'),
+        ger.event('p4','view','a'),
+        ger.event('p5','view','a')
+
+        ger.event('p2','buy','y'),
+        ger.event('p3','buy','y'),
+        ger.event('p4','buy','y'),
+        ger.event('p5','buy','y')
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        console.log recs
+        #p1 is similar by 1 view to p2 p3 p4 p5
+        #p1 is similar to p6 by 1 buy
+        #because a buy is worth 5 views x should be recommended before y 
+
+      )
+
 describe "person exploits,", ->
   it "a single persons mass interaction should not outweigh 'real' interations", ->
     init_ger()
@@ -59,6 +91,6 @@ describe "person exploits,", ->
         #real person to t1 is 0, bad_person to t1 is 1
         #t1 = (bad_person t1)/(real_person + bad_person) 
         recs[0].thing.should.equal 't1'
-        recs[0].weight.should.equal .5
+        recs[0].weight.should.equal 1
       )
 
