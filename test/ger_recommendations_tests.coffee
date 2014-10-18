@@ -58,11 +58,12 @@ describe "weights", ->
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
       .then((recs) ->
-        console.log recs
         #p1 is similar by 1 view to p2 p3 p4 p5
         #p1 is similar to p6 by 1 buy
         #because a buy is worth 5 views x should be recommended before y 
-
+        recs[0].thing.should.equal 'b'
+        recs[1].thing.should.equal 'y'
+        recs[2].thing.should.equal 'x'
       )
 
 describe "person exploits,", ->
