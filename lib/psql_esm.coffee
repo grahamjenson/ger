@@ -103,9 +103,9 @@ class EventStoreMapper
 
   person_thing_query: (limit)->
     @knex("#{@schema}.events")
-    .select('person', 'thing').max('created_at')
+    .select('person', 'thing').max('created_at as max_ca')
     .groupBy('person','thing')
-    .orderByRaw('MAX(created_at) DESC')
+    .orderByRaw('max_ca DESC')
     .limit(limit)
 
 
@@ -144,16 +144,25 @@ class EventStoreMapper
   get_related_people: (person, actions, action, limit = 100) ->
     #TODO next step is to find things related people have actioned
     #Then find the jaccard distances for those people to rate those things
-    @knex("#{@schema}.events as e")
+    q1 = @knex("#{@schema}.events as e")
     .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action'))
-    .where('e.person',person)
+    .where('e.person', person)
     .whereIn('e.action', actions)
     .select('f.person')
-    .groupBy('f.person').max('f.created_at')
-    .orderByRaw('max(f.created_at) DESC')
-    .limit(limit)
-    .then((rows) ->
-      (r.person for r in rows)
+    .groupBy('f.person').max('f.created_at as max_ca')
+    .orderByRaw('max_ca DESC')
+    .toString()
+
+    q2 = @knex("#{@schema}.events")
+    .select("person")
+    .where(action: action)
+    .whereRaw("person = x.person")
+    .toString()
+
+    q3 = "select * from (#{q1}) as x where exists (#{q2}) limit '#{limit}'"
+    @knex.raw(q3)
+    .then( (rows) ->
+      (r.person for r in rows.rows)
     )
 
   filter_people_by_action: (people, action) ->
@@ -191,8 +200,8 @@ class EventStoreMapper
     )
 
   get_query_for_jaccard_distances_between_people_for_action: (person, action, action_i) ->
-    s1 = @knex("#{@schema}.events").select('thing').groupBy('thing').where(person: person, action: action).orderByRaw('MAX(created_at) DESC').toString()
-    s2 = @knex("#{@schema}.events").select('thing').groupBy('thing').whereRaw('person = cperson').where(action: action).orderByRaw('MAX(created_at) DESC').toString()
+    s1 = @knex("#{@schema}.events").select('thing').groupBy('thing').where(person: person, action: action).toString()
+    s2 = @knex("#{@schema}.events").select('thing').groupBy('thing').whereRaw('person = cperson').where(action: action).toString()
 
     intersection = @knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
     # case statement is needed for divide by zero problem
@@ -253,9 +262,6 @@ class EventStoreMapper
       .on('error', (error) -> deferred.reject(error))
       deferred.promise.finally( => @knex.client.releaseConnection(connection))
     )
-
-
-
     
   # DATABASE CLEANING METHODS
 

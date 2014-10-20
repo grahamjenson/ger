@@ -27,6 +27,24 @@ init_esm = () ->
   .then( -> psql_esm.init_tables())
   .then( -> psql_esm)
 
+describe "related_people", ->
+  it 'should not return people that have not actioned', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.set_action_weight('view', 1)
+        esm.set_action_weight('buy', 1)
+        esm.add_event('p1','view','t1')
+        esm.add_event('p2','view','t1')
+      ]) 
+      .then( ->
+        esm.get_related_people('p1', ['view','buy'], 'buy')
+      )
+      .then( (people) ->
+        people.length.should.equal 0
+      )
+
+
 describe "find_event", ->
   it "should return null if no event matches", ->
     init_esm()

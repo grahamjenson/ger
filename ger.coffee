@@ -23,9 +23,6 @@ class GER
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
       bb.all([actions, @related_people(object, actions, action, 150)])
     )
-    .spread( (actions, related_people) =>
-      bb.all([actions, @esm.filter_people_by_action(related_people, action)])
-    )
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
     )
