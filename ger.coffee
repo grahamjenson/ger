@@ -32,7 +32,9 @@ class GER
       for action, weight of actions
         total_weight += weight
 
+
       temp = {}
+      temp[object] = 1 #manually add the object
       for person, weights of object_weights
         for ac, weight of weights
           temp[person] = 0 if person not of temp

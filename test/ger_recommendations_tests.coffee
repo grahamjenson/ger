@@ -80,18 +80,18 @@ describe "person exploits,", ->
         bb.all([
           ger.action('buy'),
           ger.action('view'),
-          ger.event('real_person', 'view', 't1')
+          ger.event('real_person', 'view', 't2')
+          ger.event('real_person', 'buy', 't2')
+          ger.event('person', 'view', 't1')
+          ger.event('person', 'view', 't2')
         ])
       )
       .then( ->
-        ger.recommendations_for_person('real_person', 'buy')
+        ger.recommendations_for_person('person', 'buy')
       )
       .then( (recs) ->
-        #real_person is similar to real_person 1, and bad_person 1
-        #bad_person has bought nothing and bad_person has bought t1
-        #real person to t1 is 0, bad_person to t1 is 1
-        #t1 = (bad_person t1)/(real_person + bad_person) 
-        recs[0].thing.should.equal 't1'
-        recs[0].weight.should.equal 1
+        temp = {}
+        (temp[tw.thing] = tw.weight for tw in recs)
+        temp['t1'].should.equal temp['t2']
       )
 
