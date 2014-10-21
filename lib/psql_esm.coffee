@@ -151,8 +151,6 @@ class EventStoreMapper
   get_related_people: (person, actions, action, limit = 100) ->
     #TODO next step is to find things related people have actioned
     #Then find the jaccard distances for those people to rate those things
-
-    
     one_degree_similar_people = @knex("sub_query_1")
     .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)

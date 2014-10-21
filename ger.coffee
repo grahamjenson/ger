@@ -21,7 +21,7 @@ class GER
     .then( (action_weights) =>
       actions = {}
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions, action, 150)])
+      bb.all([actions, @related_people(object, actions, action, 100)])
     )
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
@@ -31,7 +31,6 @@ class GER
       total_weight = 0
       for action, weight of actions
         total_weight += weight
-
 
       temp = {}
       temp[object] = 1 #manually add the object
