@@ -62,11 +62,13 @@ class EventStoreMapper
     created_at = dates.created_at || new Date().toISOString()
     @add_event_to_db(person, action, thing, created_at, expires_at)
 
+
   upsert: (table, insert_attr, identity_attr, update_attr) ->
     insert = @knex(table).insert(insert_attr).toString()
     #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
     insert = insert.replace(/\svalues\s\(/, " select ")[..-2]
 
+    #TODO SQL INJECTION
     update = @knex(table).where(identity_attr).update(update_attr).toString()
 
     #defined here http://www.the-art-of-web.com/sql/upsert/
@@ -139,8 +141,7 @@ class EventStoreMapper
     .limit(1000)
 
   get_related_people: (person, actions, action, limit = 100) ->
-    #TODO next step is to find things related people have actioned
-    #Then find the jaccard distances for those people to rate those things
+    #TODO SQL INJECTION
     one_degree_similar_people = @knex("sub_query_1")
     .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
@@ -152,6 +153,7 @@ class EventStoreMapper
 
     one_degree_similar_people = one_degree_similar_people.replace('"sub_query_1"', "(#{@last_1000_events(person).toString()}) as e")
 
+    #TODO SQL INJECTION
     filter_people = @knex("#{@schema}.events")
     .select("person")
     .where(action: action)
@@ -165,7 +167,9 @@ class EventStoreMapper
     )
 
   filter_things_by_previous_actions: (person, things, actions) ->
-    return bb.try(-> things) if !actions or actions.length == 0
+    return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
+
+    #TODO SQL INJECTION
     filter_things = @knex("#{@schema}.events")
     .select("thing")
     .where(person: person)
@@ -173,7 +177,7 @@ class EventStoreMapper
     .whereRaw("thing = t.tthing")
     .toString()
 
-    #TODO make sure the input is santized
+    #TODO SQL INJECTION
     v_things = ("('#{t}')" for t in things)
     q = "select tthing from (VALUES #{v_things} ) AS t (tthing) where not exists (#{filter_things})"
 
@@ -225,7 +229,7 @@ class EventStoreMapper
 
   get_jaccard_distances_between_people: (person, people, actions) ->
     return bb.try(->[]) if people.length == 0
-    #TODO make sure the input is santized
+    #TODO SQL INJECTION
     v_people = ("('#{p}')" for p in people)
 
     distances = []

@@ -6,13 +6,15 @@ class GER
   constructor: (@esm, options = {}) ->
     options = _.defaults(options, 
       similar_people_limit: 100,
-      recommendations_limit: 1000,
+      related_things_limit: 1000
+      recommendations_limit: 20,
       previous_actions_filter: []
     )
 
     @similar_people_limit = options.similar_people_limit
     @previous_actions_filter = options.previous_actions_filter
     @recommendations_limit = options.recommendations_limit
+    @related_things_limit = options.related_things_limit
 
   related_people: (object, actions, action, limit) ->
     @esm.get_related_people(object, Object.keys(actions), action, limit)
@@ -51,7 +53,7 @@ class GER
     @weighted_similar_people(person, action)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights), @recommendations_limit)])
+      bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights), @related_things_limit)])
     )
     .spread( ( people_weights, people_things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
@@ -78,8 +80,10 @@ class GER
     .spread( (recommendations, filter_things) =>
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       weight_things = ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
-
       sorted_things = weight_things.sort((x, y) -> y.weight - x.weight)
+      sorted_things = sorted_things[0...@recommendations_limit]
+
+      sorted_things
     ) 
 
   ##Wrappers of the ESM

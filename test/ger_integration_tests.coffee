@@ -136,6 +136,19 @@ describe 'recommendations_for_person', ->
         item_weights[0].thing.should.equal 'a'
       ) 
 
+  it 'asd should not break with weird names (SQL INJECTION)', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action("v'i\new"),
+        ger.event("'p\n1","v'i\new","'a\n;"),
+      ])
+      .then(-> ger.recommendations_for_person("'p\n1","v'i\new"))
+      .then((item_weights) ->
+        item_weights[0].thing.should.equal 'a'
+        item_weights.length.should.equal 1
+      )
+
 describe 'weighted_similar_people', ->
   it 'should return a list of similar people weighted with jaccard distance', ->
     init_ger()
