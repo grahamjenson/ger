@@ -1,42 +1,3 @@
-chai = require 'chai'  
-should = chai.should()
-chaiAsPromised = require("chai-as-promised")
-chai.use(chaiAsPromised)
-
-sinon = require 'sinon'
-bb = require 'bluebird'
-bb.Promise.longStackTraces();
-
-g = require('../ger')
-GER = g.GER
-
-PsqlESM = g.PsqlESM
-
-knex = g.knex
-  client: 'pg',
-  #debug: true
-  connection: 
-    host: '127.0.0.1', 
-    user : 'root', 
-    password : 'abcdEF123456', 
-    database : 'ger_test'
-
-compare_floats = (f1,f2) ->
-  Math.abs(f1 - f2) < 0.00001
-
-create_psql_esm = ->
-  #in
-  psql_esm = new PsqlESM(knex)
-  #drop the current tables, reinit the tables, return the esm
-  bb.try(-> PsqlESM.drop_tables(knex))
-  .then( -> PsqlESM.init_tables(knex))
-  .then( -> psql_esm)
-
-esmfn = create_psql_esm
-
-init_ger = ->
-  esmfn().then( (esm) -> new GER(esm))
-
 describe '#event', ->
   it 'should upsert same events', ->
     init_ger()
@@ -132,6 +93,48 @@ describe 'recommendations_for_person', ->
         item_weights[2].thing.should.equal 'd'
         
       )   
+
+  it 'should filter previously actioned things based on filter events option', ->
+    init_ger(previous_actions_filter: ['buy'])
+    .then (ger) ->
+      bb.all([
+        ger.action('buy'),
+        ger.event('p1','buy','a'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((item_weights) ->
+        item_weights.length.should.equal 0
+      ) 
+
+  it 'should filter previously actioned by someone else', ->
+    init_ger(previous_actions_filter: ['buy'])
+    .then (ger) ->
+      bb.all([
+        ger.action('view'),
+        ger.action('buy'),
+        ger.event('p1','buy','a'),
+        ger.event('p2','buy','a'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((item_weights) ->
+        item_weights.length.should.equal 0
+      )
+
+  it 'should not filter non actioned things', ->
+    init_ger(previous_actions_filter: ['buy'])
+    .then (ger) ->
+      bb.all([
+        ger.action('view'),
+        ger.action('buy'),
+        ger.event('p1','view','a'),
+        ger.event('p2','view','a'),
+        ger.event('p2','buy','a'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((item_weights) ->
+        item_weights.length.should.equal 1
+        item_weights[0].thing.should.equal 'a'
+      ) 
 
 describe 'weighted_similar_people', ->
   it 'should return a list of similar people weighted with jaccard distance', ->

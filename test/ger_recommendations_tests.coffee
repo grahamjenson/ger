@@ -1,38 +1,3 @@
-chai = require 'chai'  
-should = chai.should()
-chaiAsPromised = require("chai-as-promised")
-chai.use(chaiAsPromised)
-
-sinon = require 'sinon'
-bb = require 'bluebird'
-bb.Promise.longStackTraces();
-
-g = require('../ger')
-GER = g.GER
-
-PsqlESM = g.PsqlESM
-
-Readable = require('stream').Readable;
-
-knex = g.knex
-  client: 'pg',
-  connection: 
-    host: '127.0.0.1', 
-    user : 'root', 
-    password : 'abcdEF123456', 
-    database : 'ger_test'
-
-create_psql_esm = ->
-  #in
-  psql_esm = new PsqlESM(knex)
-  #drop the current tables, reinit the tables, return the esm
-  bb.try(-> PsqlESM.drop_tables(knex))
-  .then( -> PsqlESM.init_tables(knex))
-  .then( -> psql_esm)
-
-init_ger = ->
-  create_psql_esm().then( (esm) -> new GER(esm))
-
 describe "weights", ->
   it "weights should represent the amount of actions needed to outweight them", ->
     init_ger()

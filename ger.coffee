@@ -3,13 +3,16 @@ _ = require 'underscore'
 
 class GER
 
-  constructor: (@esm) ->
-    @INITIAL_PERSON_WEIGHT = 10
+  constructor: (@esm, options = {}) ->
+    options = _.defaults(options, 
+      similar_people_limit: 100,
+      recommendations_limit: 1000,
+      previous_actions_filter: []
+    )
 
-  ####################### Random similar people  #################################
-  recent_people_for_action: (action, limit) ->
-    @esm.get_recent_people_for_action(action, limit)
-
+    @similar_people_limit = options.similar_people_limit
+    @previous_actions_filter = options.previous_actions_filter
+    @recommendations_limit = options.recommendations_limit
 
   related_people: (object, actions, action, limit) ->
     @esm.get_related_people(object, Object.keys(actions), action, limit)
@@ -21,7 +24,7 @@ class GER
     .then( (action_weights) =>
       actions = {}
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions, action, 100)])
+      bb.all([actions, @related_people(object, actions, action, @similar_people_limit)])
     )
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
@@ -34,10 +37,10 @@ class GER
 
       temp = {}
       temp[object] = 1 #manually add the object
-      for person, weights of object_weights
+      for p, weights of object_weights
         for ac, weight of weights
-          temp[person] = 0 if person not of temp
-          temp[person] += weight/total_weight * actions[ac]
+          temp[p] = 0 if p not of temp
+          temp[p] += weight/total_weight * actions[ac]
       temp
     )
 
@@ -48,20 +51,20 @@ class GER
     @weighted_similar_people(person, action)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights))])
+      bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights), @recommendations_limit)])
     )
     .spread( ( people_weights, people_things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
       total_weight = 0
-      for person, weight of people_weights
+      for p, weight of people_weights
         total_weight += weight
 
       #TODO total weight = 0
       things_weight = {}
-      for person, things of people_things
+      for p, things of people_things
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
-          things_weight[thing] += people_weights[person]
+          things_weight[thing] += people_weights[p]
 
       if total_weight != 0
         for thing, weight of things_weight
@@ -69,15 +72,14 @@ class GER
 
       things_weight
     )
-    .then( (recommendations) ->
+    .then( (recommendations) =>
+      bb.all([recommendations, @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)])
+    )
+    .spread( (recommendations, filter_things) =>
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
-      weight_things = ([thing, weight] for thing, weight of recommendations)
-      sorted_things = weight_things.sort((x, y) -> y[1] - x[1])
-      ret = []
-      for ts in sorted_things
-        temp = {weight: ts[1], thing: ts[0]}
-        ret.push(temp)
-      ret
+      weight_things = ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
+
+      sorted_things = weight_things.sort((x, y) -> y.weight - x.weight)
     ) 
 
   ##Wrappers of the ESM

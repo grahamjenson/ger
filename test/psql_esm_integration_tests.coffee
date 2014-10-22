@@ -1,31 +1,36 @@
-chai = require 'chai'  
-should = chai.should()
-chaiAsPromised = require("chai-as-promised")
-chai.use(chaiAsPromised)
+describe "filter_things_by_previous_actions", ->
+  it 'should filter things a person has done before', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.set_action_weight('view', 1)
+        esm.set_action_weight('buy', 1)
+        esm.add_event('p1','view','t1')
+      ]) 
+      .then( ->
+        esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view'])
+      )
+      .then( (things) ->
+        things.length.should.equal 1
+        things[0].should.equal 't2'
+      )
 
-sinon = require 'sinon'
-
-path = require 'path'
-
-PsqlESM = require('../lib/psql_esm')
-
-bb = require 'bluebird'
-bb.Promise.longStackTraces();
-
-fs = require('fs');
-
-Readable = require('stream').Readable;
-
-knex = require('knex')({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
-
-
-init_esm = () ->
-  #in
-  psql_esm = new PsqlESM(knex, 'public')
-  #drop the current tables, reinit the tables, return the esm
-  bb.try(-> psql_esm.drop_tables())
-  .then( -> psql_esm.init_tables())
-  .then( -> psql_esm)
+  it 'should filter things only for given actions', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.set_action_weight('view', 1)
+        esm.set_action_weight('buy', 1)
+        esm.add_event('p1','view','t1')
+        esm.add_event('p1','buy','t2')
+      ]) 
+      .then( ->
+        esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view'])
+      )
+      .then( (things) ->
+        things.length.should.equal 1
+        things[0].should.equal 't2'
+      )     
 
 describe "related_people", ->
   it 'should return similar people', ->
@@ -113,23 +118,6 @@ describe "find_event", ->
         event.action.should.equal 'a'
         event.thing.should.equal 't'
       )
-
-describe "get_people_that_actioned_things", ->
-  it "should accept limit", ->
-    now = new Date().toISOString()
-    ages_ago = new Date(0).toISOString()
-    init_esm()
-    .then (esm) ->
-      promises = (esm.add_event("p#{i}",'a','t', { created_at: now }) for i in [0...10])
-      promises.push esm.add_event("old_person",'a','t', { created_at: ages_ago })
-      bb.all(promises)
-      .then( ->
-        esm.get_people_that_actioned_things(['t'], 'a', 10)
-      )
-      .then( (people) ->
-        ("old_person" not in people).should.equal true
-      )
-
 
 describe "remove_expired_events", ->
   it "removes the events passed their expiry date", ->

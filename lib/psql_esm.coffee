@@ -124,16 +124,6 @@ class EventStoreMapper
         return null
     )
 
-  get_people_that_actioned_things: (things, action, limit = 100) =>
-    return bb.try(->[]) if things.length == 0
-    @person_thing_query(limit)
-    .where(action: action)
-    .whereIn('thing', things)
-    .then( (rows) ->
-      #Need to make distinct for person, action, thing
-      (r.person for r in rows)
-    )
-
   get_things_that_actioned_person: (person, action, limit = 100) =>
     @person_thing_query(limit)
     .where(person: person, action: action)
@@ -156,7 +146,8 @@ class EventStoreMapper
     .where('e.person', person)
     .whereIn('f.action', actions)
     .select('f.person')
-    .groupBy('f.person')
+    .groupBy('f.person').max('f.created_at')
+    .orderByRaw('max(f.created_at) DESC')
     .toString()
 
     one_degree_similar_people = one_degree_similar_people.replace('"sub_query_1"', "(#{@last_1000_events(person).toString()}) as e")
@@ -171,6 +162,24 @@ class EventStoreMapper
     @knex.raw(q3)
     .then( (rows) ->
       (r.person for r in rows.rows)
+    )
+
+  filter_things_by_previous_actions: (person, things, actions) ->
+    return bb.try(-> things) if !actions or actions.length == 0
+    filter_things = @knex("#{@schema}.events")
+    .select("thing")
+    .where(person: person)
+    .whereIn('action', actions)
+    .whereRaw("thing = t.tthing")
+    .toString()
+
+    #TODO make sure the input is santized
+    v_things = ("('#{t}')" for t in things)
+    q = "select tthing from (VALUES #{v_things} ) AS t (tthing) where not exists (#{filter_things})"
+
+    @knex.raw(q)
+    .then( (rows) ->
+      (r.tthing for r in rows.rows)
     )
 
   filter_people_by_action: (people, action) ->
@@ -192,19 +201,6 @@ class EventStoreMapper
         temp[r.person] = [] if temp[r.person] == undefined
         temp[r.person].push r.thing
       temp
-    )
-
-  get_recent_people_for_action: (action, limit = 100) ->
-    q = @knex("#{@schema}.events")
-    .select('person')
-    .groupBy('person')
-    .orderByRaw('MAX(created_at) DESC')
-    .limit(limit)
-    .where(action: action).toString()
-
-    @knex.raw(q)
-    .then( (rows) ->
-      (row.person for row in rows.rows)
     )
 
   last_1000_things_for_action: (action) ->
@@ -229,7 +225,9 @@ class EventStoreMapper
 
   get_jaccard_distances_between_people: (person, people, actions) ->
     return bb.try(->[]) if people.length == 0
+    #TODO make sure the input is santized
     v_people = ("('#{p}')" for p in people)
+
     distances = []
     for action, i in actions
       distances.push @get_query_for_jaccard_distances_between_people_for_action(person, action, i,)
