@@ -154,7 +154,7 @@ class EventStoreMapper
     .limit(1000)
 
   get_related_people: (person, actions, action, limit = 100) ->
-    #TODO SQL INJECTION
+    return bb.try(-> []) if !actions or actions.length == 0
     one_degree_similar_people = @knex(@last_1000_events(person).as('e'))
     .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
@@ -163,7 +163,6 @@ class EventStoreMapper
     .groupBy('f.person').max('f.created_at')
     .orderByRaw('max(f.created_at) DESC')
 
-    #TODO SQL INJECTION
     filter_people = @knex("#{@schema}.events")
     .select("person")
     .where(action: action)
@@ -206,6 +205,7 @@ class EventStoreMapper
     )
 
   things_people_have_actioned: (action, people, limit = 100) ->
+    return bb.try(->[]) if people.length == 0
     @person_thing_query(limit)
     .where(action: action)
     .whereIn('person', people)

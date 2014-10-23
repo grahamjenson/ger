@@ -29,7 +29,7 @@ describe '#count_events', ->
 
 describe 'recommendations_for_person', ->
   
-  it 'should reccommend basic things', ->
+  it 'asd should reccommend basic things', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -136,7 +136,7 @@ describe 'recommendations_for_person', ->
         item_weights[0].thing.should.equal 'a'
       ) 
 
-  it 'asd should not break with weird names (SQL INJECTION)', ->
+  it 'should not break with weird names (SQL INJECTION)', ->
     init_ger()
     .then (ger) ->
       bb.all([

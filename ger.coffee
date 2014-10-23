@@ -17,8 +17,14 @@ class GER
     @related_things_limit = options.related_things_limit
 
   related_people: (object, actions, action, limit) ->
-    @esm.get_related_people(object, Object.keys(actions), action, limit)
-
+    #split actions in 2 by weight
+    #call twice
+    action_list = Object.keys(actions)
+    [ltmean, gtmean] = [ltmean, gtmean] = @half_array_by_mean(action_list, actions)
+    bb.all([@esm.get_related_people(object, ltmean, action, limit), @esm.get_related_people(object, gtmean, action, limit)])
+    .spread( (ltpeople, gtpeople) ->
+      _.unique(ltpeople.concat gtpeople)
+    )
   ####################### Weighted people  #################################
 
   weighted_similar_people: (object, action) ->
@@ -46,6 +52,24 @@ class GER
       temp
     )
 
+  half_array_by_mean: (arr, weights) ->
+    total_weight = _.reduce((weights[p] for p of arr), ((a,b) -> a+b) , 0)
+    mean_weigth = total_weight/arr.length
+    [ltmean, gtmean] = _.partition(arr, (p) -> weights[p] < mean_weigth)
+
+  get_things_for_person: (action, people_weights) ->
+    people_list = Object.keys(people_weights)
+    
+    
+    [ltmean, gtmean] = @half_array_by_mean(people_list, people_weights)
+    bb.all([
+      @esm.things_people_have_actioned(action, ltmean, @related_things_limit), 
+      @esm.things_people_have_actioned(action, gtmean, @related_things_limit)
+    ])
+    .spread( (ltthings, gtthings) ->
+      _.extend(ltthings, gtthings)
+    )
+    
   recommendations_for_person: (person, action) ->
     #recommendations for object action from similar people
     #recommendations for object action from object, only looking at what they have already done
@@ -53,7 +77,7 @@ class GER
     @weighted_similar_people(person, action)
     .then( (people_weights) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      bb.all([people_weights, @esm.things_people_have_actioned(action, Object.keys(people_weights), @related_things_limit)])
+      bb.all([people_weights, @get_things_for_person(action, people_weights)])
     )
     .spread( ( people_weights, people_things) =>
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
@@ -78,11 +102,12 @@ class GER
       bb.all([recommendations, @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)])
     )
     .spread( (recommendations, filter_things) =>
+
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       weight_things = ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
       sorted_things = weight_things.sort((x, y) -> y.weight - x.weight)
-      sorted_things = sorted_things[0...@recommendations_limit]
 
+      sorted_things = sorted_things[0...@recommendations_limit]
       sorted_things
     ) 
 
