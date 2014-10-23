@@ -16,12 +16,15 @@ class GER
     @recommendations_limit = options.recommendations_limit
     @related_things_limit = options.related_things_limit
 
-  related_people: (object, actions, action, limit) ->
+  related_people: (object, actions, action) ->
     #split actions in 2 by weight
     #call twice
     action_list = Object.keys(actions)
-    [ltmean, gtmean] = [ltmean, gtmean] = @half_array_by_mean(action_list, actions)
-    bb.all([@esm.get_related_people(object, ltmean, action, limit), @esm.get_related_people(object, gtmean, action, limit)])
+    [ltmean, gtmean] = @half_array_by_mean(action_list, actions)
+
+    bb.all([
+      @esm.get_related_people(object, ltmean, action, @similar_people_limit), 
+      @esm.get_related_people(object, gtmean, action, @similar_people_limit)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
     )
@@ -32,7 +35,7 @@ class GER
     .then( (action_weights) =>
       actions = {}
       (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions, action, @similar_people_limit)])
+      bb.all([actions, @related_people(object, actions, action)])
     )
     .spread( (actions, objects) =>
       bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
@@ -53,21 +56,21 @@ class GER
     )
 
   half_array_by_mean: (arr, weights) ->
-    total_weight = _.reduce((weights[p] for p of arr), ((a,b) -> a+b) , 0)
+    total_weight = _.reduce((weights[p] for p in arr), ((a,b) -> a+b) , 0)
     mean_weigth = total_weight/arr.length
     [ltmean, gtmean] = _.partition(arr, (p) -> weights[p] < mean_weigth)
+    [ltmean, gtmean]
 
   get_things_for_person: (action, people_weights) ->
     people_list = Object.keys(people_weights)
-    
     
     [ltmean, gtmean] = @half_array_by_mean(people_list, people_weights)
     bb.all([
       @esm.things_people_have_actioned(action, ltmean, @related_things_limit), 
       @esm.things_people_have_actioned(action, gtmean, @related_things_limit)
     ])
-    .spread( (ltthings, gtthings) ->
-      _.extend(ltthings, gtthings)
+    .spread( (t1, t2) ->
+      _.extend(t1, t2)
     )
     
   recommendations_for_person: (person, action) ->
