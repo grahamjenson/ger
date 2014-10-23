@@ -64,16 +64,29 @@ class EventStoreMapper
 
 
   upsert: (table, insert_attr, identity_attr, update_attr) ->
-    insert = @knex(table).insert(insert_attr).toString()
-    #bug described here http://stackoverflow.com/questions/15840922/where-not-exists-in-postgresql-gives-syntax-error
-    insert = insert.replace(/\svalues\s\(/, " select ")[..-2]
+    #TODO THIS CAN CAUSE A RACE CONDITION, should probably fix that -- soonish
+    bindings = []
 
-    #TODO SQL INJECTION
-    update = @knex(table).where(identity_attr).update(update_attr).toString()
+    update = "update #{table} set "
+    update += ("\"#{k}\" = ?" for k,v of update_attr).join(', ')
+    bindings = bindings.concat((v for k, v of update_attr))
+
+    update += " where "
+    update += ("\"#{k}\" = ?" for k,v of identity_attr).join(' and ')
+    bindings = bindings.concat((v for k, v of identity_attr))
+
+    
+    insert  = "insert into #{table} ("
+    insert += ("\"#{k}\"" for k,v of insert_attr).join(', ')
+    insert += ") select "
+    insert  += ("?" for k,v of insert_attr).join(', ')
+    bindings = bindings.concat((v for k, v of insert_attr))
 
     #defined here http://www.the-art-of-web.com/sql/upsert/
-    query = "BEGIN; LOCK TABLE #{table} IN SHARE ROW EXCLUSIVE MODE; WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert); COMMIT;"
-    @knex.raw(query)
+    query = "WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert);"
+
+    q = @knex.raw(query, bindings)
+    q
 
   find_event: (person, action, thing) ->
     @knex("#{@schema}.events")
@@ -142,28 +155,25 @@ class EventStoreMapper
 
   get_related_people: (person, actions, action, limit = 100) ->
     #TODO SQL INJECTION
-    one_degree_similar_people = @knex("sub_query_1")
+    one_degree_similar_people = @knex(@last_1000_events(person).as('e'))
     .innerJoin("#{@schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
     .whereIn('f.action', actions)
     .select('f.person')
     .groupBy('f.person').max('f.created_at')
     .orderByRaw('max(f.created_at) DESC')
-    .toString()
-
-    one_degree_similar_people = one_degree_similar_people.replace('"sub_query_1"', "(#{@last_1000_events(person).toString()}) as e")
 
     #TODO SQL INJECTION
     filter_people = @knex("#{@schema}.events")
     .select("person")
     .where(action: action)
     .whereRaw("person = x.person")
-    .toString()
 
-    q3 = "select * from (#{one_degree_similar_people}) as x where exists (#{filter_people}) limit '#{limit}'"
-    @knex.raw(q3)
+    @knex(one_degree_similar_people.as('x'))
+    .whereExists(filter_people)
+    .limit(limit)
     .then( (rows) ->
-      (r.person for r in rows.rows)
+      (r.person for r in rows)
     )
 
   filter_things_by_previous_actions: (person, things, actions) ->
