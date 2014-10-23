@@ -64,7 +64,6 @@ class EventStoreMapper
 
 
   upsert: (table, insert_attr, identity_attr, update_attr) ->
-    #TODO THIS CAN CAUSE A RACE CONDITION, should probably fix that -- soonish
     bindings = []
 
     update = "update #{table} set "
@@ -82,11 +81,35 @@ class EventStoreMapper
     insert  += ("?" for k,v of insert_attr).join(', ')
     bindings = bindings.concat((v for k, v of insert_attr))
 
-    #defined here http://www.the-art-of-web.com/sql/upsert/
     query = "WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert);"
 
-    q = @knex.raw(query, bindings)
-    q
+    #defined here http://www.the-art-of-web.com/sql/upsert/
+
+    #replace the ? with $1 variables
+    counter = 1
+    nquery = ""
+    for i in [0...query.length]
+      char = query[i]
+      if char == '?'
+        char = "$#{counter}"
+        counter +=1 
+      nquery += char
+    query = nquery
+
+    @knex.client.acquireConnection()
+    .then( (connection) =>
+      deferred = bb.defer()
+      connection.query("BEGIN; LOCK TABLE #{table} IN SHARE ROW EXCLUSIVE MODE;", (err) -> deferred.reject(err) if err);
+      connection.query(query, bindings, (err) -> deferred.reject(err) if err);
+      connection.query('COMMIT;', (err) ->
+        if err
+          deferred.reject(err)
+        else
+          deferred.resolve()
+      )
+      deferred.promise.finally( => @knex.client.releaseConnection(connection))
+    )
+
 
   find_event: (person, action, thing) ->
     @knex("#{@schema}.events")
