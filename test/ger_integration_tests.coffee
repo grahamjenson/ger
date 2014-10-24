@@ -25,11 +25,9 @@ describe '#count_events', ->
         count.should.equal 2
       )
 
-
-
 describe 'recommendations_for_person', ->
   
-  it 'asd should reccommend basic things', ->
+  it 'should reccommend basic things', ->
     init_ger()
     .then (ger) ->
       bb.all([

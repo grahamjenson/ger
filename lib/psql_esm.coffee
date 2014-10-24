@@ -338,14 +338,34 @@ class EventStoreMapper
     (e1.created_at < e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id) )" #LEXICOGRAPHIC ORDERING for created at then id
     @knex.raw(query)
 
+  vacuum_analyze: ->
+    @knex.raw("VACUUM ANALYZE #{@schema}.events")
 
-  remove_superseded_events: ->
-    #Remove events that have been superseded events, e.g. bob views a and bob redeems a, we can remove bob views a
-    bb.try(-> true)
+  get_active_people: ->
+    #select most_common_vals from pg_stats where attname = 'person';
+    @knex('pg_stats').select('most_common_vals').where(attname: 'person', tablename: 'events', schemaname: @schema)
+    .then((rows) ->
+      return [] if not rows[0]
+      common_str = rows[0].most_common_vals
+      common_str = common_str[1..common_str.length-2]
+      people = common_str.split(',')
+      people
+    )
 
-  remove_excessive_user_events: ->
-    #find members with most events and truncate them down
-    bb.try(-> true)
+  truncate_very_active_people: (trunc_size) ->
+    @get_active_people()
+    .then( (people) ->
+      return [] if people.length == 0
+      bindings = people
+      people_values =  ("($#{i+1})" for p,i in people)
+      q = "delete from events as e using (VALUES #{people_values}) as p (person) 
+        where e.id in (select id from events where person = p.person 
+        order by created_at DESC offset #{trunc_size});"
+    
+      knex.raw(q ,bindings)
+      .then( (rows) ->
+      )
+    )
     
   remove_events_till_size: (number_of_events) ->
     #removes old events till there is only number_of_events left
