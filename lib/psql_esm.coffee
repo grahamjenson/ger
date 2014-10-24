@@ -62,6 +62,16 @@ class EventStoreMapper
     created_at = dates.created_at || new Date().toISOString()
     @add_event_to_db(person, action, thing, created_at, expires_at)
 
+  questions_marks_to_dollar: (query) ->
+    counter = 1
+    nquery = ""
+    for i in [0...query.length]
+      char = query[i]
+      if char == '?'
+        char = "$#{counter}"
+        counter +=1 
+      nquery += char
+    nquery
 
   upsert: (table, insert_attr, identity_attr, update_attr) ->
     bindings = []
@@ -86,15 +96,7 @@ class EventStoreMapper
     #defined here http://www.the-art-of-web.com/sql/upsert/
 
     #replace the ? with $1 variables
-    counter = 1
-    nquery = ""
-    for i in [0...query.length]
-      char = query[i]
-      if char == '?'
-        char = "$#{counter}"
-        counter +=1 
-      nquery += char
-    query = nquery
+    query = @questions_marks_to_dollar(query)
 
     @knex.client.acquireConnection()
     .then( (connection) =>
@@ -201,19 +203,26 @@ class EventStoreMapper
   filter_things_by_previous_actions: (person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
 
-    #TODO SQL INJECTION
-    filter_things = @knex("#{@schema}.events")
+    bindings = []
+    values = []
+    for t in things
+      values.push "(?)"
+      bindings.push t
+
+    things_rows = "(VALUES #{values.join(", ")} ) AS t (tthing)"
+
+    filter_things_sql = @knex("#{@schema}.events")
     .select("thing")
     .where(person: person)
     .whereIn('action', actions)
     .whereRaw("thing = t.tthing")
-    .toString()
+    .toSQL()
 
-    #TODO SQL INJECTION
-    v_things = ("('#{t}')" for t in things)
-    q = "select tthing from (VALUES #{v_things} ) AS t (tthing) where not exists (#{filter_things})"
-
-    @knex.raw(q)
+    bindings = bindings.concat(filter_things_sql.bindings)
+   
+    query = "select tthing from #{things_rows} where not exists (#{filter_things_sql.sql})"
+    query = @questions_marks_to_dollar(query)
+    @knex.raw(query, bindings)
     .then( (rows) ->
       (r.tthing for r in rows.rows)
     )
