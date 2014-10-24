@@ -227,15 +227,6 @@ class EventStoreMapper
       (r.tthing for r in rows.rows)
     )
 
-  filter_people_by_action: (people, action) ->
-    @knex("#{@schema}.events")
-    .distinct('person')
-    .where(action: action)
-    .whereIn('person', people)
-    .then( (rows) ->
-      (r.person for r in rows)
-    )
-
   things_people_have_actioned: (action, people, limit = 100) ->
     return bb.try(->[]) if people.length == 0
     @person_thing_query(limit)
@@ -249,17 +240,17 @@ class EventStoreMapper
       temp
     )
 
-  last_1000_things_for_action: (action) ->
+  last_1000_things_for_action: (action_binding) ->
     @knex("#{@schema}.events")
     .select('thing')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
-    .where(action: action)
+    .whereRaw("action = #{action_binding}")
     .limit(1000)
 
-  get_query_for_jaccard_distances_between_people_for_action: (person, action, action_i) ->
-    s1 = @last_1000_things_for_action(action).where(person: person).toString()
-    s2 = @last_1000_things_for_action(action).whereRaw('person = cperson').toString()
+  get_query_for_jaccard_distances_between_people_for_action: (person_binding, action_binding, action_i) ->
+    s1 = @last_1000_things_for_action(action_binding).whereRaw("person = #{person_binding}").toString()
+    s2 = @last_1000_things_for_action(action_binding).whereRaw('person = cperson').toString()
 
     intersection = @knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
     # case statement is needed for divide by zero problem
@@ -271,14 +262,22 @@ class EventStoreMapper
 
   get_jaccard_distances_between_people: (person, people, actions) ->
     return bb.try(->[]) if people.length == 0
+
+    bindings = [person]
+    action_diff = bindings.length + 1
+    bindings = bindings.concat(actions)
+    people_diff = bindings.length + 1
+    bindings = bindings.concat(people)
+
     #TODO SQL INJECTION
-    v_people = ("('#{p}')" for p in people)
+    v_people = ("($#{people_diff + i})" for p,i in people)
 
     distances = []
     for action, i in actions
-      distances.push @get_query_for_jaccard_distances_between_people_for_action(person, action, i,)
+      distances.push @get_query_for_jaccard_distances_between_people_for_action("$1", "$#{action_diff + i}", i)
 
-    @knex.raw("select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)")
+    query = "select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)"
+    @knex.raw(query, bindings)
     .then( (rows) ->
       temp = {}
       for row in rows.rows
