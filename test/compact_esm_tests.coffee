@@ -1,5 +1,5 @@
 describe "get_active_people", ->
-  it 'asd should return an ordered list of the most active people', ->
+  it 'should return an ordered list of the most active people', ->
     init_esm()
     .then (esm) ->
       bb.all([
@@ -21,11 +21,12 @@ describe "get_active_people", ->
         people[1].should.equal 'p2'
       )
 
-describe "truncate_active_people", ->
-  it 'should truncate people activity to a smaller value', ->
+describe "truncate_people_per_action", ->
+  it 'should truncate people events to a smaller value', ->
     init_esm()
     .then (esm) ->
       bb.all([
+        esm.set_action_weight('view', 1)
         esm.add_event('p1','view','t1')
         esm.add_event('p1','view','t2')
         esm.add_event('p1','view','t3')
@@ -37,7 +38,7 @@ describe "truncate_active_people", ->
         esm.vacuum_analyze()
       )
       .then( ->
-        esm.truncate_very_active_people(2)
+        esm.truncate_people_per_action(['p1', 'p2'], 2)
       )
       .then( ->
         esm.count_events()
@@ -46,6 +47,35 @@ describe "truncate_active_people", ->
         count.should.equal 4
       )   
 
+  it 'should truncate people by action then broadly', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.set_action_weight('view', 1)
+        esm.set_action_weight('buy', 10)
+        
+        esm.add_event('p1','view','t2', created_at: new Date(4000))
+        esm.add_event('p1','view','t3', created_at: new Date(3000))
+        esm.add_event('p1','buy','t3', created_at: new Date(1000))
+
+        esm.add_event('p1','view','t1', created_at: new Date(5000))
+        esm.add_event('p1','buy','t1', created_at: new Date(6000))
+      ]) 
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.truncate_people_per_action(['p1'], 1)
+      )
+      .then( ->
+        bb.all([esm.count_events(), esm.find_event('p1','view','t1'), esm.find_event('p1','buy','t1')])
+      )
+      .spread( (count, e1, e2) ->
+        count.should.equal 2
+        (null != e1).should.be.true
+        (null != e2).should.be.true
+        
+      ) 
 
 
 describe "remove_events_till_size", ->

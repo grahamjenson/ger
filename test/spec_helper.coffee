@@ -1,9 +1,6 @@
 chai = require 'chai'  
 should = chai.should()
-chaiAsPromised = require("chai-as-promised")
-chai.use(chaiAsPromised)
 
-sinon = require 'sinon'
 global.bb = require 'bluebird'
 bb.Promise.longStackTraces();
 

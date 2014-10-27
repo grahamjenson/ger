@@ -352,22 +352,37 @@ class EventStoreMapper
       people
     )
 
-  truncate_very_active_people: (trunc_size) ->
-    @get_active_people()
-    .then( (people) ->
-      return [] if people.length == 0
-      bindings = people
-      people_values =  ("($#{i+1})" for p,i in people)
-      q = "delete from events as e using (VALUES #{people_values}) as p (person) 
-        where e.id in (select id from events where person = p.person 
-        order by created_at DESC offset #{trunc_size});"
+  truncate_people_per_action: (people, trunc_size) ->
+    return [] if people.length == 0  
+    @get_ordered_action_set_with_weights()
+    .then((action_weights) =>
+      actions = (aw.key for aw in action_weights)
+
+      #cut each action down to size
+      promises = (@truncate_people_actions(people, trunc_size, action) for action in actions)
+
+      bb.all(promises)
+    )
     
-      knex.raw(q ,bindings)
-      .then( (rows) ->
-      )
+
+
+  truncate_people_actions: (people, trunc_size, action) ->
+    bindings = [].concat people
+    people_values =  ("($#{i+1})" for p,i in people)
+
+    bindings.push action
+    action_binding = bindings.length
+
+    q = "delete from events as e using (VALUES #{people_values}) as p (person) 
+         where e.id in (select id from events where action = $#{action_binding} and person = p.person 
+         order by created_at DESC offset #{trunc_size});"
+    
+    knex.raw(q ,bindings)
+    .then( (rows) ->
     )
     
   remove_events_till_size: (number_of_events) ->
+    #TODO move too offset method
     #removes old events till there is only number_of_events left
     query = "delete from #{@schema}.events where id not in (select id from #{@schema}.events order by created_at desc limit #{number_of_events})"
     @knex.raw(query)
