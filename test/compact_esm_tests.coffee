@@ -22,7 +22,7 @@ describe "get_active_people", ->
       )
 
 describe "truncate_people_per_action", ->
-  it 'should truncate people events to a smaller value', ->
+  it 'asd should truncate people events to a smaller value', ->
     init_esm()
     .then (esm) ->
       bb.all([
@@ -41,13 +41,45 @@ describe "truncate_people_per_action", ->
         esm.truncate_people_per_action(['p1', 'p2'], 2)
       )
       .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
         esm.count_events()
       )
       .then( (count) ->
         count.should.equal 4
       )   
 
-  it 'should truncate people by action then broadly', ->
+  it 'should not truncate expired events', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.set_action_weight('view', 1)
+        esm.set_action_weight('buy', 10)
+        
+        esm.add_event('p1','view','t1', expires_at: new Date(4000))
+        esm.add_event('p1','view','t2', expires_at: new Date(3000))
+        esm.add_event('p1','view','t3', expires_at: new Date(1000))
+        esm.add_event('p1','view','t4')
+        esm.add_event('p1','view','t5')
+      ]) 
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.truncate_people_per_action(['p1'], 1)
+      )
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 4
+      ) 
+
+  it 'should truncate people by action', ->
     init_esm()
     .then (esm) ->
       bb.all([
@@ -68,13 +100,15 @@ describe "truncate_people_per_action", ->
         esm.truncate_people_per_action(['p1'], 1)
       )
       .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
         bb.all([esm.count_events(), esm.find_event('p1','view','t1'), esm.find_event('p1','buy','t1')])
       )
       .spread( (count, e1, e2) ->
         count.should.equal 2
         (null != e1).should.be.true
         (null != e2).should.be.true
-        
       ) 
 
 

@@ -330,7 +330,7 @@ class EventStoreMapper
     @knex("#{@schema}.events").where('expires_at', '<', now).del()
 
   remove_non_unique_events: ->
-    #remove all events that are not unique
+    # TODO I would suggest doing it for active people. THIS IS WAY TOO SLOW!!!
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
     query = "DELETE FROM #{@schema}.events e1 
     USING #{@schema}.events e2 
@@ -357,24 +357,19 @@ class EventStoreMapper
     @get_ordered_action_set_with_weights()
     .then((action_weights) =>
       actions = (aw.key for aw in action_weights)
-
       #cut each action down to size
-      promises = (@truncate_people_actions(people, trunc_size, action) for action in actions)
+      promises = (@truncate_people_actions(person, trunc_size, action) for person in people for action in actions)
 
       bb.all(promises)
     )
     
 
+  truncate_people_actions: (person, trunc_size, action) ->
+    bindings = [person, action]
 
-  truncate_people_actions: (people, trunc_size, action) ->
-    bindings = [].concat people
-    people_values =  ("($#{i+1})" for p,i in people)
-
-    bindings.push action
-    action_binding = bindings.length
-
-    q = "delete from events as e using (VALUES #{people_values}) as p (person) 
-         where e.id in (select id from events where action = $#{action_binding} and person = p.person 
+    q = "delete from events as e 
+         where e.id in 
+         (select id from events where action = $2 and person = $1 and expires_at is NULL
          order by created_at DESC offset #{trunc_size});"
     
     knex.raw(q ,bindings)

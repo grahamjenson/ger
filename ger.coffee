@@ -9,12 +9,15 @@ class GER
       related_things_limit: 1000
       recommendations_limit: 20,
       previous_actions_filter: []
+      compact_database_person_action_limit: 3000
     )
 
     @similar_people_limit = options.similar_people_limit
     @previous_actions_filter = options.previous_actions_filter
     @recommendations_limit = options.recommendations_limit
     @related_things_limit = options.related_things_limit
+
+    @compact_database_person_action_limit = options.compact_database_person_action_limit
 
   related_people: (object, actions, action) ->
     #split actions in 2 by weight
@@ -146,21 +149,25 @@ class GER
   #  DATABASE CLEANING #
 
   compact_database: ->
-    # Do some smart (lossless) things to shrink the size of the database
-    bb.all( [ @esm.remove_expired_events(), @esm.remove_non_unique_events()] )
+    @esm.vacuum_analyze()
+    .then( => @esm.get_active_people())
+    .then( (people) => 
+      promises = []
+      #remove expired events
+      promises.push @esm.remove_expired_events()
 
+      #remove events per (active) person action that exceed some number
+      promises.push @esm.truncate_people_per_action(people, @compact_database_person_action_limit)
+
+      #TODO remove non_unique events for active people
+      bb.all(promises)
+    )
+    .then(=> @esm.vacuum_analyze())
 
   compact_database_to_size: (number_of_events) ->
     # Smartly Cut (lossy) the tail of the database (based on created_at) to a defined size
     #STEP 1
-    bb.all([@esm.remove_superseded_events() , @esm.remove_excessive_user_events()])
-    .then( => @count_events())
-    .then( (count) => 
-      if count <= number_of_events
-        return count
-      else
-        @esm.remove_events_till_size(number_of_events)
-    )
+    @esm.remove_events_till_size(number_of_events)
 
 
 RET = {}
