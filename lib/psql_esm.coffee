@@ -347,15 +347,17 @@ class EventStoreMapper
     .then((rows) ->
       return [] if not rows[0]
       common_str = rows[0].most_common_vals
+      return [] if not common_str
       common_str = common_str[1..common_str.length-2]
       people = common_str.split(',')
       people
     )
 
   truncate_people_per_action: (people, trunc_size) ->
-    return [] if people.length == 0  
+    return bb.try( -> []) if people.length == 0  
     @get_ordered_action_set_with_weights()
     .then((action_weights) =>
+      return [] if action_weights.length == 0
       actions = (aw.key for aw in action_weights)
       #cut each action down to size
       promises = (@truncate_people_actions(person, trunc_size, action) for person in people for action in actions)

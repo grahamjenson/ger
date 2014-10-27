@@ -1,4 +1,12 @@
 describe "get_active_people", ->
+  it 'should work when noone is there', ->
+    init_esm()
+    .then( (esm) ->
+      esm.add_event('p1','view','t1')
+      .then(-> esm.vacuum_analyze())
+      .then( -> esm.get_active_people())
+    )
+
   it 'should return an ordered list of the most active people', ->
     init_esm()
     .then (esm) ->
@@ -111,6 +119,16 @@ describe "truncate_people_per_action", ->
         (null != e2).should.be.true
       ) 
 
+  it 'should not fail with no people and/or no actions', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([]) 
+      .then( ->
+        esm.truncate_people_per_action([], 1)
+      )
+      .then( ->
+        esm.truncate_people_per_action(['p1'], 1)
+      )
 
 describe "remove_events_till_size", ->
   it "removes old events till there is only number_of_events left", ->
