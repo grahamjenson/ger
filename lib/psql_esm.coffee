@@ -376,9 +376,9 @@ class EventStoreMapper
   truncate_people_actions: (person, trunc_size, action) ->
     bindings = [person, action]
 
-    q = "delete from events as e 
+    q = "delete from #{@schema}.events as e 
          where e.id in 
-         (select id from events where action = $2 and person = $1 and expires_at is NULL
+         (select id from #{@schema}.events where action = $2 and person = $1 and expires_at is NULL
          order by created_at DESC offset #{trunc_size});"
     
     @knex.raw(q ,bindings)
