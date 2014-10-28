@@ -329,14 +329,21 @@ class EventStoreMapper
     now = new Date().toISOString()
     @knex("#{@schema}.events").where('expires_at', '<', now).del()
 
-  remove_non_unique_events: ->
+
+  remove_non_unique_events_for_people: (people) ->
+    return bb.try( -> []) if people.length == 0
+    promises = (@remove_non_unique_events_for_person(person) for person in people)
+    bb.all(promises)
+
+  remove_non_unique_events_for_person: (person) ->
     # TODO I would suggest doing it for active people. THIS IS WAY TOO SLOW!!!
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
+    bindings = [person]
     query = "DELETE FROM #{@schema}.events e1 
     USING #{@schema}.events e2 
-    WHERE e1.id <> e2.id AND e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
+    WHERE e1.person = $1 AND e1.expires_at is NULL AND e1.id <> e2.id AND e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
     (e1.created_at < e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id) )" #LEXICOGRAPHIC ORDERING for created at then id
-    @knex.raw(query)
+    @knex.raw(query, bindings)
 
   vacuum_analyze: ->
     @knex.raw("VACUUM ANALYZE #{@schema}.events")

@@ -1,3 +1,28 @@
+describe "compact_database", ->
+  it 'asd should remove duplicate events', ->
+    init_ger()
+    .then (ger) ->
+      rs = new Readable();
+      rs.push('person,action,thing,2014-01-01,\n');
+      rs.push('person,action,thing,2014-01-01,\n');
+      rs.push(null);
+
+      ger.bootstrap(rs)
+      .then( ->
+        ger.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 2
+        ger.compact_database()
+      )
+      .then( ->
+        ger.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 1
+      )
+
+
 describe "get_active_people", ->
   it 'should work when noone is there', ->
     init_esm()
@@ -30,7 +55,7 @@ describe "get_active_people", ->
       )
 
 describe "truncate_people_per_action", ->
-  it 'asd should truncate people events to a smaller value', ->
+  it 'should truncate people events to a smaller value', ->
     init_esm()
     .then (esm) ->
       bb.all([
@@ -189,7 +214,7 @@ describe "remove_expired_events", ->
         event.expires_at.getTime().should.equal (new Date(2050,10,10)).getTime() 
       )
 
-describe "remove_non_unique_events", ->
+describe "remove_non_unique_events_for_people", ->
   it "remove all events that are not unique", ->
     init_esm()
     .then (esm) ->
@@ -203,7 +228,7 @@ describe "remove_non_unique_events", ->
       )
       .then( (count) ->
         count.should.equal 2
-        esm.remove_non_unique_events()
+        esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
       .then( (count) -> count.should.equal 1 )
@@ -221,7 +246,7 @@ describe "remove_non_unique_events", ->
       )
       .then( (count) ->
         count.should.equal 2
-        esm.remove_non_unique_events()
+        esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
       .then( (count) -> 
@@ -231,4 +256,24 @@ describe "remove_non_unique_events", ->
       .then( (event) ->
         expected_created_at = new Date('2014-01-01')
         event.created_at.getFullYear().should.equal expected_created_at.getFullYear() 
+      )
+
+  it "ignores expiring events", ->
+    init_esm()
+    .then (esm) ->    
+      rs = new Readable();
+      rs.push('person,action,thing,2013-01-01,2016-01-01\n');
+      rs.push('person,action,thing,2014-01-01,\n');
+      rs.push(null);
+      esm.bootstrap(rs)
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 2
+        esm.remove_non_unique_events_for_people(['person'])
+      )
+      .then( -> esm.count_events())
+      .then( (count) -> 
+        count.should.equal 2
       )

@@ -148,18 +148,22 @@ class GER
 
   #  DATABASE CLEANING #
 
+  compact_people : (people) ->
+    @esm.get_active_people()
+    .then( (people) =>
+      @esm.remove_non_unique_events_for_people(people)
+      .then( =>
+        #remove events per (active) person action that exceed some number
+        @esm.truncate_people_per_action(people, @compact_database_person_action_limit)
+      )
+    )
+
   compact_database: ->
     @esm.vacuum_analyze()
-    .then( => @esm.get_active_people())
-    .then( (people) => 
+    .then( =>
       promises = []
-      #remove expired events
       promises.push @esm.remove_expired_events()
-
-      #remove events per (active) person action that exceed some number
-      promises.push @esm.truncate_people_per_action(people, @compact_database_person_action_limit)
-
-      #TODO remove non_unique events for active people
+      promises.push @compact_people()
       bb.all(promises)
     )
     .then(=> @esm.vacuum_analyze())
