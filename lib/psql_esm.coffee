@@ -348,6 +348,20 @@ class EventStoreMapper
   vacuum_analyze: ->
     @knex.raw("VACUUM ANALYZE #{@schema}.events")
 
+
+  #TODO refactor out useful methods
+  get_active_things: ->
+    #select most_common_vals from pg_stats where attname = 'thing';
+    @knex('pg_stats').select('most_common_vals').where(attname: 'thing', tablename: 'events', schemaname: @schema)
+    .then((rows) ->
+      return [] if not rows[0]
+      common_str = rows[0].most_common_vals
+      return [] if not common_str
+      common_str = common_str[1..common_str.length-2]
+      things = common_str.split(',')
+      things
+    )
+
   get_active_people: ->
     #select most_common_vals from pg_stats where attname = 'person';
     @knex('pg_stats').select('most_common_vals').where(attname: 'person', tablename: 'events', schemaname: @schema)
@@ -360,20 +374,46 @@ class EventStoreMapper
       people
     )
 
+
+  truncate_things_per_action: (things, trunc_size) ->
+
+    #TODO do the same thing for things
+    return bb.try( -> []) if things.length == 0  
+    @get_ordered_action_set_with_weights()
+    .then((action_weights) =>
+      return [] if action_weights.length == 0
+      actions = (aw.key for aw in action_weights)
+      #cut each action down to size
+      promises = (@truncate_thing_actions(thing, trunc_size, action) for thing in things for action in actions)
+
+      bb.all(promises)
+    )
+
+  truncate_thing_actions: (thing, trunc_size, action) ->
+    bindings = [thing, action]
+
+    q = "delete from #{@schema}.events as e 
+         where e.id in 
+         (select id from #{@schema}.events where action = $2 and thing = $1 and expires_at is NULL
+         order by created_at DESC offset #{trunc_size});"
+    @knex.raw(q ,bindings)
+    .then( (rows) ->
+    )
+
   truncate_people_per_action: (people, trunc_size) ->
+    #TODO do the same thing for things
     return bb.try( -> []) if people.length == 0  
     @get_ordered_action_set_with_weights()
     .then((action_weights) =>
       return [] if action_weights.length == 0
       actions = (aw.key for aw in action_weights)
       #cut each action down to size
-      promises = (@truncate_people_actions(person, trunc_size, action) for person in people for action in actions)
+      promises = (@truncate_person_actions(person, trunc_size, action) for person in people for action in actions)
 
       bb.all(promises)
     )
     
-
-  truncate_people_actions: (person, trunc_size, action) ->
+  truncate_person_actions: (person, trunc_size, action) ->
     bindings = [person, action]
 
     q = "delete from #{@schema}.events as e 

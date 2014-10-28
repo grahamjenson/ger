@@ -9,7 +9,8 @@ class GER
       related_things_limit: 1000
       recommendations_limit: 20,
       previous_actions_filter: []
-      compact_database_person_action_limit: 3000
+      compact_database_person_action_limit: 2000
+      compact_database_thing_action_limit: 2000
     )
 
     @similar_people_limit = options.similar_people_limit
@@ -18,6 +19,8 @@ class GER
     @related_things_limit = options.related_things_limit
 
     @compact_database_person_action_limit = options.compact_database_person_action_limit
+
+    @compact_database_thing_action_limit = options.compact_database_thing_action_limit
 
   related_people: (object, actions, action) ->
     #split actions in 2 by weight
@@ -148,7 +151,7 @@ class GER
 
   #  DATABASE CLEANING #
 
-  compact_people : (people) ->
+  compact_people : () ->
     @esm.get_active_people()
     .then( (people) =>
       @esm.remove_non_unique_events_for_people(people)
@@ -158,12 +161,19 @@ class GER
       )
     )
 
+  compact_things :  () ->
+    @esm.get_active_things()
+    .then( (things) =>
+      @esm.truncate_things_per_action(things, @compact_database_thing_action_limit)
+    )
+
   compact_database: ->
     @esm.vacuum_analyze()
     .then( =>
       promises = []
       promises.push @esm.remove_expired_events()
       promises.push @compact_people()
+      promises.push @compact_things()
       bb.all(promises)
     )
     .then(=> @esm.vacuum_analyze())

@@ -22,6 +22,30 @@ describe "compact_database", ->
         count.should.equal 1
       )
 
+describe "get_active_things", ->
+  it 'should return an ordered list of the most active things', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.add_event('p1','view','t1')
+        esm.add_event('p1','view','t2')
+        esm.add_event('p1','view','t3')
+
+        esm.add_event('p2','view','t2')
+        esm.add_event('p2','view','t3')
+
+        esm.add_event('p3','view','t3')
+      ])
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.get_active_things()
+      )
+      .then( (things) ->
+        things[0].should.equal 't3'
+        things[1].should.equal 't2'
+      )
 
 describe "get_active_people", ->
   it 'should work when noone is there', ->
@@ -53,6 +77,36 @@ describe "get_active_people", ->
         people[0].should.equal 'p1'
         people[1].should.equal 'p2'
       )
+
+describe "truncate_things_per_action", ->
+  it 'should truncate people events to a smaller value', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.set_action_weight('view', 1)
+        esm.add_event('p1','view','t1')
+        esm.add_event('p2','view','t1')
+        esm.add_event('p3','view','t1')
+
+        esm.add_event('p1','view','t2')
+        esm.add_event('p2','view','t2')
+      ]) 
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.truncate_things_per_action(['t1', 't2'], 2)
+      )
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 4
+      )  
+
 
 describe "truncate_people_per_action", ->
   it 'should truncate people events to a smaller value', ->
