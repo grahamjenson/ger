@@ -381,7 +381,7 @@ class EventStoreMapper
          (select id from events where action = $2 and person = $1 and expires_at is NULL
          order by created_at DESC offset #{trunc_size});"
     
-    knex.raw(q ,bindings)
+    @knex.raw(q ,bindings)
     .then( (rows) ->
     )
     
