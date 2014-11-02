@@ -9,8 +9,8 @@ class GER
       related_things_limit: 1000
       recommendations_limit: 20,
       previous_actions_filter: []
-      compact_database_person_action_limit: 1000
-      compact_database_thing_action_limit: 1000
+      compact_database_person_action_limit: 1500
+      compact_database_thing_action_limit: 1500
     )
 
     @similar_people_limit = options.similar_people_limit
