@@ -8,8 +8,7 @@
     "recommendation",
     "engine",
     "collaborative",
-    "filtering",
-    "middleware"
+    "filtering"
   ],
   "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
   "dependencies"  : {
@@ -26,11 +25,10 @@
     "coffee-script": "1.7.1"
   },
   "scripts": {
-    "build": "./node_modules/.bin/coffee -c ger.coffee lib/psql_esm.coffee",
     "test": "mocha"
   },
   "main"          : "ger.coffee",
-  "version"       : "0.0.40",
+  "version"       : "0.0.41",
   "license"       : "MIT",
   "repository": {
     "type": "git",
