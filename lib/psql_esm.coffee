@@ -304,6 +304,17 @@ class EventStoreMapper
     @knex("#{@schema}.events").count()
     .then (count) -> parseInt(count[0].count)
 
+  estimate_event_count: ->
+    @knex.raw("SELECT reltuples::bigint 
+      AS estimate 
+      FROM pg_class 
+      WHERE  oid = $1::regclass;"
+      ,["#{@schema}.events"])
+    .then( (rows) ->
+      return 0 if rows.rows.length == 0
+      return parseInt(rows.rows[0].estimate)
+    )
+
   count_actions: ->
     @knex("#{@schema}.actions").count()
     .then (count) -> parseInt(count[0].count)

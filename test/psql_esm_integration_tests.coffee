@@ -1,3 +1,22 @@
+describe "estimate_event_count", ->
+  it "should estimate the number of events", ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.add_event('p1','view','t1')
+        esm.add_event('p1','view','t2')
+        esm.add_event('p1','view','t3')
+      ]) 
+      .then( ->
+        esm.vacuum_analyze()
+      )
+      .then( ->
+        esm.estimate_event_count()
+      )
+      .then( (count) ->
+        count.should.equal 3
+      )
+
 describe "filter_things_by_previous_actions", ->
   it 'should filter things a person has done before', ->
     init_esm()

@@ -125,6 +125,9 @@ class GER
   count_events: ->
     @esm.count_events()
 
+  estimate_event_count: ->
+    @esm.estimate_event_count()
+    
   event: (person, action, thing, dates = {}) ->
     @esm.add_event(person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
