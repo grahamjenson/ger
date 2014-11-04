@@ -149,6 +149,30 @@ describe 'recommendations_for_person', ->
       )
 
 describe 'weighted_similar_people', ->
+  it 'should return a people confidence rating (n_people/max_people)*mean_distance', ->
+    init_ger({similar_people_limit: 10})
+    .then (ger) ->
+      bb.all([
+        ger.action('action1',1),
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+        ger.event('p3','action1','a'),
+
+        ger.event('p1','action1','b'),
+        ger.event('p3','action1','b')
+      ])
+      .then(-> ger.weighted_similar_people('p1', 'action1'))
+      .then((similar_people) ->
+        #distance between p1 and p1 is 1
+        #distance between p1 and p2 is 1/2
+        #distance between p1 and p3 is 1
+        #mean distance is 2.5/3 = 5/6
+        #max_people is 10
+        #n_people is 3
+        #3/10*5/6 = 15/60 = 1/4
+        similar_people.people_confidence.should.equal 1/4
+      )
+
   it 'should return a list of similar people weighted with jaccard distance', ->
     init_ger()
     .then (ger) ->
@@ -164,7 +188,8 @@ describe 'weighted_similar_people', ->
         ger.event('p4','action1','d')
       ])
       .then(-> ger.weighted_similar_people('p1', 'action1'))
-      .then((people_weights) ->
+      .then((similar_people) ->
+        people_weights = similar_people.people_weights
         people_weights['p1'].should.equal 1
         people_weights['p3'].should.equal 1
         people_weights['p2'].should.equal 1/2
@@ -187,7 +212,8 @@ describe 'weighted_similar_people', ->
         ger.event('p4','action1','d')
       ])
       .then(-> ger.weighted_similar_people('p1','action1'))
-      .then((people_weights) ->
+      .then((similar_people) ->
+        people_weights = similar_people.people_weights
         compare_floats( people_weights['p3'], 2/3).should.equal true
         compare_floats( people_weights['p2'] ,1/3).should.equal true
         Object.keys(people_weights).length.should.equal 3
@@ -207,7 +233,8 @@ describe 'weighted_similar_people', ->
 
       ])
       .then(-> ger.weighted_similar_people('p1','action1'))
-      .then((people_weights) ->
+      .then((similar_people) ->
+        people_weights = similar_people.people_weights
         people_weights['p1'].should.exist
         people_weights['p2'].should.exist
         Object.keys(people_weights).length.should.equal 2

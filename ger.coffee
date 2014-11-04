@@ -58,7 +58,33 @@ class GER
         for ac, weight of weights
           temp[p] = 0 if p not of temp
           temp[p] += weight/total_weight * actions[ac]
+      
       temp
+    )
+    .then( (people_weights) =>
+      # add confidence to the selection
+
+      # Weight the list of subjects by looking for the probability they are actioned by the similar objects
+
+      # people_confidence = (n_people / max_people) * mean_weight [0,1]
+
+      total_weight = 0
+      for p, weight of people_weights
+        total_weight += weight
+
+      n_people = Object.keys(people_weights).length
+      mean_distance = total_weight / n_people
+
+      #this is the minimum maximum value somewhere between similar_people_limit and similar_people_limit*2
+      max_people = @similar_people_limit
+      people_confidence = Math.min(1, n_people / max_people) * mean_distance
+
+      {
+        people_weights: people_weights, 
+        people_confidence: people_confidence
+        n_people: n_people
+        mean_distance: mean_distance
+      }
     )
 
   half_array_by_mean: (arr, weights) ->
@@ -91,41 +117,40 @@ class GER
     #recommendations for object action from object, only looking at what they have already done
     #then join the two objects and sort
     @weighted_similar_people(person, action)
-    .then( (people_weights) =>
+    .then( (similar_people) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
-      bb.all([people_weights, @get_things_for_person(action, people_weights)])
+      bb.all([
+        similar_people, 
+        @get_things_for_person(action, similar_people.people_weights)
+      ])
     )
-    .spread( ( people_weights, people_things) =>
+    .spread( ( similar_people, people_things ) =>
       #confidences
-      #If there are a lot of related people this encourages confidence
+      #If there are a lot of highly related people this encourages confidence
       #If these people converge on the related things this encourages confidence
       #The maximum confidence is the max people, each selecting the same things (doesnt matter how many there are hits/size), each with a similarity of 1.
 
-      #related_people_confidence = related_people/max_people [0,1]
+      #related_things_confidence = (n of hits / n of possible hits (n of people * n of things)) [0-1]
 
-      #related_things_confidence = n of hits / n of possible hits (n of people * n of things) [0-1]
-
-      #confidence = related_people_confidence * related_things_confidence * mean distance
+      #confidence = related_people_confidence * related_things_confidence
 
 
-      people_confidence = 0
       things_confidence = 0
-      mean_distance = 0
-      # Weight the list of subjects by looking for the probability they are actioned by the similar objects
-      total_weight = 0
-      for p, weight of people_weights
-        total_weight += weight
 
-      #TODO total weight = 0
+      hits = 0
+      possible_hits = 0
+      people_weights = similar_people.people_weights
+
       things_weight = {}
       for p, things of people_things
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
           things_weight[thing] += people_weights[p]
+          hits += 1
 
-      if total_weight != 0
-        for thing, weight of things_weight
-          things_weight[thing] = weight/total_weight 
+      n_related_people = Object.keys(people_weights).length
+
+      console.log "people_confidence #{JSON.stringify similar_people}"
 
       @filter_recommendations(person, things_weight)
     )
@@ -133,7 +158,6 @@ class GER
 
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
-
       sorted_things = sorted_things[0...@recommendations_limit]
       sorted_things
     ) 
