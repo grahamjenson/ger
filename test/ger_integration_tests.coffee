@@ -39,7 +39,8 @@ describe 'recommendations_for_person', ->
         ger.event('p2','view','a'),
       ])
       .then(-> ger.recommendations_for_person('p2', 'buy'))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal 'a'
         item_weights.length.should.equal 1
       )
@@ -61,7 +62,8 @@ describe 'recommendations_for_person', ->
         ger.event('p3','buy','c')
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         #p1 is similar to (p1 by 1), p2 by .5, and (p3 by .5)
         #p1 buys a (a is 1), p2 and p3 buys c (.5 + .5=1) and p2 buys d (.5)
         items = (i.thing for i in item_weights)
@@ -85,7 +87,8 @@ describe 'recommendations_for_person', ->
         ger.event('p3','view','c')
       ])
       .then(-> ger.recommendations_for_person('p1', 'view'))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal 'a'
         item_weights[1].thing.should.equal 'c'
         item_weights[2].thing.should.equal 'd'
@@ -100,7 +103,8 @@ describe 'recommendations_for_person', ->
         ger.event('p1','buy','a'),
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
       ) 
 
@@ -114,7 +118,8 @@ describe 'recommendations_for_person', ->
         ger.event('p2','buy','a'),
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
       )
 
@@ -129,7 +134,8 @@ describe 'recommendations_for_person', ->
         ger.event('p2','buy','a'),
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
         item_weights[0].thing.should.equal 'a'
       ) 
@@ -143,7 +149,8 @@ describe 'recommendations_for_person', ->
         ger.event("'p\n2","v'i\new","'a\n;"),
       ])
       .then(-> ger.recommendations_for_person("'p\n1","v'i\new"))
-      .then((item_weights) ->
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal "'a\n;"
         item_weights.length.should.equal 1
       )
@@ -163,14 +170,13 @@ describe 'weighted_similar_people', ->
       ])
       .then(-> ger.weighted_similar_people('p1', 'action1'))
       .then((similar_people) ->
-        #distance between p1 and p1 is 1
         #distance between p1 and p2 is 1/2
         #distance between p1 and p3 is 1
-        #mean distance is 2.5/3 = 5/6
+        #mean distance is 1.5/2 = 3/4
         #max_people is 10
-        #n_people is 3
-        #3/10*5/6 = 15/60 = 1/4
-        similar_people.people_confidence.should.equal 1/4
+        #n_people is 2
+        #2/10*3/4 = 6/40
+        compare_floats(similar_people.people_confidence, 6/40).should.equal true
       )
 
   it 'should return a list of similar people weighted with jaccard distance', ->

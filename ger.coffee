@@ -70,9 +70,9 @@ class GER
 
       total_weight = 0
       for p, weight of people_weights
-        total_weight += weight
+        total_weight += weight if p != object #remove object as it is 1 and drags up the mean if there are less values
 
-      n_people = Object.keys(people_weights).length
+      n_people = Object.keys(people_weights).length - 1 #remove original object
       mean_distance = total_weight / n_people
 
       #this is the minimum maximum value somewhere between similar_people_limit and similar_people_limit*2
@@ -125,20 +125,12 @@ class GER
       ])
     )
     .spread( ( similar_people, people_things ) =>
-      #confidences
-      #If there are a lot of highly related people this encourages confidence
-      #If these people converge on the related things this encourages confidence
-      #The maximum confidence is the max people, each selecting the same things (doesnt matter how many there are hits/size), each with a similarity of 1.
+      #related things confidence tries to measure convergence of related people on a set of things
+      #things_confidence is (|uniq people things| / |all people things|)
+      #e.g. if p1: [t1, t2], p2: [t2,t3] then |{t1,t2} N {t2,t3}| /   |{t1,t2} U {t2,t3}|
+      #confidence = related_people_confidence + related_things_confidence/2
+      all_people_things = 0
 
-      #related_things_confidence = (n of hits / n of possible hits (n of people * n of things)) [0-1]
-
-      #confidence = related_people_confidence * related_things_confidence
-
-
-      things_confidence = 0
-
-      hits = 0
-      possible_hits = 0
       people_weights = similar_people.people_weights
 
       things_weight = {}
@@ -146,20 +138,22 @@ class GER
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
           things_weight[thing] += people_weights[p]
-          hits += 1
+          all_people_things += 1
 
-      n_related_people = Object.keys(people_weights).length
+      uniq_people_things = Object.keys(things_weight).length
+      things_confidence = 1 - (uniq_people_things/all_people_things)
 
-      console.log "people_confidence #{JSON.stringify similar_people}"
-
-      @filter_recommendations(person, things_weight)
+      confidence = (things_confidence + similar_people.people_confidence)/2
+      confidences = {confidence : confidence , people_confidence : similar_people.people_confidence, things_confidence: things_confidence}
+      bb.all([@filter_recommendations(person, things_weight), confidences] )
     )
-    .then( (recommendations) =>
+    .spread( (recommendations, confidences) =>
 
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
       sorted_things = sorted_things[0...@recommendations_limit]
-      sorted_things
+      
+      {recommendations: sorted_things, confidences: confidences}
     ) 
 
   ##Wrappers of the ESM
