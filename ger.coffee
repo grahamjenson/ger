@@ -78,7 +78,14 @@ class GER
     .spread( (t1, t2) ->
       _.extend(t1, t2)
     )
-    
+  
+  filter_recommendations: (person, recommendations) ->
+    @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)
+    .then( (filter_things) ->
+      ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
+    )
+
+
   recommendations_for_person: (person, action) ->
     #recommendations for object action from similar people
     #recommendations for object action from object, only looking at what they have already done
@@ -89,6 +96,21 @@ class GER
       bb.all([people_weights, @get_things_for_person(action, people_weights)])
     )
     .spread( ( people_weights, people_things) =>
+      #confidences
+      #If there are a lot of related people this encourages confidence
+      #If these people converge on the related things this encourages confidence
+      #The maximum confidence is the max people, each selecting the same things (doesnt matter how many there are hits/size), each with a similarity of 1.
+
+      #related_people_confidence = related_people/max_people [0,1]
+
+      #related_things_confidence = n of hits / n of possible hits (n of people * n of things) [0-1]
+
+      #confidence = related_people_confidence * related_things_confidence * mean distance
+
+
+      people_confidence = 0
+      things_confidence = 0
+      mean_distance = 0
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
       total_weight = 0
       for p, weight of people_weights
@@ -105,16 +127,12 @@ class GER
         for thing, weight of things_weight
           things_weight[thing] = weight/total_weight 
 
-      things_weight
+      @filter_recommendations(person, things_weight)
     )
     .then( (recommendations) =>
-      bb.all([recommendations, @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)])
-    )
-    .spread( (recommendations, filter_things) =>
 
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
-      weight_things = ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
-      sorted_things = weight_things.sort((x, y) -> y.weight - x.weight)
+      sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
 
       sorted_things = sorted_things[0...@recommendations_limit]
       sorted_things
@@ -127,7 +145,7 @@ class GER
 
   estimate_event_count: ->
     @esm.estimate_event_count()
-    
+
   event: (person, action, thing, dates = {}) ->
     @esm.add_event(person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
