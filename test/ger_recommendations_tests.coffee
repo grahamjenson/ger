@@ -1,3 +1,16 @@
+describe "confidence", ->
+  it "should not return NaN as conifdence", ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.event('p1','view','a'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        recs.confidences.confidence.should.equal 0
+      )
+
 describe "weights", ->
   it "weights should represent the amount of actions needed to outweight them", ->
     init_ger()

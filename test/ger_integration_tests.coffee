@@ -179,6 +179,19 @@ describe 'weighted_similar_people', ->
         compare_floats(similar_people.people_confidence, 6/40).should.equal true
       )
 
+  it 'should return a people confidence of 0 not NaN', ->
+    init_ger({similar_people_limit: 10})
+    .then (ger) ->
+      bb.all([
+        ger.action('action1',1),
+        ger.event('p1','action1','a')
+      ])
+      .then(-> ger.weighted_similar_people('p1', 'action1'))
+      .then((similar_people) ->
+        similar_people.people_confidence.should.equal 0
+      )
+
+
   it 'should return a list of similar people weighted with jaccard distance', ->
     init_ger()
     .then (ger) ->

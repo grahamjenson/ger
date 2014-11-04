@@ -73,7 +73,10 @@ class GER
         total_weight += weight if p != object #remove object as it is 1 and drags up the mean if there are less values
 
       n_people = Object.keys(people_weights).length - 1 #remove original object
-      mean_distance = total_weight / n_people
+      if n_people > 0
+        mean_distance = total_weight / n_people
+      else
+        mean_distance = 0
 
       #this is the minimum maximum value somewhere between similar_people_limit and similar_people_limit*2
       max_people = @similar_people_limit
@@ -141,7 +144,11 @@ class GER
           all_people_things += 1
 
       uniq_people_things = Object.keys(things_weight).length
-      things_confidence = 1 - (uniq_people_things/all_people_things)
+      
+      if all_people_things > 0
+        things_confidence = 1 - (uniq_people_things/all_people_things)
+      else
+        things_confidence = 0
 
       confidence = (things_confidence + similar_people.people_confidence)/2
       confidences = {confidence : confidence , people_confidence : similar_people.people_confidence, things_confidence: things_confidence}
