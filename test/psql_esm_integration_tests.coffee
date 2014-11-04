@@ -1,3 +1,28 @@
+describe "action cache", ->
+  it 'should cache the action and invalidate when action changes', ->
+    init_esm()
+    .then (esm) ->
+      esm.set_action_weight('view', 1)
+      .then( ->
+        (esm.action_cache == null).should.equal true
+        esm.get_ordered_action_set_with_weights()
+      )
+      .then( (actions) ->
+        esm.action_cache.should.equal actions
+        actions[0].key.should.equal 'view'
+        actions[0].weight.should.equal 1
+      )
+      .then( ->
+        esm.get_ordered_action_set_with_weights()
+      )
+      .then( (actions) ->
+        esm.action_cache.should.equal actions
+        esm.set_action_weight('view', 2)
+      )
+      .then( (exists) ->
+        (esm.action_cache == null).should.equal true
+      )
+
 describe "person_exists", ->
   it "return true if person exists", ->
     init_esm()

@@ -48,8 +48,12 @@ init_tables = (knex, schema = 'public') ->
 
 class EventStoreMapper
   
+  invalidate_action_cache: ->
+    @action_cache = null
+
   #INSTANCE ACTIONS
   constructor: (@knex, @schema = 'public') ->
+    @action_cache = null
 
   drop_tables: ->
     drop_tables(@knex,@schema)
@@ -132,6 +136,7 @@ class EventStoreMapper
     @upsert("#{@schema}.events", insert_attr, identity_attr, update_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
+    @invalidate_action_cache()
     now = new Date().toISOString()
     insert_attr =  {action: action, weight: weight, created_at: now, updated_at: now}
 
@@ -158,10 +163,16 @@ class EventStoreMapper
       else
         return false
     )
+
   get_ordered_action_set_with_weights: ->
+    return bb.try( => @action_cache) if @action_cache
     @knex("#{@schema}.actions")
     .select('action as key', 'weight')
     .orderBy('weight', 'desc')
+    .then( (rows) =>
+      @action_cache = rows
+      rows
+    )
 
   get_action_weight: (action) ->
     @knex("#{@schema}.actions").select('weight').where(action: action)
