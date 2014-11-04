@@ -48,16 +48,16 @@ class GER
     )
     .spread( (actions, object_weights) =>
       # join the weights together
-      total_weight = 0
+      total_action_weight = 0
       for action, weight of actions
-        total_weight += weight
+        total_action_weight += weight
 
       temp = {}
       temp[object] = 1 #manually add the object
       for p, weights of object_weights
         for ac, weight of weights
           temp[p] = 0 if p not of temp
-          temp[p] += weight/total_weight * actions[ac]
+          temp[p] += weight * (actions[ac] / total_action_weight) # jaccard weight for action * percent of 
       
       temp
     )

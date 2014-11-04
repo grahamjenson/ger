@@ -156,6 +156,28 @@ describe 'recommendations_for_person', ->
       )
 
 describe 'weighted_similar_people', ->
+  it 'should weight actions', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view',1),
+        ger.action('buy',99),
+        ger.event('p1','view','a'),
+        ger.event('p2','view','a'),
+        ger.event('p3','view','a'),
+
+        ger.event('p1','buy','b'),
+        ger.event('p3','buy','b'),
+
+        ger.event('p2','buy','x')
+      ])
+      .then(-> ger.weighted_similar_people('p1', 'buy'))
+      .then((similar_people) ->
+        similar_people.people_weights['p3'].should.equal 1
+        similar_people.people_weights['p1'].should.equal 1
+        similar_people.people_weights['p2'].should.equal 0.01
+      )
+
   it 'should return a people confidence rating (n_people/max_people)*mean_distance', ->
     init_ger({similar_people_limit: 10})
     .then (ger) ->
