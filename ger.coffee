@@ -1,9 +1,13 @@
 bb = require 'bluebird'
 _ = require 'underscore'
 
+#The only stateful things in GER are the ESM and the options 
 class GER
 
   constructor: (@esm, options = {}) ->
+    @set_options(options)
+
+  set_options: (options) ->
     options = _.defaults(options, 
       similar_people_limit: 100,
       related_things_limit: 1000
@@ -21,6 +25,7 @@ class GER
     @compact_database_person_action_limit = options.compact_database_person_action_limit
 
     @compact_database_thing_action_limit = options.compact_database_thing_action_limit
+
 
   related_people: (object, actions, action) ->
     #split actions in 2 by weight
