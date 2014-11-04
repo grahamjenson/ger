@@ -1,3 +1,23 @@
+describe "person_exists", ->
+  it "return true if person exists", ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.add_event('p1','view','t1')
+      ]) 
+      .then( ->
+        esm.person_exists('p1')
+      )
+      .then( (exists) ->
+        exists.should.equal true
+      )
+      .then( ->
+        esm.person_exists('p2')
+      )
+      .then( (exists) ->
+        exists.should.equal false
+      ) 
+
 describe "estimate_event_count", ->
   it "should estimate the number of events", ->
     init_esm()

@@ -114,11 +114,7 @@ class GER
       ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
     )
 
-
-  recommendations_for_person: (person, action) ->
-    #recommendations for object action from similar people
-    #recommendations for object action from object, only looking at what they have already done
-    #then join the two objects and sort
+  generate_recommendations_for_person: (person, action) ->
     @weighted_similar_people(person, action)
     .then( (similar_people) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
@@ -144,7 +140,7 @@ class GER
           all_people_things += 1
 
       uniq_people_things = Object.keys(things_weight).length
-      
+
       if all_people_things > 0
         things_confidence = 1 - (uniq_people_things/all_people_things)
       else
@@ -161,7 +157,18 @@ class GER
       sorted_things = sorted_things[0...@recommendations_limit]
       
       {recommendations: sorted_things, confidences: confidences}
-    ) 
+    )
+
+  recommendations_for_person: (person, action) ->
+    #first a check or two
+    @esm.person_exists(person)
+    .then( (exists) =>
+      if not exists
+        return {recommendations: [], confidences: {confidence: 0}}
+      else
+        return @generate_recommendations_for_person(person, action)
+    )
+      
 
   ##Wrappers of the ESM
 

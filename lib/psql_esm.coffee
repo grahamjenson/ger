@@ -148,13 +148,21 @@ class EventStoreMapper
     .orderByRaw('max_ca DESC')
     .limit(limit)
 
-
+  person_exists: (person) ->
+    @knex("#{@schema}.events")
+    .where(person: person)
+    .limit(1)
+    .then( (rows) ->
+      if rows.length > 0
+        return true
+      else
+        return false
+    )
   get_ordered_action_set_with_weights: ->
     @knex("#{@schema}.actions")
     .select('action as key', 'weight')
     .orderBy('weight', 'desc')
 
-    
   get_action_weight: (action) ->
     @knex("#{@schema}.actions").select('weight').where(action: action)
     .then((rows)->
