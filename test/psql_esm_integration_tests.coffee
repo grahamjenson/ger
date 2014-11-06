@@ -349,6 +349,20 @@ describe '#get_things_that_actioned_person', ->
       ) 
 
 describe '#get_jaccard_distances_between_people', ->
+  it 'should take a since, to limit the dates it uses', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([
+        esm.add_event('p1','a','t1', {created_at: new Date(2014, 6, 6)}),
+        esm.add_event('p1','a','t2', {created_at: new Date(2014, 6, 6)}),
+        esm.add_event('p2','a','t2', {created_at: new Date(2014, 6, 6)}),
+        esm.add_event('p2','a','t1', {created_at: new Date(2013, 6, 6)})
+      ])
+      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], new Date(2014,1,1)))
+      .then( (jaccards) ->
+        jaccards['p2']['a'].should.equal 1/2
+      ) 
+
   it 'should return an object of people to jaccard distance', ->
     init_esm()
     .then (esm) ->

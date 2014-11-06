@@ -13,6 +13,8 @@ global.fs = require('fs');
 global.path = require('path')
 global.Readable = require('stream').Readable;
 
+global.moment = require "moment"
+
 global.knex = g.knex
   client: 'pg',
   #debug: true

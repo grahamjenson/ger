@@ -262,17 +262,18 @@ class EventStoreMapper
       temp
     )
 
-  last_1000_things_for_action: (action_binding) ->
+  last_1000_things_for_action: (action_binding, since) ->
     @_knex("#{@_schema}.events")
     .select('thing')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
     .whereRaw("action = #{action_binding}")
     .limit(1000)
+    .where("created_at", '>', since)
 
-  get_query_for_jaccard_distances_between_people_for_action: (person_binding, action_binding, action_i) ->
-    s1 = @last_1000_things_for_action(action_binding).whereRaw("person = #{person_binding}").toString()
-    s2 = @last_1000_things_for_action(action_binding).whereRaw('person = cperson').toString()
+  get_query_for_jaccard_distances_between_people_for_action: (person_binding, action_binding, action_i, since) ->
+    s1 = @last_1000_things_for_action(action_binding, since).whereRaw("person = #{person_binding}").toString()
+    s2 = @last_1000_things_for_action(action_binding, since).whereRaw('person = cperson').toString()
 
     intersection = @_knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
     # case statement is needed for divide by zero problem
@@ -282,7 +283,7 @@ class EventStoreMapper
     "(#{intersection} / #{union}) as action_#{action_i}"
 
 
-  get_jaccard_distances_between_people: (person, people, actions) ->
+  get_jaccard_distances_between_people: (person, people, actions, since = new Date(0)) ->
     return bb.try(->[]) if people.length == 0
 
     bindings = [person]
@@ -296,7 +297,7 @@ class EventStoreMapper
 
     distances = []
     for action, i in actions
-      distances.push @get_query_for_jaccard_distances_between_people_for_action("$1", "$#{action_diff + i}", i)
+      distances.push @get_query_for_jaccard_distances_between_people_for_action("$1", "$#{action_diff + i}", i, since)
 
     query = "select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)"
     @_knex.raw(query, bindings)

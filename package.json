@@ -16,7 +16,8 @@
     "knex" : "0.7.0",
     "pg" : "3.5.0",
     "pg-copy-streams": "0.3.0",
-    "underscore": "1.7.0"
+    "underscore": "1.7.0",
+    "moment": "2.8.3"
   },
   "devDependencies": {
     "q-io": "1.11.3", 
@@ -28,7 +29,7 @@
     "test": "mocha"
   },
   "main"          : "ger.coffee",
-  "version"       : "0.0.45",
+  "version"       : "0.0.46",
   "license"       : "MIT",
   "repository": {
     "type": "git",

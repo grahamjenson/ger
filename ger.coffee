@@ -1,6 +1,8 @@
 bb = require 'bluebird'
 _ = require 'underscore'
 
+moment = require "moment"
+
 #The only stateful things in GER are the ESM and the options 
 class GER
 
@@ -12,6 +14,7 @@ class GER
       similar_people_limit: 100,
       related_things_limit: 1000
       recommendations_limit: 20,
+      recent_event_hours: 720,
       previous_actions_filter: []
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500
@@ -26,6 +29,7 @@ class GER
 
     @compact_database_thing_action_limit = options.compact_database_thing_action_limit
 
+    @recent_event_hours = options.recent_event_hours
 
   related_people: (object, actions, action) ->
     #split actions in 2 by weight
@@ -40,6 +44,34 @@ class GER
       _.unique(ltpeople.concat gtpeople)
     )
   ####################### Weighted people  #################################
+  combine_weights_with_actions: (object_weights, actions, total_action_weight) ->
+    # join the weights together
+    temp = {}
+    for p, weights of object_weights
+      for ac, weight of weights
+        temp[p] = 0 if p not of temp
+        temp[p] += weight * (actions[ac] / total_action_weight) # jaccard weight for action * percent of 
+    
+    temp    
+
+  weight_people : (person, people, actions) ->
+    total_action_weight = 0
+    for action, weight of actions
+      total_action_weight += weight
+
+    bb.all([
+      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions)).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight)),
+      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), moment().subtract(@recent_event_hours, 'hours')).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight))
+    ])
+    .spread( (event_weights, recent_event_weights) =>
+      # join the weights together
+      temp = {}
+      temp[person] = 1
+      for p, w of event_weights
+        temp[p] = ((recent_event_weights[p] * 80) + (w*20) )/100 #join the weights together weighted 80/20 mean
+        
+      temp
+    )
 
   weighted_similar_people: (object, action) ->
     @esm.get_ordered_action_set_with_weights()
@@ -49,22 +81,7 @@ class GER
       bb.all([actions, @related_people(object, actions, action)])
     )
     .spread( (actions, objects) =>
-      bb.all([actions, @esm.get_jaccard_distances_between_people(object, objects, Object.keys(actions))])
-    )
-    .spread( (actions, object_weights) =>
-      # join the weights together
-      total_action_weight = 0
-      for action, weight of actions
-        total_action_weight += weight
-
-      temp = {}
-      temp[object] = 1 #manually add the object
-      for p, weights of object_weights
-        for ac, weight of weights
-          temp[p] = 0 if p not of temp
-          temp[p] += weight * (actions[ac] / total_action_weight) # jaccard weight for action * percent of 
-      
-      temp
+      @weight_people(object, objects, actions)
     )
     .then( (people_weights) =>
       # add confidence to the selection
