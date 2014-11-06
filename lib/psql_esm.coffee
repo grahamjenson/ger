@@ -298,7 +298,7 @@ class EventStoreMapper
 
     distances = []
     for action, i in actions
-      distances.push @get_query_for_jaccard_distances_between_people_for_action("$1", "$#{action_diff + i}", i, since)
+      distances.push @get_query_for_jaccard_distances_between_people_for_action("$1", "$#{action_diff + i}", i, since, search_limit)
 
     query = "select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)"
     @_knex.raw(query, bindings)
