@@ -349,7 +349,7 @@ describe '#get_things_that_actioned_person', ->
       ) 
 
 describe '#get_jaccard_distances_between_people', ->
-  it 'should take a since, to limit the dates it uses', ->
+  it 'should take a since, return recent as well', ->
     init_esm()
     .then (esm) ->
       bb.all([
@@ -359,7 +359,7 @@ describe '#get_jaccard_distances_between_people', ->
         esm.add_event('p2','a','t1', {created_at: new Date(2013, 6, 6)})
       ])
       .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], 500, new Date(2014,1,1)))
-      .then( (jaccards) ->
+      .spread( (limit_distances, jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
       ) 
 
@@ -372,7 +372,7 @@ describe '#get_jaccard_distances_between_people', ->
         esm.add_event('p2','a','t2')
       ])
       .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a']))
-      .then( (jaccards) ->
+      .spread( (jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
       )     
 
@@ -388,7 +388,7 @@ describe '#get_jaccard_distances_between_people', ->
       rs.push(null);
       esm.bootstrap(rs)
       .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a']))
-      .then( (jaccards) ->
+      .spread( (jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
       )   
 

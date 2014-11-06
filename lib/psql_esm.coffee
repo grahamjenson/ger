@@ -263,52 +263,56 @@ class EventStoreMapper
       temp
     )
 
-  last_things_for_action: (action_binding, since, limit) ->
+
+  last_things_for_person: (limit) ->
     @_knex("#{@_schema}.events")
     .select('thing')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
-    .whereRaw("action = #{action_binding}")
-    .limit(limit)
-    .where("created_at", '>', since)
+    .whereRaw("action = t.caction")
 
-  get_query_for_jaccard_distances_between_people_for_action: (person_binding, action_binding, action_i, since, search_limit) ->
-    s1 = @last_things_for_action(action_binding, since, search_limit).whereRaw("person = #{person_binding}").toString()
-    s2 = @last_things_for_action(action_binding, since, search_limit).whereRaw('person = cperson').toString()
-
-    intersection = @_knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
+  jaccard_query: (s1,s2) ->
+    intersection = "(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float"
     # case statement is needed for divide by zero problem
-    union = @_knex.raw("(select (case count(*) when 0 then 1 else count(*) end) from ((#{s1}) UNION (#{s2})) as uni)::float").toString()
+    union = "(select (case count(*) when 0 then 1 else count(*) end) from ((#{s1}) UNION (#{s2})) as uni)::float"
     
     # dont put the name of the action in the sql stopping sql injection
-    "(#{intersection} / #{union}) as action_#{action_i}"
+    "(#{intersection} / #{union}) "
 
+  jaccard_distance_for_limit: (person, limit) ->
+    s1 = @last_things_for_person().limit(limit).where(person: person).toString()
+    s2 = @last_things_for_person().limit(limit).whereRaw("person = t.cperson").toString()
+    "#{@jaccard_query(s1, s2)} as limit_distance"
 
-  get_jaccard_distances_between_people: (person, people, actions, search_limit = 500, since = new Date(0)) ->
+  jaccard_distance_for_recent: (person, limit, since) ->
+    s1 = @last_things_for_person().limit(limit).where("created_at", '>', since).where(person: person).toString()
+    s2 = @last_things_for_person().limit(limit).where("created_at", '>', since).whereRaw("person = t.cperson").toString()
+    "#{@jaccard_query(s1, s2)} as recent_distance"
+
+  get_jaccard_distances_between_people: (person, people, actions, limit = 500, since = new Date(0)) ->
     return bb.try(->[]) if people.length == 0
+    #TODO allow for arbitrary distance measurements here
+    #TODO SQL injection
 
-    bindings = [person]
-    action_diff = bindings.length + 1
-    bindings = bindings.concat(actions)
-    people_diff = bindings.length + 1
-    bindings = bindings.concat(people)
+    limit_distance_query = @jaccard_distance_for_limit(person, limit)
+    recent_distance_query = @jaccard_distance_for_recent(person, limit, since)
 
-    #TODO SQL INJECTION
-    v_people = ("($#{people_diff + i})" for p,i in people)
+    v_actions = ("('#{p}', '#{a}')" for a in actions for p in people).join(', ')
 
-    distances = []
-    for action, i in actions
-      distances.push @get_query_for_jaccard_distances_between_people_for_action("$1", "$#{action_diff + i}", i, since, search_limit)
+    query = "select cperson, caction, #{limit_distance_query}, #{recent_distance_query} from (VALUES #{v_actions} ) AS t (cperson, caction)"
 
-    query = "select cperson , #{distances.join(',')} from (VALUES #{v_people} ) AS t (cperson)"
-    @_knex.raw(query, bindings)
+    @_knex.raw(query)
     .then( (rows) ->
-      temp = {}
+      limit_distance = {}
+      recent_distance = {}
       for row in rows.rows
-        temp[row.cperson] = {}
-        for action, i in actions
-          temp[row.cperson][action] = row["action_#{i}"]
-      temp
+        recent_distance[row["cperson"]] ||= {}
+        limit_distance[row["cperson"]] ||= {}
+
+        limit_distance[row["cperson"]][row["caction"]] = row["limit_distance"]
+        recent_distance[row["cperson"]][row["caction"]] = row["recent_distance"]
+
+      [limit_distance, recent_distance]
     )
 
   #knex wrapper functions

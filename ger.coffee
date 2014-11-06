@@ -61,17 +61,20 @@ class GER
     for action, weight of actions
       total_action_weight += weight
 
-    bb.all([
-      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit ).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight)),
-      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit, moment().subtract(@recent_event_hours, 'hours')).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight))
-    ])
+    @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit, moment().subtract(@recent_event_hours, 'hours'))
+    .spread( (event_weights, recent_event_weights) =>
+      [
+        @combine_weights_with_actions(event_weights, actions, total_action_weight), 
+        @combine_weights_with_actions(recent_event_weights, actions, total_action_weight)
+      ]
+    )
     .spread( (event_weights, recent_event_weights) =>
       # join the weights together
       temp = {}
       temp[person] = 1
       for p, w of event_weights
-        temp[p] = ((recent_event_weights[p] * 80) + (w*20) )/100 #join the weights together weighted 80/20 mean
-
+        temp[p] = ((recent_event_weights[p] * 80) + (event_weights[p] * 20) )/100 #join the weights together weighted 80/20 mean
+      
       temp
     )
 

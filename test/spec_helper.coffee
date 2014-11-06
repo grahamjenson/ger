@@ -15,14 +15,7 @@ global.Readable = require('stream').Readable;
 
 global.moment = require "moment"
 
-global.knex = g.knex
-  client: 'pg',
-  #debug: true
-  connection: 
-    host: '127.0.0.1', 
-    user : 'root', 
-    password : 'abcdEF123456', 
-    database : 'ger_test'
+global.knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root', password : 'abcdEF123456', database : 'ger_test'}})
 
 
 global.init_esm = () ->
