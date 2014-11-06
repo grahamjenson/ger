@@ -358,7 +358,7 @@ describe '#get_jaccard_distances_between_people', ->
         esm.add_event('p2','a','t2', {created_at: new Date(2014, 6, 6)}),
         esm.add_event('p2','a','t1', {created_at: new Date(2013, 6, 6)})
       ])
-      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], new Date(2014,1,1)))
+      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], 500, new Date(2014,1,1)))
       .then( (jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
       ) 

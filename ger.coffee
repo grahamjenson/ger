@@ -18,6 +18,7 @@ class GER
       previous_actions_filter: []
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500
+      event_search_limit: 500
     )
 
     @similar_people_limit = options.similar_people_limit
@@ -30,6 +31,7 @@ class GER
     @compact_database_thing_action_limit = options.compact_database_thing_action_limit
 
     @recent_event_hours = options.recent_event_hours
+    @event_search_limit = options.event_search_limit
 
   related_people: (object, actions, action) ->
     #split actions in 2 by weight
@@ -38,8 +40,8 @@ class GER
     [ltmean, gtmean] = @half_array_by_mean(action_list, actions)
 
     bb.all([
-      @esm.get_related_people(object, ltmean, action, @similar_people_limit), 
-      @esm.get_related_people(object, gtmean, action, @similar_people_limit)])
+      @esm.get_related_people(object, ltmean, action, @similar_people_limit, @event_search_limit), 
+      @esm.get_related_people(object, gtmean, action, @similar_people_limit, @event_search_limit)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
     )
@@ -60,8 +62,8 @@ class GER
       total_action_weight += weight
 
     bb.all([
-      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions)).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight)),
-      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), moment().subtract(@recent_event_hours, 'hours')).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight))
+      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit ).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight)),
+      @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit, moment().subtract(@recent_event_hours, 'hours')).then( (ow) => @combine_weights_with_actions(ow, actions, total_action_weight))
     ])
     .spread( (event_weights, recent_event_weights) =>
       # join the weights together
@@ -69,7 +71,7 @@ class GER
       temp[person] = 1
       for p, w of event_weights
         temp[p] = ((recent_event_weights[p] * 80) + (w*20) )/100 #join the weights together weighted 80/20 mean
-        
+
       temp
     )
 

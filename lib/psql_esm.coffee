@@ -193,21 +193,21 @@ class EventStoreMapper
       (r.thing for r in rows)
     )
 
-  last_1000_events: (person) ->
+  last_events: (person, limit) ->
     @_knex("#{@_schema}.events")
     .select("person", "action", "thing")
     .where(person: person)
     .orderByRaw('created_at DESC')
-    .limit(1000)
+    .limit(limit)
 
-  get_related_people: (person, actions, action, limit = 100) ->
+  get_related_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
-    one_degree_similar_people = @_knex(@last_1000_events(person).as('e'))
+    one_degree_similar_people = @_knex(@last_events(person, search_limit ).as('e'))
     .innerJoin("#{@_schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
     .whereIn('f.action', actions)
-    .select('f.person')
-    .groupBy('f.person').max('f.created_at')
+    .select('f.person').max('f.created_at as created_at')
+    .groupBy('f.person')
     .orderByRaw('max(f.created_at) DESC')
 
     filter_people = @_knex("#{@_schema}.events")
@@ -217,6 +217,7 @@ class EventStoreMapper
 
     @_knex(one_degree_similar_people.as('x'))
     .whereExists(filter_people)
+    .orderByRaw('x.created_at DESC')
     .limit(limit)
     .then( (rows) ->
       (r.person for r in rows)
@@ -262,18 +263,18 @@ class EventStoreMapper
       temp
     )
 
-  last_1000_things_for_action: (action_binding, since) ->
+  last_things_for_action: (action_binding, since, limit) ->
     @_knex("#{@_schema}.events")
     .select('thing')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
     .whereRaw("action = #{action_binding}")
-    .limit(1000)
+    .limit(limit)
     .where("created_at", '>', since)
 
-  get_query_for_jaccard_distances_between_people_for_action: (person_binding, action_binding, action_i, since) ->
-    s1 = @last_1000_things_for_action(action_binding, since).whereRaw("person = #{person_binding}").toString()
-    s2 = @last_1000_things_for_action(action_binding, since).whereRaw('person = cperson').toString()
+  get_query_for_jaccard_distances_between_people_for_action: (person_binding, action_binding, action_i, since, search_limit) ->
+    s1 = @last_things_for_action(action_binding, since, search_limit).whereRaw("person = #{person_binding}").toString()
+    s2 = @last_things_for_action(action_binding, since, search_limit).whereRaw('person = cperson').toString()
 
     intersection = @_knex.raw("(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float").toString()
     # case statement is needed for divide by zero problem
@@ -283,7 +284,7 @@ class EventStoreMapper
     "(#{intersection} / #{union}) as action_#{action_i}"
 
 
-  get_jaccard_distances_between_people: (person, people, actions, since = new Date(0)) ->
+  get_jaccard_distances_between_people: (person, people, actions, search_limit = 500, since = new Date(0)) ->
     return bb.try(->[]) if people.length == 0
 
     bindings = [person]
