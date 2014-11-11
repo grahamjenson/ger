@@ -93,7 +93,10 @@ class GER
 
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
 
-      # people_confidence = (n_people / max_people) * mean_weight [0,1]
+      #TODO change people confidence to include number of actions a person has. 
+      # if a person has 1 action and matches with another person who has 1 action, 
+      # should be less if compared to another instance where a person has 100 matched to 100!
+      # people_confidence =  (n_people / max_people) * mean_weight [0,1]
 
       total_weight = 0
       for p, weight of people_weights
@@ -248,7 +251,7 @@ class GER
     )
 
   compact_database: ->
-    @esm.vacuum_analyze()
+    @esm.analyze()
     .then( =>
       promises = []
       promises.push @esm.remove_expired_events()
@@ -256,7 +259,9 @@ class GER
       promises.push @compact_things()
       bb.all(promises)
     )
-    .then(=> @esm.vacuum_analyze())
+    .then( =>
+      @esm.analyze()
+    )
 
   compact_database_to_size: (number_of_events) ->
     # Smartly Cut (lossy) the tail of the database (based on created_at) to a defined size

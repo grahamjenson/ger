@@ -280,28 +280,38 @@ class EventStoreMapper
     "(#{intersection} / #{union}) "
 
   jaccard_distance_for_limit: (person, limit) ->
-    s1 = @last_things_for_person().limit(limit).where(person: person).toString()
+    s1 = @last_things_for_person().limit(limit).whereRaw("person = #{person}").toString()
     s2 = @last_things_for_person().limit(limit).whereRaw("person = t.cperson").toString()
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
   jaccard_distance_for_recent: (person, limit, since) ->
-    s1 = @last_things_for_person().limit(limit).where("created_at", '>', since).where(person: person).toString()
+    s1 = @last_things_for_person().limit(limit).where("created_at", '>', since).whereRaw("person = #{person}").toString()
     s2 = @last_things_for_person().limit(limit).where("created_at", '>', since).whereRaw("person = t.cperson").toString()
     "#{@jaccard_query(s1, s2)} as recent_distance"
 
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, since = new Date(0)) ->
     return bb.try(->[]) if people.length == 0
     #TODO allow for arbitrary distance measurements here
-    #TODO SQL injection
 
-    limit_distance_query = @jaccard_distance_for_limit(person, limit)
-    recent_distance_query = @jaccard_distance_for_recent(person, limit, since)
+    bindings = [person] 
+    action_bindings = {}
+    person_bindings = {}
+    for action in actions
+      bindings.push(action)
+      action_bindings[action] = "$#{bindings.length}"
 
-    v_actions = ("('#{p}', '#{a}')" for a in actions for p in people).join(', ')
+    for p in people
+      bindings.push(p)
+      person_bindings[p] = "$#{bindings.length}"
+
+    limit_distance_query = @jaccard_distance_for_limit('$1', limit)
+    recent_distance_query = @jaccard_distance_for_recent('$1', limit, since)
+
+    v_actions = ("(#{person_bindings[p]}, #{action_bindings[a]})" for a in actions for p in people).join(', ')
 
     query = "select cperson, caction, #{limit_distance_query}, #{recent_distance_query} from (VALUES #{v_actions} ) AS t (cperson, caction)"
 
-    @_knex.raw(query)
+    @_knex.raw(query, bindings)
     .then( (rows) ->
       limit_distance = {}
       recent_distance = {}
@@ -387,9 +397,12 @@ class EventStoreMapper
   vacuum_analyze: ->
     @_knex.raw("VACUUM ANALYZE #{@_schema}.events")
 
+  analyze: ->
+    @_knex.raw("ANALYZE #{@_schema}.events")
 
   #TODO refactor out useful methods
   get_active_things: ->
+    #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'thing';
     @_knex('pg_stats').select('most_common_vals').where(attname: 'thing', tablename: 'events', schemaname: @_schema)
     .then((rows) ->
@@ -402,6 +415,7 @@ class EventStoreMapper
     )
 
   get_active_people: ->
+    #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'person';
     @_knex('pg_stats').select('most_common_vals').where(attname: 'person', tablename: 'events', schemaname: @_schema)
     .then((rows) ->
