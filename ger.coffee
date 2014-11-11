@@ -14,7 +14,7 @@ class GER
       similar_people_limit: 25,
       related_things_limit: 1000
       recommendations_limit: 20,
-      recent_event_hours: 720,
+      recent_event_days: 14,
       previous_actions_filter: []
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500
@@ -30,7 +30,7 @@ class GER
 
     @compact_database_thing_action_limit = options.compact_database_thing_action_limit
 
-    @recent_event_hours = options.recent_event_hours
+    @recent_event_days = options.recent_event_days
     @event_search_limit = options.event_search_limit
 
   related_people: (object, actions, action) ->
@@ -61,7 +61,7 @@ class GER
     for action, weight of actions
       total_action_weight += weight
 
-    @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit, moment().subtract(@recent_event_hours, 'hours'))
+    @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit, @recent_event_days)
     .spread( (event_weights, recent_event_weights) =>
       [
         @combine_weights_with_actions(event_weights, actions, total_action_weight), 

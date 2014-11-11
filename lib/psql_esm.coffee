@@ -285,12 +285,12 @@ class EventStoreMapper
     s2 = @last_things_for_person().limit(limit).whereRaw("person = t.cperson").toString()
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
-  jaccard_distance_for_recent: (person, limit, since) ->
-    s1 = @last_things_for_person().limit(limit).where("created_at", '>', since).whereRaw("person = #{person}").toString()
-    s2 = @last_things_for_person().limit(limit).where("created_at", '>', since).whereRaw("person = t.cperson").toString()
+  jaccard_distance_for_recent: (person, limit, days_ago) ->
+    s1 = @last_things_for_person().limit(limit).whereRaw("created_at > NOW() - '#{days_ago} day'::INTERVAL").whereRaw("person = #{person}").toString()
+    s2 = @last_things_for_person().limit(limit).whereRaw("created_at > NOW() - '#{days_ago} day'::INTERVAL").whereRaw("person = t.cperson").toString()
     "#{@jaccard_query(s1, s2)} as recent_distance"
-
-  get_jaccard_distances_between_people: (person, people, actions, limit = 500, since = new Date(0)) ->
+  
+  get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
     #TODO allow for arbitrary distance measurements here
 
@@ -306,7 +306,7 @@ class EventStoreMapper
       person_bindings[p] = "$#{bindings.length}"
 
     limit_distance_query = @jaccard_distance_for_limit('$1', limit)
-    recent_distance_query = @jaccard_distance_for_recent('$1', limit, since)
+    recent_distance_query = @jaccard_distance_for_recent('$1', limit, days_ago)
 
     v_actions = ("(#{person_bindings[p]}, #{action_bindings[a]})" for a in actions for p in people).join(', ')
 

@@ -158,13 +158,13 @@ describe 'recommendations_for_person', ->
 describe 'weighted_similar_people', ->
 
   it "should weight recent events more than past events", ->
-    init_ger(recent_event_hours: 1)
+    init_ger(recent_event_days: 1)
     .then (ger) ->
       bb.all([
         ger.action('view', 1),
         ger.event('p1','view','a'),
         ger.event('p2','view','a', created_at: moment().subtract(50, 'mins')),
-        ger.event('p3','view','a', created_at: moment().subtract(2, 'hours')),
+        ger.event('p3','view','a', created_at: moment().subtract(2, 'days')),
       ])
       .then(-> ger.weighted_similar_people('p1', 'view'))
       .then((similar_people) ->

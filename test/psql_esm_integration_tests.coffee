@@ -390,12 +390,12 @@ describe '#get_jaccard_distances_between_people', ->
     init_esm()
     .then (esm) ->
       bb.all([
-        esm.add_event('p1','a','t1', {created_at: new Date(2014, 6, 6)}),
-        esm.add_event('p1','a','t2', {created_at: new Date(2014, 6, 6)}),
-        esm.add_event('p2','a','t2', {created_at: new Date(2014, 6, 6)}),
-        esm.add_event('p2','a','t1', {created_at: new Date(2013, 6, 6)})
+        esm.add_event('p1','a','t1'),
+        esm.add_event('p1','a','t2'),
+        esm.add_event('p2','a','t2'),
+        esm.add_event('p2','a','t1', created_at: moment().subtract(5, 'days'))
       ])
-      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], 500, new Date(2014,1,1)))
+      .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], 500, 2))
       .spread( (limit_distances, jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
       ) 
