@@ -1,6 +1,6 @@
 actions = ["buy", "like", "view"]
-people = [1..10000]
-things = [1..1000]
+people = [1..1000]
+things = [1..100]
 
 describe 'performance tests', ->
 
@@ -62,37 +62,41 @@ describe 'performance tests', ->
       .then( ->
         st = new Date().getTime()
         promises = []
-        for x in [1..100]
+        for x in [1..3]
+          promises.push ger.compact_database()
+
+        bb.all(promises)
+        .then(->
+          et = new Date().getTime()
+          time = et-st
+          pe = time/3
+          console.log "#{pe}ms for compact"
+        )
+      )
+      .then( ->
+        st = new Date().getTime()
+        promises = []
+        for x in [1..25]
           promises.push ger.weighted_similar_people(sample(people), sample(actions))
         bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
-          pe = time/100
+          pe = time/25
           console.log "#{pe}ms per weighted_similar_people"
         )
       )
       .then( ->
         st = new Date().getTime()
         promises = []
-        for x in [1..100]
+        for x in [1..25]
           promises.push ger.recommendations_for_person(sample(people), sample(actions))
         bb.all(promises)
         .then(->
           et = new Date().getTime()
           time = et-st
-          pe = time/100
+          pe = time/25
           console.log "#{pe}ms per recommendations_for_person"
-        )
-      )
-      .then( ->
-        st = new Date().getTime()
-        ger.compact_database()
-        .then(->
-          et = new Date().getTime()
-          time = et-st
-          pe = time
-          console.log "#{pe}ms for compact"
         )
       )
     )

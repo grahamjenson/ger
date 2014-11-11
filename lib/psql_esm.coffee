@@ -206,9 +206,9 @@ class EventStoreMapper
     .innerJoin("#{@_schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
     .whereIn('f.action', actions)
-    .select(@_knex.raw('f.person, max(e.created_at) as created_at, count(f.person) as count'))
+    .select(@_knex.raw("f.person, date_trunc('day', max(e.created_at)) as created_at_day, count(f.person) as count"))
     .groupBy('f.person')
-    .orderByRaw("max(e.created_at) DESC, count(f.person) DESC")
+    .orderByRaw("created_at_day DESC, count(f.person) DESC")
 
     filter_people = @_knex("#{@_schema}.events")
     .select("person")
@@ -216,9 +216,9 @@ class EventStoreMapper
     .whereRaw("person = x.person")
 
     @_knex(one_degree_similar_people.as('x'))
-    .select('x.person', 'x.count')
+    .select('x.person', 'x.created_at_day', 'x.count')
     .whereExists(filter_people)
-    .orderByRaw("x.created_at DESC, x.count DESC")
+    .orderByRaw("x.created_at_day DESC, x.count DESC")
     .limit(limit)
     .then( (rows) ->
       (r.person for r in rows)

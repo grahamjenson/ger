@@ -97,18 +97,19 @@ describe "filter_things_by_previous_actions", ->
       )     
 
 describe "related_people", ->
-  it 'should order by persons activity DATE then by COUNT', ->
+  it 'should order by persons activity DATE (NOT DATETIME) then by COUNT', ->
     init_esm()
     .then (esm) ->
       bb.all([
         esm.set_action_weight('view', 1)
         esm.set_action_weight('buy', 1)
 
-        esm.add_event('p1','view','t1', {created_at: new Date(2014, 6, 6)})
-        esm.add_event('p1','view','t2', {created_at: new Date(2014, 6, 6)})
+        esm.add_event('p1','view','t1', {created_at: new Date(2014, 6, 6, 13, 1)})
+        esm.add_event('p1','view','t4', {created_at: new Date(2014, 6, 6, 13, 1)})
+        esm.add_event('p1','view','t2', {created_at: new Date(2014, 6, 6, 13, 30)})
 
         #t3 is more important as it has more recently been seen
-        esm.add_event('p1','view','t3', {created_at: new Date(2014, 6, 7)})
+        esm.add_event('p1','view','t3', {created_at: new Date(2014, 6, 7, 13, 0)})
 
         #Most recent person ordered first
         esm.add_event('p4','view','t3')
@@ -117,11 +118,11 @@ describe "related_people", ->
         #ordered second as most similar person
         esm.add_event('p2','view','t1')
         esm.add_event('p2','buy','t1')
-        esm.add_event('p2','view','t2')
+        esm.add_event('p2','view','t4')
 
-        #ordered third as third most similar person
-        esm.add_event('p3','view','t1')
-        esm.add_event('p3','buy','t1')
+        #ordered third equal as third most similar people
+        esm.add_event('p3','view','t2')
+        esm.add_event('p3','buy','t2')
       ]) 
       .then( ->
         esm.get_related_people('p1', ['view', 'buy'], 'buy')

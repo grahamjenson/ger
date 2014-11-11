@@ -11,7 +11,7 @@ class GER
 
   set_options: (options) ->
     options = _.defaults(options, 
-      similar_people_limit: 100,
+      similar_people_limit: 25,
       related_things_limit: 1000
       recommendations_limit: 20,
       recent_event_hours: 720,

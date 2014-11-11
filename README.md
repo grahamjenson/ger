@@ -87,3 +87,6 @@ Each action has a weight (defaulting to 1) which determines how important it is 
 ger.action("action", 10)
 ```
 
+#Changelog
+
+2014-11-12 - Added better heuristic to selected related people. Meaning less related people need to be selected to find good values
