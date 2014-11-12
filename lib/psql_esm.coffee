@@ -286,8 +286,12 @@ class EventStoreMapper
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
   jaccard_distance_for_recent: (person, limit, days_ago) ->
-    s1 = @last_things_for_person().limit(limit).whereRaw("created_at > NOW() - '#{days_ago} day'::INTERVAL").whereRaw("person = #{person}").toString()
-    s2 = @last_things_for_person().limit(limit).whereRaw("created_at > NOW() - '#{days_ago} day'::INTERVAL").whereRaw("person = t.cperson").toString()
+    s1q = @last_things_for_person().max('created_at as created_at_date').whereRaw("person = #{person}").toString()
+    s2q = @last_things_for_person().max('created_at as created_at_date').whereRaw("person = t.cperson").toString()
+
+    s1 = "select x.thing from (#{s1q}) as x where x.created_at_date > NOW() - '#{days_ago} day'::INTERVAL order by x.created_at_date DESC limit #{limit}"
+    s2 = "select x.thing from (#{s2q}) as x where x.created_at_date > NOW() - '#{days_ago} day'::INTERVAL order by x.created_at_date DESC limit #{limit}"
+
     "#{@jaccard_query(s1, s2)} as recent_distance"
   
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
