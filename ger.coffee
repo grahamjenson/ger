@@ -18,7 +18,7 @@ class GER
       previous_actions_filter: []
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500
-      event_search_limit: 500
+      person_history_limit: 500
     )
 
     @similar_people_limit = options.similar_people_limit
@@ -31,7 +31,7 @@ class GER
     @compact_database_thing_action_limit = options.compact_database_thing_action_limit
 
     @recent_event_days = options.recent_event_days
-    @event_search_limit = options.event_search_limit
+    @person_history_limit = options.person_history_limit
 
   related_people: (object, actions, action) ->
     #split actions in 2 by weight
@@ -40,8 +40,8 @@ class GER
     [ltmean, gtmean] = @half_array_by_mean(action_list, actions)
 
     bb.all([
-      @esm.get_related_people(object, ltmean, action, @similar_people_limit, @event_search_limit), 
-      @esm.get_related_people(object, gtmean, action, @similar_people_limit, @event_search_limit)])
+      @esm.get_related_people(object, ltmean, action, @similar_people_limit, @person_history_limit), 
+      @esm.get_related_people(object, gtmean, action, @similar_people_limit, @person_history_limit)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
     )
@@ -61,7 +61,8 @@ class GER
     for action, weight of actions
       total_action_weight += weight
 
-    @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @event_search_limit, @recent_event_days)
+    #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
+    @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @person_history_limit, @recent_event_days)
     .spread( (event_weights, recent_event_weights) =>
       [
         @combine_weights_with_actions(event_weights, actions, total_action_weight), 
@@ -144,7 +145,7 @@ class GER
       ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
     )
 
-  generate_recommendations_for_person: (person, action) ->
+  generate_recommendations_for_person: (person, action, person_history_count = 1) ->
     @weighted_similar_people(person, action)
     .then( (similar_people) =>
       #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
@@ -154,12 +155,6 @@ class GER
       ])
     )
     .spread( ( similar_people, people_things ) =>
-      #related things confidence tries to measure convergence of related people on a set of things
-      #things_confidence is (|uniq people things| / |all people things|)
-      #e.g. if p1: [t1, t2], p2: [t2,t3] then |{t1,t2} N {t2,t3}| /   |{t1,t2} U {t2,t3}|
-      #confidence = related_people_confidence + related_things_confidence/2
-      all_people_things = 0
-
       people_weights = similar_people.people_weights
 
       things_weight = {}
@@ -167,26 +162,24 @@ class GER
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
           things_weight[thing] += people_weights[p]
-          all_people_things += 1
+          
 
       uniq_people_things = Object.keys(things_weight).length
 
-      if all_people_things > 0
-        things_confidence = 1 - (uniq_people_things/all_people_things)
-      else
-        things_confidence = 0
+      #History confidence is the confidence in the amount of history there is for the user.
+      #The max history that is used is the history limit, so anything above that is just great.
+      history_confidence = Math.min(1, person_history_count / @person_history_limit)
 
-      confidence = (things_confidence + similar_people.people_confidence)/2
-      confidences = {confidence : confidence , people_confidence : similar_people.people_confidence, things_confidence: things_confidence}
-      bb.all([@filter_recommendations(person, things_weight), confidences] )
+      confidence = similar_people.people_confidence * history_confidence
+      bb.all([@filter_recommendations(person, things_weight), confidence] )
     )
-    .spread( (recommendations, confidences) =>
+    .spread( (recommendations, confidence) =>
 
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
       sorted_things = sorted_things[0...@recommendations_limit]
       
-      {recommendations: sorted_things, confidences: confidences}
+      {recommendations: sorted_things, confidence: confidence}
     )
 
   recommendations_for_person: (person, action) ->
@@ -194,9 +187,9 @@ class GER
     @esm.person_history_count(person)
     .then( (count) =>
       if count == 0
-        return {recommendations: [], confidences: {confidence: 0}}
+        return {recommendations: [], confidence: 0}
       else
-        return @generate_recommendations_for_person(person, action)
+        return @generate_recommendations_for_person(person, action, count)
     )
       
 

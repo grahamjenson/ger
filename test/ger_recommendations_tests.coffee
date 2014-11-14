@@ -8,7 +8,7 @@ describe "confidence", ->
       ])
       .then(-> ger.recommendations_for_person('p1', 'buy'))
       .then((recs) ->
-        recs.confidences.confidence.should.equal 0
+        recs.confidence.should.equal 0
       )
 
 describe "weights", ->
