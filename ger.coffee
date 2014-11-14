@@ -73,8 +73,10 @@ class GER
       # join the weights together
       temp = {}
       temp[person] = 1
+      #These weights 50/50 is not even it is in fact 2:1
+      #MORE RECENT THINGS ARE TWICE AS IMPORTANT
       for p, w of event_weights
-        temp[p] = ((recent_event_weights[p] * 80) + (event_weights[p] * 20) )/100 #join the weights together weighted 80/20 mean
+        temp[p] = recent_event_weights[p] + event_weights[p]
       
       temp
     )

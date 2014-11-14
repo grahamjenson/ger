@@ -170,7 +170,7 @@ describe 'weighted_similar_people', ->
       .then((similar_people) ->
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p2'].should.equal 1
-        similar_people.people_weights['p3'].should.equal .2
+        similar_people.people_weights['p3'].should.equal .5
       )
 
   it 'should weight actions', ->
