@@ -191,9 +191,9 @@ class GER
 
   recommendations_for_person: (person, action) ->
     #first a check or two
-    @esm.person_exists(person)
-    .then( (exists) =>
-      if not exists
+    @esm.person_history_count(person)
+    .then( (count) =>
+      if count == 0
         return {recommendations: [], confidences: {confidence: 0}}
       else
         return @generate_recommendations_for_person(person, action)

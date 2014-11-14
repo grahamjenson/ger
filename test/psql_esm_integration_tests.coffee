@@ -23,24 +23,22 @@ describe "action cache", ->
         (esm.action_cache == null).should.equal true
       )
 
-describe "person_exists", ->
-  it "return true if person exists", ->
+describe "person_history_count", ->
+  it "return number of events for person", ->
     init_esm()
     .then (esm) ->
       bb.all([
         esm.add_event('p1','view','t1')
       ]) 
       .then( ->
-        esm.person_exists('p1')
+        esm.person_history_count('p1')
       )
-      .then( (exists) ->
-        exists.should.equal true
+      .then( (count) ->
+        count.should.equal 1
+        esm.person_history_count('p2')
       )
-      .then( ->
-        esm.person_exists('p2')
-      )
-      .then( (exists) ->
-        exists.should.equal false
+      .then( (count) ->
+        count.should.equal 0
       ) 
 
 describe "estimate_event_count", ->

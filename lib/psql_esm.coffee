@@ -156,15 +156,12 @@ class EventStoreMapper
     .orderByRaw('max_ca DESC')
     .limit(limit)
 
-  person_exists: (person) ->
+  person_history_count: (person) ->
     @_knex("#{@_schema}.events")
     .where(person: person)
-    .limit(1)
-    .then( (rows) ->
-      if rows.length > 0
-        return true
-      else
-        return false
+    .count()
+    .then( (count) -> 
+      parseInt(count[0].count)
     )
 
   get_ordered_action_set_with_weights: ->
