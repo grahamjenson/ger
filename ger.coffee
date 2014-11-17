@@ -96,11 +96,6 @@ class GER
 
       # Weight the list of subjects by looking for the probability they are actioned by the similar objects
 
-      #TODO change people confidence to include number of actions a person has. 
-      # if a person has 1 action and matches with another person who has 1 action, 
-      # should be less if compared to another instance where a person has 100 matched to 100!
-      # people_confidence =  (n_people / max_people) * mean_weight [0,1]
-
       total_weight = 0
       for p, weight of people_weights
         total_weight += weight if p != object #remove object as it is 1 and drags up the mean if there are less values
@@ -144,25 +139,29 @@ class GER
 
   people_confidence: (n_people, mean_distance ) ->
     #The more similar people found, the more we trust the recommendations
-    pc = 1
-    if n_people >= @similar_people_limit
-      pc = 1.0
-    else
-      #15 is a magic number chosen to make 10 around 50% and 50 around 95%
-      pc = 1.0 - Math.pow(Math.E,( (- n_people) / 15 ))
-
-    #The person confidence time the mean distance
-    pc * mean_distance
+    #15 is a magic number chosen to make 10 around 50% and 50 around 95%
+    pc = 1.0 - Math.pow(Math.E,( (- n_people) / 15 ))
+    #The person confidence multiplied by the mean distance
+    pc
 
   history_confidence: (n_history) ->
     # The more hisotry (input) the more we trust the recommendations
-    hc = 1
-    if n_history >= @person_history_limit
-      hc = 1
-    else
-      #35 is a magic number to make 100 about 100%
-      hc = 1.0 - Math.pow(Math.E,( (- n_history) / 35 ))
-    return hc
+    # 35 is a magic number to make 100 about 100%
+    hc = 1.0 - Math.pow(Math.E,( (- n_history) / 35 ))
+    hc
+
+  things_confidence: (recommendations) ->
+    return 0 if recommendations.length == 0
+    # The greater the mean recommendation the more we trust the recommendations
+    # 2 is a magic number to make 10 about 100%
+    total_weight = 0
+    for r in recommendations
+      total_weight += r.weight
+
+    mean_weight = total_weight/recommendations.length
+    tc = 1.0 - Math.pow(Math.E,( (- mean_weight) / 2 ))
+
+    tc
 
   generate_recommendations_for_person: (person, action, person_history_count = 1) ->
     @weighted_similar_people(person, action)
@@ -175,30 +174,27 @@ class GER
     )
     .spread( ( similar_people, people_things ) =>
       people_weights = similar_people.people_weights
-      n_people = similar_people.n_people
-
       things_weight = {}
       for p, things of people_things
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
-          things_weight[thing] += people_weights[p]/n_people
-          
-
-      uniq_people_things = Object.keys(things_weight).length
-
+          things_weight[thing] += people_weights[p]
 
       # CALCULATE CONFIDENCES
-      people_confidence = @people_confidence(similar_people.n_people, similar_people.mean_distance)
-      history_confidence = @history_confidence(person_history_count)
-      confidence = people_confidence * history_confidence
-      bb.all([@filter_recommendations(person, things_weight), confidence] )
+      bb.all([@filter_recommendations(person, things_weight), similar_people] )
     )
-    .spread( (recommendations, confidence) =>
+    .spread( (recommendations, similar_people) =>
 
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
       sorted_things = sorted_things[0...@recommendations_limit]
       
+      people_confidence = @people_confidence(similar_people.n_people, similar_people.mean_distance)
+      history_confidence = @history_confidence(person_history_count)
+      things_confidence = @things_confidence(sorted_things)
+
+      confidence = people_confidence * history_confidence * things_confidence
+
       {recommendations: sorted_things, confidence: confidence}
     )
 
