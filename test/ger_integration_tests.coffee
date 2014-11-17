@@ -195,42 +195,6 @@ describe 'weighted_similar_people', ->
         similar_people.people_weights['p2'].should.equal 0.01
       )
 
-  it 'should return a people confidence rating (n_people/max_people)*mean_distance', ->
-    init_ger({similar_people_limit: 10})
-    .then (ger) ->
-      bb.all([
-        ger.action('action1',1),
-        ger.event('p1','action1','a'),
-        ger.event('p2','action1','a'),
-        ger.event('p3','action1','a'),
-
-        ger.event('p1','action1','b'),
-        ger.event('p3','action1','b')
-      ])
-      .then(-> ger.weighted_similar_people('p1', 'action1'))
-      .then((similar_people) ->
-        #distance between p1 and p2 is 1/2
-        #distance between p1 and p3 is 1
-        #mean distance is 1.5/2 = 3/4
-        #max_people is 10
-        #n_people is 2
-        #2/10*3/4 = 6/40
-        compare_floats(similar_people.people_confidence, 6/40).should.equal true
-      )
-
-  it 'should return a people confidence of 0 not NaN', ->
-    init_ger({similar_people_limit: 10})
-    .then (ger) ->
-      bb.all([
-        ger.action('action1',1),
-        ger.event('p1','action1','a')
-      ])
-      .then(-> ger.weighted_similar_people('p1', 'action1'))
-      .then((similar_people) ->
-        similar_people.people_confidence.should.equal 0
-      )
-
-
   it 'should return a list of similar people weighted with jaccard distance', ->
     init_ger()
     .then (ger) ->

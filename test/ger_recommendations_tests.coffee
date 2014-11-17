@@ -1,4 +1,106 @@
+describe "joining multiple gers", ->
+  it "similar recommendations should return same confidence", ->
+    bb.all([
+      init_ger({similar_people_limit: 2, person_history_limit: 4}, 'ger_1'), 
+      init_ger({similar_people_limit: 4, person_history_limit: 8}, 'ger_2')
+    ])
+    .spread (ger1, ger2) ->
+      bb.all([
+        ger1.action('view', 1),
+        ger2.action('view', 1),
+
+        ger1.event('p1','view','a'),
+        ger1.event('p2','view','a'),
+        ger1.event('p2','buy','b'),
+
+        ger2.event('p1','view','a'),
+        ger2.event('p2','view','a'),
+        ger2.event('p2','buy','b'),
+      ])
+      .then( -> bb.all([
+          ger1.recommendations_for_person('p1', 'buy'), 
+          ger2.recommendations_for_person('p1', 'buy')
+        ])
+      )
+      .spread((recs1, recs2) ->
+        recs1.confidence.should.equal recs2.confidence
+      )
+
+
 describe "confidence", ->
+
+  it 'should return a confidence ', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('action1',1),
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'action1'))
+      .then((similar_people) ->
+        similar_people.confidence.should.exist
+      )
+
+  it 'should return a confidence of 0 not NaN', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('action1',1),
+        ger.event('p1','action1','a')
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'action1'))
+      .then((similar_people) ->
+        similar_people.confidence.should.equal 0
+      )
+
+  it "more similar people should mean greater confidence", ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.event('p1','view','a'),
+        ger.event('p2','view','a'),
+
+        ger.event('p3','view','b'),
+        ger.event('p4','view','b'),
+        ger.event('p5','view','b'),
+      ])
+      .then(-> 
+        bb.all([
+          ger.recommendations_for_person('p1', 'view')
+          ger.recommendations_for_person('p3', 'view')
+        ])
+      )
+      .spread((recs1, recs2) ->
+
+        recs2.confidence.should.greaterThan recs1.confidence
+      )
+
+  it "longer history should mean more confidence", ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.event('p1','view','a'),
+        ger.event('p2','view','a'),
+
+        ger.event('p3','view','x'),
+        ger.event('p3','view','b'),
+        ger.event('p4','view','x'),
+        ger.event('p4','view','b'),
+      ])
+      .then(-> 
+        bb.all([
+          ger.recommendations_for_person('p1', 'view')
+          ger.recommendations_for_person('p3', 'view')
+        ])
+      )
+      .spread((recs1, recs2) ->
+
+        recs2.confidence.should.greaterThan recs1.confidence
+      )
+
   it "should not return NaN as conifdence", ->
     init_ger()
     .then (ger) ->

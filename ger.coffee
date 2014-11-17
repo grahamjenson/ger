@@ -76,7 +76,7 @@ class GER
       #These weights 50/50 is not even it is in fact 2:1
       #MORE RECENT THINGS ARE TWICE AS IMPORTANT
       for p, w of event_weights
-        temp[p] = recent_event_weights[p] + event_weights[p]
+        temp[p] = (recent_event_weights[p] + event_weights[p])/2
       
       temp
     )
@@ -111,13 +111,8 @@ class GER
       else
         mean_distance = 0
 
-      #this is the minimum maximum value somewhere between similar_people_limit and similar_people_limit*2
-      max_people = @similar_people_limit
-      people_confidence = Math.min(1, n_people / max_people) * mean_distance
-
       {
-        people_weights: people_weights, 
-        people_confidence: people_confidence
+        people_weights: people_weights,
         n_people: n_people
         mean_distance: mean_distance
       }
@@ -147,6 +142,28 @@ class GER
       ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
     )
 
+  people_confidence: (n_people, mean_distance ) ->
+    #The more similar people found, the more we trust the recommendations
+    pc = 1
+    if n_people >= @similar_people_limit
+      pc = 1.0
+    else
+      #15 is a magic number chosen to make 10 around 50% and 50 around 95%
+      pc = 1.0 - Math.pow(Math.E,( (- n_people) / 15 ))
+
+    #The person confidence time the mean distance
+    pc * mean_distance
+
+  history_confidence: (n_history) ->
+    # The more hisotry (input) the more we trust the recommendations
+    hc = 1
+    if n_history >= @person_history_limit
+      hc = 1
+    else
+      #35 is a magic number to make 100 about 100%
+      hc = 1.0 - Math.pow(Math.E,( (- n_history) / 35 ))
+    return hc
+
   generate_recommendations_for_person: (person, action, person_history_count = 1) ->
     @weighted_similar_people(person, action)
     .then( (similar_people) =>
@@ -158,21 +175,22 @@ class GER
     )
     .spread( ( similar_people, people_things ) =>
       people_weights = similar_people.people_weights
+      n_people = similar_people.n_people
 
       things_weight = {}
       for p, things of people_things
         for thing in things
           things_weight[thing] = 0 if things_weight[thing] == undefined
-          things_weight[thing] += people_weights[p]
+          things_weight[thing] += people_weights[p]/n_people
           
 
       uniq_people_things = Object.keys(things_weight).length
 
-      #History confidence is the confidence in the amount of history there is for the user.
-      #The max history that is used is the history limit, so anything above that is just great.
-      history_confidence = Math.min(1, person_history_count / @person_history_limit)
 
-      confidence = similar_people.people_confidence * history_confidence
+      # CALCULATE CONFIDENCES
+      people_confidence = @people_confidence(similar_people.n_people, similar_people.mean_distance)
+      history_confidence = @history_confidence(person_history_count)
+      confidence = people_confidence * history_confidence
       bb.all([@filter_recommendations(person, things_weight), confidence] )
     )
     .spread( (recommendations, confidence) =>
