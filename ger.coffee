@@ -73,10 +73,9 @@ class GER
       # join the weights together
       temp = {}
       temp[person] = 1
-      #These weights 50/50 is not even it is in fact 2:1
-      #MORE RECENT THINGS ARE TWICE AS IMPORTANT
+      #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
       for p, w of event_weights
-        temp[p] = (recent_event_weights[p] + event_weights[p])/2
+        temp[p] = ((recent_event_weights[p] * 4) + (event_weights[p] * 1))/5.0
       
       temp
     )

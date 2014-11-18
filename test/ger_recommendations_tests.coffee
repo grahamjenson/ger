@@ -54,7 +54,33 @@ describe "confidence", ->
         similar_people.confidence.should.equal 0
       )
 
-  it "more similar people should mean greater confidence", ->
+  it "higher weighted recommendations should return greater confidence", ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.event('p1','view','a'),
+        ger.event('p1','view','b'),
+        ger.event('p2','view','a'),
+        ger.event('p2','view','b'),
+        ger.event('p2','view','c'),
+
+        ger.event('p3','view','x'),
+        ger.event('p3','view','y'),
+        ger.event('p4','view','x'),
+        ger.event('p4','view','z'),
+      ])
+      .then(-> 
+        bb.all([
+          ger.recommendations_for_person('p1', 'view')
+          ger.recommendations_for_person('p3', 'view')
+        ])
+      )
+      .spread((recs1, recs2) ->
+        recs1.confidence.should.greaterThan recs2.confidence
+      )
+
+  it "more similar people should return greater confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
