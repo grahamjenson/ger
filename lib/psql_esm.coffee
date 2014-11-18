@@ -17,11 +17,16 @@ class CounterStream extends Transform
 init_events_table = (knex, schema) ->
   knex.schema.createTable("#{schema}.events",(table) ->
     table.increments();
-    table.string('person').notNullable().index()
+    table.string('person').notNullable()
     table.string('action').notNullable()
-    table.string('thing').notNullable().index()
-    table.timestamp('created_at').notNullable().index()
+    table.string('thing').notNullable()
+    table.timestamp('created_at').notNullable()
     table.timestamp('expires_at')
+
+  ).then( ->
+    i1 = knex.raw("create index idx_person_created_at_#{schema}_events on #{schema}.events (person, action, created_at DESC)")
+    i2 = knex.raw("create index idx_thing_created_at_#{schema}_events on #{schema}.events (thing, action, created_at DESC)")
+    bb.all([i1,i2])
   )
   
 
@@ -262,12 +267,13 @@ class EventStoreMapper
     )
 
 
-  last_things_for_person: (limit) ->
+  person_history: (person) ->
     @_knex("#{@_schema}.events")
-    .select('thing')
+    .select('thing').max('created_at as created_at')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
     .whereRaw("action = t.caction")
+    .whereRaw("person = #{person}")
 
   jaccard_query: (s1,s2) ->
     intersection = "(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float"
@@ -278,16 +284,23 @@ class EventStoreMapper
     "(#{intersection} / #{union}) "
 
   jaccard_distance_for_limit: (person, limit) ->
-    s1 = @last_things_for_person().limit(limit).whereRaw("person = #{person}").toString()
-    s2 = @last_things_for_person().limit(limit).whereRaw("person = t.cperson").toString()
+    s1q = @person_history(person).toString()
+    s2q = @person_history('t.cperson').toString()
+    s1 = "select x.thing from (#{s1q}) as x limit #{limit}"
+    s2 = "select x.thing from (#{s2q}) as x limit #{limit}"
+    
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
   jaccard_distance_for_recent: (person, limit, days_ago) ->
-    s1q = @last_things_for_person().max('created_at as created_at_date').whereRaw("person = #{person}").toString()
-    s2q = @last_things_for_person().max('created_at as created_at_date').whereRaw("person = t.cperson").toString()
+    s1q = @person_history(person).toString()
+    s2q = @person_history('t.cperson').toString()
 
-    s1 = "select x.thing from (#{s1q}) as x where x.created_at_date > NOW() - '#{days_ago} day'::INTERVAL order by x.created_at_date DESC limit #{limit}"
-    s2 = "select x.thing from (#{s2q}) as x where x.created_at_date > NOW() - '#{days_ago} day'::INTERVAL order by x.created_at_date DESC limit #{limit}"
+    s1 = "select x.thing from (#{s1q}) as x where 
+          x.created_at > NOW() - '#{days_ago} day'::INTERVAL 
+          order by x.created_at DESC limit #{limit}"
+    s2 = "select x.thing from (#{s2q}) as x where 
+          x.created_at > NOW() - '#{days_ago} day'::INTERVAL 
+          order by x.created_at DESC limit #{limit}"
 
     "#{@jaccard_query(s1, s2)} as recent_distance"
   
