@@ -1,3 +1,22 @@
+describe "minimum_history_limit", ->
+  it "should not generate recommendations for events ", ->
+    init_ger(minimum_history_limit: 2)
+    .then (ger) ->
+      bb.all([
+        ger.action('view',1),
+        ger.event('p1','view','a'),
+        ger.event('p2','view','a'),
+        ger.event('p2','view','b'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'view'))
+      .then((recs) ->
+        recs.recommendations.length.should.equal 0
+        ger.recommendations_for_person('p2', 'view')
+      ).then((recs) ->
+        recs.recommendations.length.should.equal 2
+      )
+
+
 describe "joining multiple gers", ->
   it "similar recommendations should return same confidence", ->
     bb.all([

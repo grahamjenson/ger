@@ -10,7 +10,8 @@ class GER
     @set_options(options)
 
   set_options: (options) ->
-    options = _.defaults(options, 
+    options = _.defaults(options,
+      minimum_history_limit: 1,
       similar_people_limit: 25,
       related_things_limit: 1000
       recommendations_limit: 20,
@@ -21,6 +22,7 @@ class GER
       person_history_limit: 500
     )
 
+    @minimum_history_limit = options.minimum_history_limit;
     @similar_people_limit = options.similar_people_limit
     @previous_actions_filter = options.previous_actions_filter
     @recommendations_limit = options.recommendations_limit
@@ -199,14 +201,13 @@ class GER
 
   recommendations_for_person: (person, action) ->
     #first a check or two
-    @esm.person_history_count(person)
+    @esm.person_thing_history_count(person)
     .then( (count) =>
-      if count == 0
+      if count < @minimum_history_limit
         return {recommendations: [], confidence: 0}
       else
         return @generate_recommendations_for_person(person, action, count)
     )
-      
 
   ##Wrappers of the ESM
 

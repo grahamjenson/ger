@@ -23,19 +23,21 @@ describe "action cache", ->
         (esm.action_cache == null).should.equal true
       )
 
-describe "person_history_count", ->
+describe "person_thing_history_count", ->
   it "return number of events for person", ->
     init_esm()
     .then (esm) ->
       bb.all([
         esm.add_event('p1','view','t1')
+        esm.add_event('p1','buy','t1')
+        esm.add_event('p1','view','t2')
       ]) 
       .then( ->
-        esm.person_history_count('p1')
+        esm.person_thing_history_count('p1')
       )
       .then( (count) ->
-        count.should.equal 1
-        esm.person_history_count('p2')
+        count.should.equal 2
+        esm.person_thing_history_count('p2')
       )
       .then( (count) ->
         count.should.equal 0

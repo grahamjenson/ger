@@ -161,12 +161,13 @@ class EventStoreMapper
     .orderByRaw('max_ca DESC')
     .limit(limit)
 
-  person_history_count: (person) ->
+  person_thing_history_count: (person) ->
     @_knex("#{@_schema}.events")
-    .where(person: person)
+    .groupBy('thing')
+    .where({person: person})
     .count()
-    .then( (count) -> 
-      parseInt(count[0].count)
+    .then( (counts) ->
+      counts.length
     )
 
   get_ordered_action_set_with_weights: ->
@@ -462,7 +463,7 @@ class EventStoreMapper
 
     q = "delete from #{@_schema}.events as e 
          where e.id in 
-         (select id from #{@_schema}.events where action = $2 and thing = $1 and expires_at is NULL
+         (select id from #{@_schema}.events where action = $2 and thing = $1
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
     .then( (rows) ->
@@ -486,7 +487,7 @@ class EventStoreMapper
 
     q = "delete from #{@_schema}.events as e 
          where e.id in 
-         (select id from #{@_schema}.events where action = $2 and person = $1 and expires_at is NULL
+         (select id from #{@_schema}.events where action = $2 and person = $1
          order by created_at DESC offset #{trunc_size});"
     
     @_knex.raw(q ,bindings)
