@@ -137,34 +137,6 @@ describe "truncate_people_per_action", ->
         count.should.equal 4
       )   
 
-  it 'should not truncate expired events', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([
-        esm.set_action_weight('view', 1)
-        esm.set_action_weight('buy', 10)
-        
-        esm.add_event('p1','view','t1', expires_at: new Date(4000))
-        esm.add_event('p1','view','t2', expires_at: new Date(3000))
-        esm.add_event('p1','view','t3', expires_at: new Date(1000))
-        esm.add_event('p1','view','t4')
-        esm.add_event('p1','view','t5')
-      ]) 
-      .then( ->
-        esm.vacuum_analyze()
-      )
-      .then( ->
-        esm.truncate_people_per_action(['p1'], 1)
-      )
-      .then( ->
-        esm.vacuum_analyze()
-      )
-      .then( ->
-        esm.count_events()
-      )
-      .then( (count) ->
-        count.should.equal 4
-      ) 
 
   it 'should truncate people by action', ->
     init_esm()

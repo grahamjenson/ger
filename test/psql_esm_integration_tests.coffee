@@ -374,16 +374,6 @@ describe '#get_ordered_action_set_with_weights', ->
       ) 
 
 
-describe '#get_things_that_actioned_person', ->
-  it 'should return list of things', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([esm.add_event('p','a','t'),esm.add_event('p','a','t1')])
-      .then( -> esm.get_things_that_actioned_person('p','a'))
-      .then( (things) ->
-        ('t' in things).should.equal true
-        ('t1' in things).should.equal true
-      ) 
 
 describe '#get_jaccard_distances_between_people', ->
   it 'should take a since, return recent as well', ->

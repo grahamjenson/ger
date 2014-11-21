@@ -189,12 +189,6 @@ class EventStoreMapper
         return null
     )
 
-  get_things_that_actioned_person: (person, action, limit = 100) =>
-    @person_thing_query(limit)
-    .where(person: person, action: action)
-    .then( (rows) ->
-      (r.thing for r in rows)
-    )
 
   last_events: (person, limit) ->
     @_knex("#{@_schema}.events")
