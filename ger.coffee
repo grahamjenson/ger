@@ -99,18 +99,13 @@ class GER
 
       total_weight = 0
       for p, weight of people_weights
-        total_weight += weight if p != object #remove object as it is 1 and drags up the mean if there are less values
+        total_weight += weight if p != object #remove object as it is 1
 
       n_people = Object.keys(people_weights).length - 1 #remove original object
-      if n_people > 0
-        mean_distance = total_weight / n_people
-      else
-        mean_distance = 0
 
       {
         people_weights: people_weights,
         n_people: n_people
-        mean_distance: mean_distance
       }
     )
 
@@ -138,7 +133,7 @@ class GER
       ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
     )
 
-  people_confidence: (n_people, mean_distance ) ->
+  people_confidence: (n_people ) ->
     #The more similar people found, the more we trust the recommendations
     #15 is a magic number chosen to make 10 around 50% and 50 around 95%
     pc = 1.0 - Math.pow(Math.E,( (- n_people) / 15 ))
@@ -190,7 +185,7 @@ class GER
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
       sorted_things = sorted_things[0...@recommendations_limit]
       
-      people_confidence = @people_confidence(similar_people.n_people, similar_people.mean_distance)
+      people_confidence = @people_confidence(similar_people.n_people)
       history_confidence = @history_confidence(person_history_count)
       things_confidence = @things_confidence(sorted_things)
 
