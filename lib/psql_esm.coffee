@@ -154,12 +154,6 @@ class EventStoreMapper
     @upsert("#{@_schema}.actions", insert_attr, identity_attr, update_attr)
     
 
-  person_thing_query: (limit)->
-    @_knex("#{@_schema}.events")
-    .select('person', 'thing').max('created_at as max_ca')
-    .groupBy('person','thing')
-    .orderByRaw('max_ca DESC')
-    .limit(limit)
 
   person_thing_history_count: (person) ->
     @_knex("#{@_schema}.events")
@@ -250,7 +244,11 @@ class EventStoreMapper
 
   things_people_have_actioned: (action, people, limit = 100) ->
     return bb.try(->[]) if people.length == 0
-    @person_thing_query(limit)
+    @_knex("#{@_schema}.events")
+    .select('person', 'thing').max('created_at as max_ca')
+    .groupBy('person','thing')
+    .orderByRaw('max_ca DESC')
+    .limit(limit)
     .where(action: action)
     .whereIn('person', people)
     .then( (rows) ->
@@ -385,8 +383,7 @@ class EventStoreMapper
 
   remove_expired_events: ->
     #removes the events passed their expiry date
-    now = new Date().toISOString()
-    @_knex("#{@_schema}.events").where('expires_at', '<', now).del()
+    @_knex("#{@_schema}.events").whereRaw('expires_at < NOW()').del()
 
 
   remove_non_unique_events_for_people: (people) ->
