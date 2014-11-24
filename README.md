@@ -88,5 +88,6 @@ ger.action("action", 10)
 ```
 
 #Changelog
+2014-11-25 - Added better way of selecting recommendations from similar people.
 
-2014-11-12 - Added better heuristic to selected related people. Meaning less related people need to be selected to find good values
+2014-11-12 - Added better heuristic to select related people. Meaning less related people need to be selected to find good values
