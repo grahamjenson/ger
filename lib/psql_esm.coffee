@@ -242,16 +242,25 @@ class EventStoreMapper
       (r.tthing for r in rows.rows)
     )
 
-  things_people_have_actioned: (action, people, limit = 100) ->
+  things_people_have_actioned: (action, people, limit = 50) ->
     return bb.try(->[]) if people.length == 0
-    @_knex("#{@_schema}.events")
-    .select('person', 'thing').max('created_at as max_ca')
-    .groupBy('person','thing')
-    .orderByRaw('max_ca DESC')
-    .limit(limit)
-    .where(action: action)
-    .whereIn('person', people)
-    .then( (rows) ->
+
+    bindings = [action]
+    person_bindings = {}
+    for p in people
+      bindings.push(p)
+      person_bindings[p] = "$#{bindings.length}"
+
+    ql = []
+    for p in people
+      ql.push "(select person, thing, MAX(created_at) as max_ca from #{@_schema}.events
+          where action = $1 and person = #{person_bindings[p]} group by person, thing order by max_ca DESC limit #{limit})"
+
+    query = ql.join( " UNION ")
+
+    @_knex.raw(query, bindings)
+    .then( (ret) ->
+      rows = ret.rows
       temp = {}
       for r in rows
         temp[r.person] = [] if temp[r.person] == undefined

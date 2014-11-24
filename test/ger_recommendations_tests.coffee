@@ -193,6 +193,34 @@ describe "weights", ->
       )
 
 describe "person exploits,", ->
+  it 'related_things_limit should stop one persons recommendations eliminating the other recommendations', ->
+    init_ger(related_things_limit: 1)
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.action('buy', 5),
+        ger.event('p1','view','a'),
+        ger.event('p1','view','b'),
+        #p2 is closer to p1, but theie recommendation was 2 days ago. It should still be included
+        ger.event('p2','view','a'),
+        ger.event('p2','view','b'),
+        ger.event('p2','buy','x', created_at: moment().subtract(2, 'days')),
+
+        ger.event('p3','view','a'),
+        ger.event('p3','buy','l', created_at: moment().subtract(3, 'hours')),
+        ger.event('p3','buy','m', created_at: moment().subtract(2, 'hours')),
+        ger.event('p3','buy','n', created_at: moment().subtract(1, 'hours'))
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        item_weights = recs.recommendations
+        item_weights.length.should.equal 2
+        item_weights[0].thing.should.equal 'x'
+        item_weights[1].thing.should.equal 'n'
+
+      )
+
+
   it "a single persons mass interaction should not outweigh 'real' interations", ->
     init_ger()
     .then (ger) ->

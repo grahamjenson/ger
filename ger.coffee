@@ -13,7 +13,7 @@ class GER
     options = _.defaults(options,
       minimum_history_limit: 1,
       similar_people_limit: 25,
-      related_things_limit: 1000
+      related_things_limit: 10
       recommendations_limit: 20,
       recent_event_days: 14,
       previous_actions_filter: []
