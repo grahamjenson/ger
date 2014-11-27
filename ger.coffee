@@ -130,7 +130,7 @@ class GER
   filter_recommendations: (person, recommendations) ->
     @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)
     .then( (filter_things) ->
-      ({thing: thing, weight: weight} for thing, weight of recommendations when thing in filter_things)
+      ({thing: thing, weight: weight_date.weight, last_actioned_at: weight_date.last_actioned_at} for thing, weight_date of recommendations when thing in filter_things)
     )
 
   people_confidence: (n_people ) ->
@@ -172,9 +172,16 @@ class GER
       people_weights = similar_people.people_weights
       things_weight = {}
       for p, things of people_things
-        for thing in things
-          things_weight[thing] = 0 if things_weight[thing] == undefined
-          things_weight[thing] += people_weights[p]
+        for thing_date in things
+          thing = thing_date.thing
+          last_actioned_at = thing_date.last_actioned_at
+
+          things_weight[thing] = {weight: 0} if things_weight[thing] == undefined
+          things_weight[thing].weight += people_weights[p]
+          if things_weight[thing].last_actioned_at == undefined or things_weight[thing].last_actioned_at < last_actioned_at
+            things_weight[thing].last_actioned_at = last_actioned_at 
+             
+          
 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(person, things_weight), similar_people] )
@@ -190,7 +197,6 @@ class GER
       things_confidence = @things_confidence(sorted_things)
 
       confidence = people_confidence * history_confidence * things_confidence
-
       {recommendations: sorted_things, confidence: confidence}
     )
 

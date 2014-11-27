@@ -426,9 +426,9 @@ describe '#things_people_have_actioned', ->
       bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
       .then( -> esm.things_people_have_actioned('a',['p1','p2']))
       .then( (people_things) ->
-        people_things['p1'].should.contain 't'
+        people_things['p1'][0].thing.should.equal 't'
         people_things['p1'].length.should.equal 1
-        people_things['p2'].should.contain 't1'
+        people_things['p2'][0].thing.should.equal 't1'
         people_things['p2'].length.should.equal 1
       ) 
 
@@ -438,8 +438,8 @@ describe '#things_people_have_actioned', ->
       bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
       .then( -> esm.things_people_have_actioned('a',['p1','p2']))
       .then( (people_things) ->
-        people_things['p1'].should.contain 't'
+        people_things['p1'][0].thing.should.equal 't'
         people_things['p1'].length.should.equal 1
-        people_things['p2'].should.contain 't'
+        people_things['p2'][0].thing.should.equal 't'
         people_things['p2'].length.should.equal 1
       ) 

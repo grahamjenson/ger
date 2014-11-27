@@ -145,15 +145,39 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
         ger.action("v'i\new"),
-        ger.event("'p\n1","v'i\new","'a\n;"),
-        ger.event("'p\n2","v'i\new","'a\n;"),
+        ger.event("'p\n1};","v'i\new","'a\n;"),
+        ger.event("'p\n2};","v'i\new","'a\n;"),
       ])
-      .then(-> ger.recommendations_for_person("'p\n1","v'i\new"))
+      .then(-> ger.recommendations_for_person("'p\n1};","v'i\new"))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal "'a\n;"
         item_weights.length.should.equal 1
       )
+
+  it 'should return the last_actioned_at date it was actioned at', ->
+    date1 = moment().subtract(50, 'mins').toDate()
+    date2 = moment().subtract(1, 'days').toDate()
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('view', 1),
+        ger.event('p1','view','a'),
+        ger.event('p2','view','a'),
+        ger.event('p3','view','a'),
+        ger.event('p2','view','b', created_at: date1),
+        ger.event('p3','view','b', created_at: date2),
+      ])
+      .then(-> ger.recommendations_for_person("p1","view"))
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
+        item_weights.length.should.equal 2
+
+        item_weights[0].thing.should.equal "a"
+        item_weights[1].thing.should.equal "b"
+        item_weights[1].last_actioned_at.should.equal date1.getTime()
+      )
+
 
 describe 'weighted_similar_people', ->
 

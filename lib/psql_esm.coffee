@@ -264,7 +264,8 @@ class EventStoreMapper
       temp = {}
       for r in rows
         temp[r.person] = [] if temp[r.person] == undefined
-        temp[r.person].push r.thing
+        temp[r.person].push {thing: r.thing, last_actioned_at: r.max_ca.getTime()}
+
       temp
     )
 
