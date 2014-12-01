@@ -1,0 +1,32 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'node', '/usr/local/bin/npm', 'run', 'test' ]
+2 info using npm@2.1.7
+3 info using node@v0.11.14
+4 verbose run-script [ 'pretest', 'test', 'posttest' ]
+5 info pretest ger@0.0.57
+6 info test ger@0.0.57
+7 verbose unsafe-perm in lifecycle true
+8 info ger@0.0.57 Failed to exec test script
+9 verbose stack Error: Exit status 7
+9 verbose stack     at ChildProcess.<anonymous> (/usr/local/lib/node_modules/npm/lib/utils/lifecycle.js:212:16)
+9 verbose stack     at ChildProcess.emit (events.js:110:17)
+9 verbose stack     at maybeClose (child_process.js:1000:16)
+9 verbose stack     at Process.ChildProcess._handle.onexit (child_process.js:1072:5)
+10 verbose pkgid ger@0.0.57
+11 verbose cwd /home/thelinuxlich/ger
+12 error Linux 3.17.3-1-ARCH
+13 error argv "node" "/usr/local/bin/npm" "run" "test"
+14 error node v0.11.14
+15 error npm  v2.1.7
+16 error code ELIFECYCLE
+17 error ger@0.0.57 test: `mocha`
+17 error Exit status 7
+18 error Failed at the ger@0.0.57 test script.
+18 error This is most likely a problem with the ger package,
+18 error not with npm itself.
+18 error Tell the author that this fails on your system:
+18 error     mocha
+18 error You can get their info via:
+18 error     npm owner ls ger
+18 error There is likely additional logging output above.
+19 verbose exit [ 1, true ]

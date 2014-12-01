@@ -20,7 +20,7 @@ describe "minimum_history_limit", ->
 describe "joining multiple gers", ->
   it "similar recommendations should return same confidence", ->
     bb.all([
-      init_ger(default_esm, 'p1', {similar_people_limit: 2, person_history_limit: 4}, 'ger_1'), 
+      init_ger(default_esm, 'p1', {similar_people_limit: 2, person_history_limit: 4}, 'ger_1'),
       init_ger(default_esm, 'p2', {similar_people_limit: 4, person_history_limit: 8}, 'ger_2')
     ])
     .spread (ger1, ger2) ->
@@ -37,7 +37,7 @@ describe "joining multiple gers", ->
         ger2.event('p2','buy','b'),
       ])
       .then( -> bb.all([
-          ger1.recommendations_for_person('p1', 'buy'), 
+          ger1.recommendations_for_person('p1', 'buy'),
           ger2.recommendations_for_person('p1', 'buy')
         ])
       )
@@ -89,7 +89,7 @@ describe "confidence", ->
         ger.event('p4','view','x'),
         ger.event('p4','view','z'),
       ])
-      .then(-> 
+      .then(->
         bb.all([
           ger.recommendations_for_person('p1', 'view')
           ger.recommendations_for_person('p3', 'view')
@@ -111,7 +111,7 @@ describe "confidence", ->
         ger.event('p4','view','b'),
         ger.event('p5','view','b'),
       ])
-      .then(-> 
+      .then(->
         bb.all([
           ger.recommendations_for_person('p1', 'view')
           ger.recommendations_for_person('p3', 'view')
@@ -135,7 +135,7 @@ describe "confidence", ->
         ger.event('p4','view','x'),
         ger.event('p4','view','b'),
       ])
-      .then(-> 
+      .then(->
         bb.all([
           ger.recommendations_for_person('p1', 'view')
           ger.recommendations_for_person('p3', 'view')
@@ -186,7 +186,7 @@ describe "weights", ->
         item_weights = recs.recommendations
         #p1 is similar by 1 view to p2 p3 p4 p5
         #p1 is similar to p6 by 1 buy
-        #because a buy is worth 5 views x should be recommended before y 
+        #because a buy is worth 5 views x should be recommended before y
         item_weights[0].thing.should.equal 'b'
         item_weights[1].thing.should.equal 'y'
         item_weights[2].thing.should.equal 'x'
@@ -220,7 +220,7 @@ describe "weights", ->
         item_weights = recs.recommendations
         item_weights.length.should.equal 1
         item_weights[0].thing.should.equal 'x'
-      ) 
+      )
 
 describe "person exploits,", ->
   it 'related_things_limit should stop one persons recommendations eliminating the other recommendations', ->

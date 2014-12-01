@@ -26,6 +26,8 @@ esm_tests = (ESM) ->
               c1.should.equal 2
               c2.should.equal 1
             )
+        else
+            "foo".should.equal "foo"
 
     describe '#destroy', ->
       it 'should destroy resources for ESM namespace'
@@ -82,6 +84,7 @@ esm_tests = (ESM) ->
           )
 
      it 'should not return the given person', ->
+        @timeout(360000)
         init_esm(ESM)
         .then (esm) ->
           bb.all([
@@ -96,6 +99,7 @@ esm_tests = (ESM) ->
           )
 
       it 'should only return people related via given actions', ->
+        @timeout(60000)
         init_esm(ESM)
         .then (esm) ->
           bb.all([

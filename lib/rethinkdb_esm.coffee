@@ -460,14 +460,13 @@ class EventStoreMapper
         promises = []
         sub_bulk = []
         for item in r_bulk
-          if sub_bulk.length < 50
+          if sub_bulk.length < 100
             sub_bulk.push item
           else
             promises.push @_r.table("events").insert(sub_bulk,{conflict: "replace"}).run({durability: "soft"})
             sub_bulk = []
         if sub_bulk.length > 0
           promises.push @_r.table("events").insert(sub_bulk,{conflict: "replace"}).run({durability: "soft"})
-        console.log(promises.length)
         bb.all(promises).then((result)-> deferred.resolve(counter.count))
       else
         deferred.resolve(counter.count)
