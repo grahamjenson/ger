@@ -39,7 +39,7 @@ class GER
   ####################### Weighted people  #################################
 
   calculate_similarities_from_person : (person, people, actions) ->
-    @esm.weight_people(person, people, Object.keys(actions), @person_history_limit, @recent_event_days)
+    @esm.calculate_similarities_from_person(person, people, Object.keys(actions), @person_history_limit, @recent_event_days)
     .then( (people_weights) =>
       temp = {}
       for p, weights of people_weights
@@ -113,8 +113,8 @@ class GER
     [actions_below_mean, actions_above_mean] = @half_array_by_mean(action_list, actions)
 
     bb.all([
-      @esm.get_related_people(person, actions_below_mean, action, @similar_people_limit, @person_history_limit), 
-      @esm.get_related_people(person, actions_above_mean, action, @similar_people_limit, @person_history_limit)])
+      @esm.find_similar_people(person, actions_below_mean, action, @similar_people_limit, @person_history_limit), 
+      @esm.find_similar_people(person, actions_above_mean, action, @similar_people_limit, @person_history_limit)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
     )
@@ -162,7 +162,7 @@ class GER
 
   recommendations_for_person: (person, action) ->
     #first a check or two
-    bb.all([@esm.person_thing_history_count(person), @esm.get_actions()])
+    bb.all([@esm.person_history_count(person), @esm.get_actions()])
     .spread( (count, action_weights) =>
       if count < @minimum_history_limit
         return {recommendations: [], confidence: 0}
@@ -213,33 +213,17 @@ class GER
 
   #  DATABASE CLEANING #
 
-  compact_people : () ->
-    @esm.get_active_people()
-    .then( (people) =>
-      @esm.remove_non_unique_events_for_people(people)
-      .then( =>
-        #remove events per (active) person action that exceed some number
-        @esm.truncate_people_per_action(people, @compact_database_person_action_limit)
-      )
-    )
-
-  compact_things :  () ->
-    @esm.get_active_things()
-    .then( (things) =>
-      @esm.truncate_things_per_action(things, @compact_database_thing_action_limit)
-    )
-
   compact_database: ->
-    @esm.analyze()
+    @esm.pre_compact()
     .then( =>
       promises = []
-      promises.push @esm.remove_expired_events()
-      promises.push @compact_people()
-      promises.push @compact_things()
+      promises.push @esm.expire_events()
+      promises.push @esm.compact_people(@compact_database_person_action_limit)
+      promises.push @esm.compact_things(@compact_database_thing_action_limit)
       bb.all(promises)
     )
     .then( =>
-      @esm.analyze()
+      @esm.post_compact()
     )
 
   compact_database_to_size: (number_of_events) ->

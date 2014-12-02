@@ -58,7 +58,7 @@ This documentation describes **GER** (Good Enough Recommendations), a recommenda
 
 A recommendation engine is a secondary consideration to a product; it is not the highest priority on your list right now, but it is probably on your list. GER's core goal is to let developers easily integrate a recommendation engine that works for their product, but is not overly complex to get up and running. As your product grows and becomes successful, GER can be fine tuned to provide more targeted recommendations. Initially though, **it will just work**.
 
-#GER and its API
+#The GER API
 
 GER is a [collaborative filtering](http://en.wikipedia.org/wiki/Collaborative_filtering) engine using the [Jaccard metric](http://en.wikipedia.org/wiki/Jaccard_index). This means that GER looks at past events of a person, finds similar people, then recommends things that those similar users are doing. Basically, events go into GER and recommendations come out.
 
@@ -87,7 +87,37 @@ Each action has a weight (defaulting to 1) which determines how important it is 
 ger.action("action", 10)
 ```
 
+
+#Development
+
+##Event Store Manager
+
+The API for the ESM to generate recommendations is:
+
+1. `get_actions()` returns the actions with weights e.g. {'like': 1}
+2. `find_similar_people(person, action, actions, limits...)` returns 
+3. `calculate_similarities_from_person(person, people, actions, limits...)`
+4. `recently_actioned_things_by_people(people)`
+5. `person_history_count`
+6. `filter_things_by_previous_actions`
+
+The API for the ESM to insert data is:
+
+1. `add_event` (also `find_event`)
+2. `set_action_weight` (also `get_action_weight`)
+3. `bootstrap`
+
+The API for the ESM to compact the database is:
+
+1. `pre_compact`
+2. `compact_people`
+3. `compact_things`
+4. `expire_events`
+5. `post_compact`
+
 #Changelog
+2014-11-27 - Started returning the last actioned at date with recommendations
+
 2014-11-25 - Added better way of selecting recommendations from similar people.
 
 2014-11-12 - Added better heuristic to select related people. Meaning less related people need to be selected to find good values

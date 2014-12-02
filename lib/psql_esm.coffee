@@ -155,7 +155,7 @@ class EventStoreMapper
     
 
 
-  person_thing_history_count: (person) ->
+  person_history_count: (person) ->
     @_knex("#{@_schema}.events")
     .groupBy('thing')
     .where({person: person})
@@ -191,7 +191,7 @@ class EventStoreMapper
     .orderByRaw('created_at DESC')
     .limit(limit)
 
-  get_related_people: (person, actions, action, limit = 100, search_limit = 500) ->
+  find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
     one_degree_similar_people = @_knex(@last_events(person, search_limit ).as('e'))
     .innerJoin("#{@_schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
@@ -344,7 +344,7 @@ class EventStoreMapper
     )
 
 
-  weight_people: (person, people, actions, person_history_limit, recent_event_days) ->
+  calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
     .spread( (event_weights, recent_event_weights) =>
@@ -406,9 +406,15 @@ class EventStoreMapper
     
   # DATABASE CLEANING METHODS
 
-  remove_expired_events: ->
+  expire_events: ->
     #removes the events passed their expiry date
     @_knex("#{@_schema}.events").whereRaw('expires_at < NOW()').del()
+
+  pre_compact: ->
+    @analyze()
+
+  post_compact: ->
+    @analyze()
 
 
   remove_non_unique_events_for_people: (people) ->
@@ -432,7 +438,7 @@ class EventStoreMapper
   analyze: ->
     @_knex.raw("ANALYZE #{@_schema}.events")
 
-  #TODO refactor out useful methods
+
   get_active_things: ->
     #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'thing';
@@ -459,6 +465,22 @@ class EventStoreMapper
       people
     )
 
+
+  compact_people : (compact_database_person_action_limit) ->
+    @get_active_people()
+    .then( (people) =>
+      @remove_non_unique_events_for_people(people)
+      .then( =>
+        #remove events per (active) person action that exceed some number
+        @truncate_people_per_action(people, compact_database_person_action_limit)
+      )
+    )
+
+  compact_things :  (compact_database_thing_action_limit) ->
+    @get_active_things()
+    .then( (things) =>
+      @truncate_things_per_action(things, compact_database_thing_action_limit)
+    )
 
   truncate_things_per_action: (things, trunc_size) ->
 

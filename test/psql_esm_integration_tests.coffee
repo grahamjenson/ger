@@ -23,7 +23,7 @@ describe "action cache", ->
         (esm.action_cache == null).should.equal true
       )
 
-describe "person_thing_history_count", ->
+describe "person_history_count", ->
   it "return number of events for person", ->
     init_esm()
     .then (esm) ->
@@ -33,11 +33,11 @@ describe "person_thing_history_count", ->
         esm.add_event('p1','view','t2')
       ]) 
       .then( ->
-        esm.person_thing_history_count('p1')
+        esm.person_history_count('p1')
       )
       .then( (count) ->
         count.should.equal 2
-        esm.person_thing_history_count('p2')
+        esm.person_history_count('p2')
       )
       .then( (count) ->
         count.should.equal 0
@@ -96,7 +96,7 @@ describe "filter_things_by_previous_actions", ->
         things[0].should.equal 't2'
       )     
 
-describe "related_people", ->
+describe "find_similar_people", ->
   it 'should order by persons activity DATE (NOT DATETIME) then by COUNT', ->
     init_esm()
     .then (esm) ->
@@ -125,7 +125,7 @@ describe "related_people", ->
         esm.add_event('p3','buy','t2')
       ]) 
       .then( ->
-        esm.get_related_people('p1', ['view', 'buy'], 'buy')
+        esm.find_similar_people('p1', ['view', 'buy'], 'buy')
       )
       .then( (people) ->
         people[0].should.equal 'p4'
@@ -145,7 +145,7 @@ describe "related_people", ->
         esm.add_event('p2','buy','t1')
       ]) 
       .then( ->
-        esm.get_related_people('p1', ['view', 'buy'], 'buy')
+        esm.find_similar_people('p1', ['view', 'buy'], 'buy')
       )
       .then( (people) ->
         people.length.should.equal 1
@@ -161,7 +161,7 @@ describe "related_people", ->
         esm.add_event('p2','view','t1')
       ]) 
       .then( ->
-        esm.get_related_people('p1', ['view','buy'], 'buy')
+        esm.find_similar_people('p1', ['view','buy'], 'buy')
       )
       .then( (people) ->
         people.length.should.equal 0
@@ -175,7 +175,7 @@ describe "related_people", ->
         esm.add_event('p1','view','t1')
       ]) 
       .then( ->
-        esm.get_related_people('p1', ['view'], 'view')
+        esm.find_similar_people('p1', ['view'], 'view')
       )
       .then( (people) ->
         people.length.should.equal 0
@@ -192,7 +192,7 @@ describe "related_people", ->
         esm.add_event('p2','buy','t1')
       ]) 
       .then( ->
-        esm.get_related_people('p1', ['buy'], 'buy')
+        esm.find_similar_people('p1', ['buy'], 'buy')
       )
       .then( (people) ->
         people.length.should.equal 0

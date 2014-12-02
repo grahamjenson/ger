@@ -205,7 +205,7 @@ describe "remove_events_till_size", ->
       )
 
 
-describe "remove_expired_events", ->
+describe "expire_events", ->
   it "removes the events passed their expiry date", ->
     init_esm()
     .then (esm) ->
@@ -215,7 +215,7 @@ describe "remove_expired_events", ->
       )
       .then( (count) ->
         count.should.equal 1
-        esm.remove_expired_events()
+        esm.expire_events()
       )
       .then( -> esm.count_events())
       .then( (count) -> count.should.equal 0 )
@@ -229,7 +229,7 @@ describe "remove_expired_events", ->
       )
       .then( (count) ->
         count.should.equal 3
-        esm.remove_expired_events()
+        esm.expire_events()
       )
       .then( -> esm.count_events())
       .then( (count) -> 
