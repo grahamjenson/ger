@@ -282,8 +282,8 @@ describe "Schemas for multitenancy", ->
     psql_esm1 = new PsqlESM(knex, "schema1")
     psql_esm2 = new PsqlESM(knex, "schema2")
 
-    bb.all([psql_esm1.drop_tables(),psql_esm2.drop_tables()])
-    .then( -> bb.all([psql_esm1.init_tables(),psql_esm2.init_tables()]) )
+    bb.all([psql_esm1.destroy(),psql_esm2.destroy()])
+    .then( -> bb.all([psql_esm1.initialize(), psql_esm2.initialize()]) )
     .then( ->
       bb.all([
         psql_esm1.add_event('p','a','t')

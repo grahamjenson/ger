@@ -63,10 +63,10 @@ class EventStoreMapper
   constructor: (@_knex, @_schema = 'public') ->
     @action_cache = null
 
-  drop_tables: ->
+  destroy: ->
     drop_tables(@_knex,@_schema)
 
-  init_tables: ->
+  initialize: ->
     init_tables(@_knex,@_schema)
 
   add_event: (person, action, thing, dates = {}) ->
@@ -284,7 +284,7 @@ class EventStoreMapper
     union = "(select (case count(*) when 0 then 1 else count(*) end) from ((#{s1}) UNION (#{s2})) as uni)::float"
     
     # dont put the name of the action in the sql stopping sql injection
-    "(#{intersection} / #{union}) "
+    "(#{intersection} / #{union})"
 
   jaccard_distance_for_limit: (person, limit) ->
     s1q = @person_history(person).toString()
@@ -537,9 +537,6 @@ class EventStoreMapper
     #removes old events till there is only number_of_events left
     query = "delete from #{@_schema}.events where id not in (select id from #{@_schema}.events order by created_at desc limit #{number_of_events})"
     @_knex.raw(query)
-
-EventStoreMapper.drop_tables = drop_tables
-EventStoreMapper.init_tables = init_tables
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

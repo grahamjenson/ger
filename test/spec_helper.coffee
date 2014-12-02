@@ -22,8 +22,8 @@ global.init_esm = (schema='public') ->
   #in
   psql_esm = new PsqlESM(knex, schema)
   #drop the current tables, reinit the tables, return the esm
-  bb.try(-> psql_esm.drop_tables())
-  .then( -> psql_esm.init_tables())
+  bb.try(-> psql_esm.destroy())
+  .then( -> psql_esm.initialize())
   .then( -> psql_esm)
 
 global.init_ger = (options = {}, schema='public') ->

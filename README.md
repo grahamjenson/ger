@@ -36,7 +36,7 @@ var psql_esm = new g.PsqlESM(knex)
 Initialize the tables in PostGres:
 
 ```
-psql_esm.init_tables() //create the tables if they don't exist
+psql_esm.initialize() //create the tables if they don't exist
 ```
 
 Then create the GER instance by passing the ESM:
@@ -88,9 +88,16 @@ ger.action("action", 10)
 ```
 
 
+
 #Development
 
 ##Event Store Manager
+
+The API for Initialization
+
+1. `esm = new ESM(namespace, options = {})`
+2. `initialize()` will create resources necessary for ESM to function
+3. `destroy()` will destroy all resources for ESM
 
 The API for the ESM to generate recommendations is:
 

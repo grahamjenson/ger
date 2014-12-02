@@ -1,5 +1,5 @@
 describe "compact_database", ->
-  it 'asd should remove duplicate events', ->
+  it 'should remove duplicate events', ->
     init_ger()
     .then (ger) ->
       rs = new Readable();
@@ -22,120 +22,73 @@ describe "compact_database", ->
         count.should.equal 1
       )
 
-describe "get_active_things", ->
-  it 'should return an ordered list of the most active things', ->
-    init_esm()
-    .then (esm) ->
+
+
+describe "compact_database_thing_action_limit", ->
+  it 'should truncate events on a thing to the set limit', ->
+    init_ger(compact_database_thing_action_limit: 2)
+    .then (ger) ->
       bb.all([
-        esm.add_event('p1','view','t1')
-        esm.add_event('p1','view','t2')
-        esm.add_event('p1','view','t3')
+        ger.action('view')
+        ger.event('p1','view','t1')
+        ger.event('p2','view','t1')
+        ger.event('p3','view','t1')
 
-        esm.add_event('p2','view','t2')
-        esm.add_event('p2','view','t3')
-
-        esm.add_event('p3','view','t3')
+        ger.event('p1','view','t2')
+        ger.event('p2','view','t2')
       ])
       .then( ->
-        esm.vacuum_analyze()
+        ger.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 5
       )
       .then( ->
-        esm.get_active_things()
-      )
-      .then( (things) ->
-        things[0].should.equal 't3'
-        things[1].should.equal 't2'
-      )
-
-describe "get_active_people", ->
-  it 'should work when noone is there', ->
-    init_esm()
-    .then( (esm) ->
-      esm.add_event('p1','view','t1')
-      .then(-> esm.vacuum_analyze())
-      .then( -> esm.get_active_people())
-    )
-
-  it 'should return an ordered list of the most active people', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([
-        esm.add_event('p1','view','t1')
-        esm.add_event('p1','view','t2')
-        esm.add_event('p1','view','t3')
-
-        esm.add_event('p2','view','t2')
-        esm.add_event('p2','view','t3')
-      ])
-      .then( ->
-        esm.vacuum_analyze()
+        ger.compact_database()
       )
       .then( ->
-        esm.get_active_people()
-      )
-      .then( (people) ->
-        people[0].should.equal 'p1'
-        people[1].should.equal 'p2'
-      )
-
-describe "truncate_things_per_action", ->
-  it 'should truncate people events to a smaller value', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([
-        esm.set_action_weight('view', 1)
-        esm.add_event('p1','view','t1')
-        esm.add_event('p2','view','t1')
-        esm.add_event('p3','view','t1')
-
-        esm.add_event('p1','view','t2')
-        esm.add_event('p2','view','t2')
-      ]) 
-      .then( ->
-        esm.vacuum_analyze()
+        ger.compact_database()
       )
       .then( ->
-        esm.truncate_things_per_action(['t1', 't2'], 2)
-      )
-      .then( ->
-        esm.vacuum_analyze()
-      )
-      .then( ->
-        esm.count_events()
+        ger.count_events()
       )
       .then( (count) ->
         count.should.equal 4
       )  
 
-
-describe "truncate_people_per_action", ->
-  it 'should truncate people events to a smaller value', ->
-    init_esm()
-    .then (esm) ->
+describe "compact_database_person_action_limit", ->
+  it 'should truncate events by a person to the set limit', ->
+    init_ger(compact_database_person_action_limit: 2)
+    .then (ger) ->
       bb.all([
-        esm.set_action_weight('view', 1)
-        esm.add_event('p1','view','t1')
-        esm.add_event('p1','view','t2')
-        esm.add_event('p1','view','t3')
+        ger.action('view', 1)
+        ger.event('p1','view','t1')
+        ger.event('p1','view','t2')
+        ger.event('p1','view','t3')
+        ger.event('p1','view','t4')
+        ger.event('p1','view','t5')
 
-        esm.add_event('p2','view','t2')
-        esm.add_event('p2','view','t3')
+        ger.event('p2','view','t2')
+        ger.event('p2','view','t3')
       ]) 
       .then( ->
-        esm.vacuum_analyze()
+        ger.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 7
       )
       .then( ->
-        esm.truncate_people_per_action(['p1', 'p2'], 2)
+        ger.compact_database()
       )
       .then( ->
-        esm.vacuum_analyze()
+        ger.compact_database()
       )
       .then( ->
-        esm.count_events()
+        ger.count_events()
       )
       .then( (count) ->
         count.should.equal 4
-      )   
+      )  
 
 
   it 'should truncate people by action', ->
