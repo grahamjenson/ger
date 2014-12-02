@@ -343,6 +343,21 @@ class EventStoreMapper
       [limit_distance, recent_distance]
     )
 
+
+  weight_people: (person, people, actions, person_history_limit, recent_event_days) ->
+    #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
+    @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
+    .spread( (event_weights, recent_event_weights) =>
+      temp = {}
+      #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
+      for p in people
+        temp[p] = {}
+        for ac in actions
+          temp[p][ac] = ((recent_event_weights[p][ac] * 4) + (event_weights[p][ac] * 1))/5.0
+      
+      temp
+    )
+
   #knex wrapper functions
   has_event: (person, action, thing) ->
     @_knex("#{@_schema}.events").where({person: person, action: action, thing: thing})

@@ -63,22 +63,10 @@ class GER
     for action, weight of actions
       total_action_weight += weight
 
-    #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @esm.get_jaccard_distances_between_people(person, people, Object.keys(actions), @person_history_limit, @recent_event_days)
-    .spread( (event_weights, recent_event_weights) =>
-      [
-        @combine_weights_with_actions(event_weights, actions, total_action_weight), 
-        @combine_weights_with_actions(recent_event_weights, actions, total_action_weight)
-      ]
-    )
-    .spread( (event_weights, recent_event_weights) =>
-      # join the weights together
-      temp = {}
+    @esm.weight_people(person, people, Object.keys(actions), @person_history_limit, @recent_event_days)
+    .then( (weights) =>
+      temp = @combine_weights_with_actions(weights, actions, total_action_weight)
       temp[person] = 1
-      #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
-      for p, w of event_weights
-        temp[p] = ((recent_event_weights[p] * 4) + (event_weights[p] * 1))/5.0
-      
       temp
     )
 
