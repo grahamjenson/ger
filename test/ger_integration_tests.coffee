@@ -179,7 +179,46 @@ describe 'recommendations_for_person', ->
       )
 
 
-describe 'weighted_similar_people', ->
+describe 'find_similar_people', ->
+  it 'should return a list of similar people', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+        ger.event('p3','action1','a'),
+
+        ger.event('p1','action1','b'),
+        ger.event('p3','action1','b'),
+
+        ger.event('p4','action1','d')
+      ])
+      .then(-> ger.find_similar_people('p1', 'action1', {'action1': 1}))
+      .then((similar_people) ->
+        similar_people.should.include 'p2'
+        similar_people.should.include 'p3'
+      )
+
+  it 'should handle a non associated person', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.event('p1','action1','not')
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+        ger.event('p3','action1','a'),
+
+        ger.event('p1','action1','b'),
+        ger.event('p3','action1','b'),
+
+        ger.event('p4','action1','d')
+      ])
+      .then(-> ger.find_similar_people('p1', 'action1', {'action1': 1}))
+      .then((similar_people) ->
+        similar_people.length.should.equal 2
+      )
+
+describe 'calculate_similarities_from_person', ->
 
   it "should weight recent events more than past events", ->
     init_ger(recent_event_days: 1)
@@ -190,7 +229,7 @@ describe 'weighted_similar_people', ->
         ger.event('p2','view','a', created_at: moment().subtract(50, 'mins')),
         ger.event('p3','view','a', created_at: moment().subtract(2, 'days')),
       ])
-      .then(-> ger.weighted_similar_people('p1', 'view'))
+      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'view': 1}))
       .then((similar_people) ->
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p2'].should.equal 1
@@ -201,8 +240,6 @@ describe 'weighted_similar_people', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view',1),
-        ger.action('buy',99),
         ger.event('p1','view','a'),
         ger.event('p2','view','a'),
         ger.event('p3','view','a'),
@@ -212,14 +249,15 @@ describe 'weighted_similar_people', ->
 
         ger.event('p2','buy','x')
       ])
-      .then(-> ger.weighted_similar_people('p1', 'buy'))
+      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'view': .01, 'buy': .99}))
       .then((similar_people) ->
         similar_people.people_weights['p3'].should.equal 1
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p2'].should.equal 0.01
       )
 
-  it 'should return a list of similar people weighted with jaccard distance', ->
+
+  it 'should weight a list of similar people', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -233,13 +271,12 @@ describe 'weighted_similar_people', ->
 
         ger.event('p4','action1','d')
       ])
-      .then(-> ger.weighted_similar_people('p1', 'action1'))
+      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
-        people_weights = similar_people.people_weights
-        people_weights['p1'].should.equal 1
-        people_weights['p3'].should.equal 1
-        people_weights['p2'].should.equal 1/2
-        Object.keys(people_weights).length.should.equal 3
+        similar_people.people_weights['p1'].should.equal 1
+        similar_people.people_weights['p3'].should.equal 1
+        similar_people.people_weights['p2'].should.equal 1/2
+        Object.keys(similar_people.people_weights).length.should.equal 3
       )
 
   it 'should handle a non associated event on person', ->
@@ -253,11 +290,9 @@ describe 'weighted_similar_people', ->
         ger.event('p3','action1','a'),
 
         ger.event('p1','action1','b'),
-        ger.event('p3','action1','b'),
-
-        ger.event('p4','action1','d')
+        ger.event('p3','action1','b')
       ])
-      .then(-> ger.weighted_similar_people('p1','action1'))
+      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
         people_weights = similar_people.people_weights
         compare_floats( people_weights['p3'], 2/3).should.equal true
@@ -265,26 +300,6 @@ describe 'weighted_similar_people', ->
         Object.keys(people_weights).length.should.equal 3
       )
 
-  it 'should not use actions with 0 or negative weights', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.action('action1'),
-        ger.action('neg_action', 0),
-        ger.event('p1','action1','a'),
-        ger.event('p2','action1','a'),
-
-        ger.event('p1','neg_action','a'),
-        ger.event('p3','neg_action','a'),
-
-      ])
-      .then(-> ger.weighted_similar_people('p1','action1'))
-      .then((similar_people) ->
-        people_weights = similar_people.people_weights
-        people_weights['p1'].should.exist
-        people_weights['p2'].should.exist
-        Object.keys(people_weights).length.should.equal 2
-      )   
 
 describe 'setting action weights', ->
 

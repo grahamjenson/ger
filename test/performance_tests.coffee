@@ -77,19 +77,6 @@ describe 'performance tests', ->
         st = new Date().getTime()
         promises = []
         for x in [1..25]
-          promises.push ger.weighted_similar_people(sample(people), sample(actions))
-        bb.all(promises)
-        .then(->
-          et = new Date().getTime()
-          time = et-st
-          pe = time/25
-          console.log "#{pe}ms per weighted_similar_people"
-        )
-      )
-      .then( ->
-        st = new Date().getTime()
-        promises = []
-        for x in [1..25]
           promises.push ger.recommendations_for_person(sample(people), sample(actions))
         bb.all(promises)
         .then(->

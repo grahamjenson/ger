@@ -242,7 +242,7 @@ class EventStoreMapper
       (r.tthing for r in rows.rows)
     )
 
-  things_people_have_actioned: (action, people, limit = 50) ->
+  recently_actioned_things_by_people: (action, people, limit = 50) ->
     return bb.try(->[]) if people.length == 0
 
     bindings = [action]

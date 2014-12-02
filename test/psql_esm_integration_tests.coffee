@@ -419,12 +419,12 @@ describe '#get_jaccard_distances_between_people', ->
         jaccards['p2']['a'].should.equal 1/2
       )   
 
-describe '#things_people_have_actioned', ->
+describe '#recently_actioned_things_by_people', ->
   it 'should return list of things that people have actioned', ->
     init_esm()
     .then (esm) ->
       bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
-      .then( -> esm.things_people_have_actioned('a',['p1','p2']))
+      .then( -> esm.recently_actioned_things_by_people('a',['p1','p2']))
       .then( (people_things) ->
         people_things['p1'][0].thing.should.equal 't'
         people_things['p1'].length.should.equal 1
@@ -436,7 +436,7 @@ describe '#things_people_have_actioned', ->
     init_esm()
     .then (esm) ->
       bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
-      .then( -> esm.things_people_have_actioned('a',['p1','p2']))
+      .then( -> esm.recently_actioned_things_by_people('a',['p1','p2']))
       .then( (people_things) ->
         people_things['p1'][0].thing.should.equal 't'
         people_things['p1'].length.should.equal 1

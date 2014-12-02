@@ -119,16 +119,18 @@ class GER
       _.unique(ltpeople.concat gtpeople)
     )
 
+  recently_actioned_things_by_people: (action, people, related_things_limit) ->
+    @esm.recently_actioned_things_by_people(action, people, @related_things_limit)
+
   generate_recommendations_for_person: (person, action, actions, person_history_count = 1) ->
     @find_similar_people(person, action, actions)
     .then( (people) =>
       bb.all([
         @calculate_similarities_from_person(person, people, actions)
-        @esm.things_people_have_actioned(action, people.concat(person), @related_things_limit)
+        @recently_actioned_things_by_people(action, people.concat(person), @related_things_limit)
       ])
     )
     .spread( ( similar_people, people_things ) =>
-
       people_weights = similar_people.people_weights
       things_weight = {}
       for p, things of people_things

@@ -200,6 +200,28 @@ describe "weights", ->
         item_weights[2].thing.should.equal 'y'
       )
 
+  it 'should not use actions with 0 or negative weights', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.action('action1'),
+        ger.action('neg_action', 0),
+        ger.event('p1','action1','a'),
+        ger.event('p2','action1','a'),
+        ger.event('p2','buy','x'),
+
+        ger.event('p1','neg_action','a'),
+        ger.event('p3','neg_action','a'),
+        ger.event('p3','buy','y'),
+
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        item_weights = recs.recommendations
+        item_weights.length.should.equal 1
+        item_weights[0].thing.should.equal 'x'
+      ) 
+
 describe "person exploits,", ->
   it 'related_things_limit should stop one persons recommendations eliminating the other recommendations', ->
     init_ger(related_things_limit: 1)
