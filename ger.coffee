@@ -35,50 +35,19 @@ class GER
     @recent_event_days = options.recent_event_days
     @person_history_limit = options.person_history_limit
 
-  related_people: (object, actions, action) ->
-    #split actions in 2 by weight
-    #call twice
-    action_list = Object.keys(actions)
-    [ltmean, gtmean] = @half_array_by_mean(action_list, actions)
 
-    bb.all([
-      @esm.get_related_people(object, ltmean, action, @similar_people_limit, @person_history_limit), 
-      @esm.get_related_people(object, gtmean, action, @similar_people_limit, @person_history_limit)])
-    .spread( (ltpeople, gtpeople) ->
-      _.unique(ltpeople.concat gtpeople)
-    )
   ####################### Weighted people  #################################
-  combine_weights_with_actions: (object_weights, actions, total_action_weight) ->
-    # join the weights together
-    temp = {}
-    for p, weights of object_weights
-      for ac, weight of weights
-        temp[p] = 0 if p not of temp
-        temp[p] += weight * (actions[ac] / total_action_weight) # jaccard weight for action * percent of 
-    
-    temp    
 
-  weight_people : (person, people, actions) ->
-    total_action_weight = 0
-    for action, weight of actions
-      total_action_weight += weight
-
+  calculate_similarities_from_person : (person, people, actions) ->
     @esm.weight_people(person, people, Object.keys(actions), @person_history_limit, @recent_event_days)
-    .then( (weights) =>
-      temp = @combine_weights_with_actions(weights, actions, total_action_weight)
-      temp[person] = 1
+    .then( (people_weights) =>
+      temp = {}
+      for p, weights of people_weights
+        for ac, weight of weights
+          temp[p] = 0 if p not of temp
+          temp[p] += weight * actions[ac] # jaccard weight for action * percent of 
+      temp[person] = 1 # add person 
       temp
-    )
-
-  weighted_similar_people: (object, action) ->
-    @esm.get_ordered_action_set_with_weights()
-    .then( (action_weights) =>
-      actions = {}
-      (actions[aw.key] = aw.weight for aw in action_weights when aw.weight > 0)
-      bb.all([actions, @related_people(object, actions, action)])
-    )
-    .spread( (actions, objects) =>
-      @weight_people(object, objects, actions)
     )
     .then( (people_weights) =>
       # add confidence to the selection
@@ -87,7 +56,7 @@ class GER
 
       total_weight = 0
       for p, weight of people_weights
-        total_weight += weight if p != object #remove object as it is 1
+        total_weight += weight if p != person #remove object as it is 1
 
       n_people = Object.keys(people_weights).length - 1 #remove original object
 
@@ -102,18 +71,7 @@ class GER
     mean_weigth = total_weight/arr.length
     [ltmean, gtmean] = _.partition(arr, (p) -> weights[p] < mean_weigth)
     [ltmean, gtmean]
-
-  get_things_for_person: (action, people_weights) ->
-    people_list = Object.keys(people_weights)
     
-    [ltmean, gtmean] = @half_array_by_mean(people_list, people_weights)
-    bb.all([
-      @esm.things_people_have_actioned(action, ltmean, @related_things_limit), 
-      @esm.things_people_have_actioned(action, gtmean, @related_things_limit)
-    ])
-    .spread( (t1, t2) ->
-      _.extend(t1, t2)
-    )
   
   filter_recommendations: (person, recommendations) ->
     @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)
@@ -147,16 +105,30 @@ class GER
 
     tc
 
-  generate_recommendations_for_person: (person, action, person_history_count = 1) ->
-    @weighted_similar_people(person, action)
-    .then( (similar_people) =>
-      #A list of subjects that have been actioned by the similar objects, that have not been actioned by single object
+
+  find_similar_people: (person, action, actions) ->
+    #Split the actions into two separate groups (actions below mean and actions above mean)
+    #This is a useful heuristic to  
+    action_list = Object.keys(actions)
+    [actions_below_mean, actions_above_mean] = @half_array_by_mean(action_list, actions)
+
+    bb.all([
+      @esm.get_related_people(person, actions_below_mean, action, @similar_people_limit, @person_history_limit), 
+      @esm.get_related_people(person, actions_above_mean, action, @similar_people_limit, @person_history_limit)])
+    .spread( (ltpeople, gtpeople) ->
+      _.unique(ltpeople.concat gtpeople)
+    )
+
+  generate_recommendations_for_person: (person, action, actions, person_history_count = 1) ->
+    @find_similar_people(person, action, actions)
+    .then( (people) =>
       bb.all([
-        similar_people, 
-        @get_things_for_person(action, similar_people.people_weights)
+        @calculate_similarities_from_person(person, people, actions)
+        @esm.things_people_have_actioned(action, people.concat(person), @related_things_limit)
       ])
     )
     .spread( ( similar_people, people_things ) =>
+
       people_weights = similar_people.people_weights
       things_weight = {}
       for p, things of people_things
@@ -168,8 +140,6 @@ class GER
           things_weight[thing].weight += people_weights[p]
           if things_weight[thing].last_actioned_at == undefined or things_weight[thing].last_actioned_at < last_actioned_at
             things_weight[thing].last_actioned_at = last_actioned_at 
-             
-          
 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(person, things_weight), similar_people] )
@@ -190,12 +160,21 @@ class GER
 
   recommendations_for_person: (person, action) ->
     #first a check or two
-    @esm.person_thing_history_count(person)
-    .then( (count) =>
+    bb.all([@esm.person_thing_history_count(person), @esm.get_actions()])
+    .spread( (count, action_weights) =>
       if count < @minimum_history_limit
         return {recommendations: [], confidence: 0}
       else
-        return @generate_recommendations_for_person(person, action, count)
+
+
+        total_action_weight = 0
+        for aw in action_weights
+          total_action_weight += aw.weight
+        #filter and normalize actions with 0 weight from actions
+        actions = {}
+        (actions[aw.key] = (aw.weight / total_action_weight) for aw in action_weights when aw.weight > 0)
+
+        return @generate_recommendations_for_person(person, action, actions, count)
     )
 
   ##Wrappers of the ESM

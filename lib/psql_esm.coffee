@@ -164,7 +164,7 @@ class EventStoreMapper
       counts.length
     )
 
-  get_ordered_action_set_with_weights: ->
+  get_actions: ->
     return bb.try( => @action_cache) if @action_cache
     @_knex("#{@_schema}.actions")
     .select('action as key', 'weight')
@@ -464,7 +464,7 @@ class EventStoreMapper
 
     #TODO do the same thing for things
     return bb.try( -> []) if things.length == 0  
-    @get_ordered_action_set_with_weights()
+    @get_actions()
     .then((action_weights) =>
       return [] if action_weights.length == 0
       actions = (aw.key for aw in action_weights)
@@ -488,7 +488,7 @@ class EventStoreMapper
   truncate_people_per_action: (people, trunc_size) ->
     #TODO do the same thing for things
     return bb.try( -> []) if people.length == 0  
-    @get_ordered_action_set_with_weights()
+    @get_actions()
     .then((action_weights) =>
       return [] if action_weights.length == 0
       actions = (aw.key for aw in action_weights)

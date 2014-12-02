@@ -45,7 +45,7 @@ describe 'recommendations_for_person', ->
         item_weights.length.should.equal 1
       )
 
-  it 'should take a person and action to reccommend things', ->
+  it 'should recommend things based on user history', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -300,7 +300,7 @@ describe 'setting action weights', ->
           ger.event('p1', 'buybuy', 'c'),
           ])
       )
-      .then(-> ger.esm.get_ordered_action_set_with_weights())
+      .then(-> ger.esm.get_actions())
       .then((actions) -> 
         actions[0].key.should.equal "buybuy"
         actions[0].weight.should.equal 10

@@ -159,7 +159,7 @@ describe "confidence", ->
       )
 
 describe "weights", ->
-  it "weights should represent the amount of actions needed to outweight them", ->
+  it "weights should determine the order of the recommendations", ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -190,6 +190,14 @@ describe "weights", ->
         item_weights[0].thing.should.equal 'b'
         item_weights[1].thing.should.equal 'y'
         item_weights[2].thing.should.equal 'x'
+        ger.action('buy', 10)
+      )
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        item_weights = recs.recommendations
+        item_weights[0].thing.should.equal 'b'
+        item_weights[1].thing.should.equal 'x'
+        item_weights[2].thing.should.equal 'y'
       )
 
 describe "person exploits,", ->
