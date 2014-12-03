@@ -3,7 +3,7 @@ _ = require 'underscore'
 
 moment = require "moment"
 
-#The only stateful things in GER are the ESM and the options 
+#The only stateful things in GER are the ESM and the options
 class GER
 
   constructor: (@esm, options = {}) ->
@@ -45,8 +45,8 @@ class GER
       for p, weights of people_weights
         for ac, weight of weights
           temp[p] = 0 if p not of temp
-          temp[p] += weight * actions[ac] # jaccard weight for action * percent of 
-      temp[person] = 1 # add person 
+          temp[p] += weight * actions[ac] # jaccard weight for action * percent of
+      temp[person] = 1 # add person
       temp
     )
     .then( (people_weights) =>
@@ -71,8 +71,8 @@ class GER
     mean_weigth = total_weight/arr.length
     [ltmean, gtmean] = _.partition(arr, (p) -> weights[p] < mean_weigth)
     [ltmean, gtmean]
-    
-  
+
+
   filter_recommendations: (person, recommendations) ->
     @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)
     .then( (filter_things) ->
@@ -108,12 +108,12 @@ class GER
 
   find_similar_people: (person, action, actions) ->
     #Split the actions into two separate groups (actions below mean and actions above mean)
-    #This is a useful heuristic to  
+    #This is a useful heuristic to
     action_list = Object.keys(actions)
     [actions_below_mean, actions_above_mean] = @half_array_by_mean(action_list, actions)
 
     bb.all([
-      @esm.find_similar_people(person, actions_below_mean, action, @similar_people_limit, @person_history_limit), 
+      @esm.find_similar_people(person, actions_below_mean, action, @similar_people_limit, @person_history_limit),
       @esm.find_similar_people(person, actions_above_mean, action, @similar_people_limit, @person_history_limit)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
@@ -141,7 +141,7 @@ class GER
           things_weight[thing] = {weight: 0} if things_weight[thing] == undefined
           things_weight[thing].weight += people_weights[p]
           if things_weight[thing].last_actioned_at == undefined or things_weight[thing].last_actioned_at < last_actioned_at
-            things_weight[thing].last_actioned_at = last_actioned_at 
+            things_weight[thing].last_actioned_at = last_actioned_at
 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(person, things_weight), similar_people] )
@@ -151,7 +151,7 @@ class GER
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
       sorted_things = sorted_things[0...@recommendations_limit]
-      
+
       people_confidence = @people_confidence(similar_people.n_people)
       history_confidence = @history_confidence(person_history_count)
       things_confidence = @things_confidence(sorted_things)
@@ -193,14 +193,14 @@ class GER
 
   action: (action, weight=1, override = true) ->
     @esm.set_action_weight(action, weight, override)
-    .then( -> {action: action, weight: weight}) 
+    .then( -> {action: action, weight: weight})
 
   find_event: (person, action, thing) ->
     @esm.find_event(person, action, thing)
 
   get_action:(action) ->
     @esm.get_action_weight(action)
-    .then( (weight) -> 
+    .then( (weight) ->
       return null if weight == null
       {action: action, weight: weight}
     )
@@ -209,7 +209,7 @@ class GER
     #filename should be person, action, thing, created_at, expires_at
     #this will require manually adding the actions
     @esm.bootstrap(stream)
-    
+
 
   #  DATABASE CLEANING #
 
@@ -237,10 +237,13 @@ RET = {}
 RET.GER = GER
 
 knex = require 'knex'
+r = require 'rethinkdbdash'
 RET.knex = knex
+RET.r = r
 
 RET.PsqlESM = require('./lib/psql_esm')
 RET.MemESM = require('./lib/basic_in_memory_esm')
+RET.RethinkDBESM = require('./lib/rethinkdb_esm')
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

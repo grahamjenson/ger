@@ -1,39 +1,40 @@
 {
-  "name"          : "ger",
-  "description"   : "Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine built to be easy to use and integrate into your application.",
-  "url"           : "https://github.com/grahamjenson/ger.git",
-  "keywords": [
-    "recommend",
-    "recommended",
-    "recommendation",
-    "engine",
-    "collaborative",
-    "filtering"
-  ],
-  "author"        : "Graham Jenson <grahamjenson@maori.geek.nz>",
-  "dependencies"  : {
-    "bluebird": "2.3.4",
-    "knex" : "0.7.0",
-    "pg" : "3.5.0",
-    "pg-copy-streams": "0.3.0",
-    "underscore": "1.7.0",
-    "moment": "2.8.3",
-    "split": "0.3.0"
-  },
-  "devDependencies": {
-    "q-io": "1.11.3", 
-    "mocha": "1.18.2",
-    "chai": "1.9.1",
-    "coffee-script": "1.7.1"
-  },
-  "scripts": {
-    "test": "mocha"
-  },
-  "main"          : "ger.coffee",
-  "version"       : "0.0.57",
-  "license"       : "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/grahamjenson/ger.git"
-  }
+    "name": "ger",
+    "description": "Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine built to be easy to use and integrate into your application.",
+    "url": "https://github.com/grahamjenson/ger.git",
+    "keywords": [
+        "recommend",
+        "recommended",
+        "recommendation",
+        "engine",
+        "collaborative",
+        "filtering"
+    ],
+    "author": "Graham Jenson <grahamjenson@maori.geek.nz>",
+    "dependencies": {
+        "bluebird": "2.3.4",
+        "knex": "0.7.0",
+        "pg": "3.5.0",
+        "rethinkdbdash": "1.15.3",
+        "pg-copy-streams": "0.3.0",
+        "underscore": "1.7.0",
+        "moment": "2.8.3",
+        "split": "0.3.0"
+    },
+    "devDependencies": {
+        "q-io": "1.11.3",
+        "mocha": "1.18.2",
+        "chai": "1.9.1",
+        "coffee-script": "1.7.1"
+    },
+    "scripts": {
+        "test": "mocha"
+    },
+    "main": "ger.coffee",
+    "version": "0.0.57",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/grahamjenson/ger.git"
+    }
 }

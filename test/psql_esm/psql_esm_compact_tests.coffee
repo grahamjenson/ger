@@ -123,7 +123,7 @@ describe "find_similar_people", ->
         #ordered third equal as third most similar people
         esm.add_event('p3','view','t2')
         esm.add_event('p3','buy','t2')
-      ]) 
+      ])
       .then( ->
         esm.find_similar_people('p1', ['view', 'buy'], 'buy')
       )
