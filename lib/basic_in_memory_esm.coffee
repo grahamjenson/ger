@@ -104,16 +104,16 @@ class BasicInMemoryESM
     bb.try(-> true)
 
   count_events: ->
-    return bb.try(->  event_store.length)
+    return bb.try(=>  event_store[@_namespace].length)
 
   estimate_event_count: ->
-    return bb.try(-> event_store.length)
+    return bb.try(=> event_store[@_namespace].length)
 
   find_event: (person, action, thing) ->
     return bb.try(-> null) if not person_action_store[@_namespace][person]
     return bb.try(-> null) if not person_action_store[@_namespace][person][action]
     return bb.try(-> null) if not person_action_store[@_namespace][person][action][thing]
-    return bb.try(-> person_action_store[@_namespace][person][action][thing])
+    return bb.try(=> person_action_store[@_namespace][person][action][thing])
 
   set_action_weight: (action, weight) ->
     actions_store[@_namespace][action] = weight

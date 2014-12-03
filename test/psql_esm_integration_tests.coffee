@@ -1,66 +1,5 @@
-describe "action cache", ->
-  it 'should cache the action and invalidate when action changes', ->
-    init_esm()
-    .then (esm) ->
-      esm.set_action_weight('view', 1)
-      .then( ->
-        (esm.action_cache == null).should.equal true
-        esm.get_actions()
-      )
-      .then( (actions) ->
-        esm.action_cache.should.equal actions
-        actions[0].key.should.equal 'view'
-        actions[0].weight.should.equal 1
-      )
-      .then( ->
-        esm.get_actions()
-      )
-      .then( (actions) ->
-        esm.action_cache.should.equal actions
-        esm.set_action_weight('view', 2)
-      )
-      .then( (exists) ->
-        (esm.action_cache == null).should.equal true
-      )
 
-describe "person_history_count", ->
-  it "return number of events for person", ->
-    init_esm()
-    .then (esm) ->
-      bb.all([
-        esm.add_event('p1','view','t1')
-        esm.add_event('p1','buy','t1')
-        esm.add_event('p1','view','t2')
-      ]) 
-      .then( ->
-        esm.person_history_count('p1')
-      )
-      .then( (count) ->
-        count.should.equal 2
-        esm.person_history_count('p2')
-      )
-      .then( (count) ->
-        count.should.equal 0
-      ) 
 
-describe "estimate_event_count", ->
-  it "should estimate the number of events", ->
-    init_esm()
-    .then (esm) ->
-      bb.all([
-        esm.add_event('p1','view','t1')
-        esm.add_event('p1','view','t2')
-        esm.add_event('p1','view','t3')
-      ]) 
-      .then( ->
-        esm.vacuum_analyze()
-      )
-      .then( ->
-        esm.estimate_event_count()
-      )
-      .then( (count) ->
-        count.should.equal 3
-      )
 
 describe "filter_things_by_previous_actions", ->
   it 'should filter things a person has done before', ->
@@ -96,47 +35,6 @@ describe "filter_things_by_previous_actions", ->
         things[0].should.equal 't2'
       )     
 
-describe "find_event", ->
-  it "should return null if no event matches", ->
-    init_esm()
-    .then (esm) ->
-      esm.find_event('p','a','t')
-      .then( (event) ->
-        true.should.equal event == null
-      )
-
-  it "should return an event if one matches", ->
-    init_esm()
-    .then (esm) ->
-      esm.add_event('p','a','t')
-      .then( ->
-        esm.find_event('p','a','t')
-      )
-      .then( (event) ->
-        event.person.should.equal 'p' 
-        event.action.should.equal 'a'
-        event.thing.should.equal 't'
-      )
-
-
-describe "expires at", ->
-  it 'should accept an expiry date', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([
-        esm.set_action_weight('a', 1)
-        esm.add_event('p','a','t', new Date().toISOString())
-      ])
-      .then( ->
-        esm.count_actions()
-      )
-      .then( (count) ->
-        count.should.equal 1
-        esm.has_action('a')
-      )
-      .then( (has_action) ->
-        has_action.should.equal true
-      )
 
 bootstream = ->
   rs = new Readable();
@@ -198,47 +96,8 @@ describe "Schemas for multitenancy", ->
       c2.should.equal 1
     )
 
-describe '#initial tables', ->
-  it 'should have empty actions table', ->
-    init_esm()
-    .then (esm) ->
-      knex.schema.hasTable('actions')
-      .then( (has_table) ->
-        has_table.should.equal true
-        esm.count_actions()
-      )
-      .then( (count) ->
-        count.should.equal 0
-      )
 
-  it 'should have empty events table', ->
-    init_esm()
-    .then (esm) ->
-      knex.schema.hasTable('events')
-      .then( (has_table) ->
-        has_table.should.equal true
-        esm.count_events()
-      )
-      .then( (count) ->
-        count.should.equal 0
-      )
 
-describe '#add_event', ->
-
-  it 'should add the event to the events table', ->
-    init_esm()
-    .then (esm) ->
-      esm.add_event('p','a','t')
-      .then( ->
-        esm.count_events()
-      )
-      .then( (count) ->
-        count.should.equal 1
-        esm.has_event('p','a', 't')
-      )
-      .then( (has_event) ->
-        has_event.should.equal true
-      )
 
 describe 'set_action_weight', ->
   it 'should not overwrite if set to false', ->

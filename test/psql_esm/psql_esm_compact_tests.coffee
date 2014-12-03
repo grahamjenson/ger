@@ -1,3 +1,54 @@
+describe '#initialize', ->
+  it 'should have empty actions table', ->
+    init_esm()
+    .then (esm) ->
+      knex.schema.hasTable('actions')
+      .then( (has_table) ->
+        has_table.should.equal true
+        esm.count_actions()
+      )
+      .then( (count) ->
+        count.should.equal 0
+      )
+
+  it 'should have empty events table', ->
+    init_esm()
+    .then (esm) ->
+      knex.schema.hasTable('events')
+      .then( (has_table) ->
+        has_table.should.equal true
+        esm.count_events()
+      )
+      .then( (count) ->
+        count.should.equal 0
+      )
+
+
+describe "action cache", ->
+  it 'should cache the action and invalidate when action changes', ->
+    init_esm()
+    .then (esm) ->
+      esm.set_action_weight('view', 1)
+      .then( ->
+        (esm.action_cache == null).should.equal true
+        esm.get_actions()
+      )
+      .then( (actions) ->
+        esm.action_cache.should.equal actions
+        actions[0].key.should.equal 'view'
+        actions[0].weight.should.equal 1
+      )
+      .then( ->
+        esm.get_actions()
+      )
+      .then( (actions) ->
+        esm.action_cache.should.equal actions
+        esm.set_action_weight('view', 2)
+      )
+      .then( (exists) ->
+        (esm.action_cache == null).should.equal true
+      )
+
 describe "find_similar_people", ->
   it 'should order by persons activity DATE (NOT DATETIME) then by COUNT', ->
     init_esm()

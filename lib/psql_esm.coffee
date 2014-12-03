@@ -362,18 +362,6 @@ class PSQLEventStoreManager
       temp
     )
 
-  #knex wrapper functions
-  has_event: (person, action, thing) ->
-    @_knex("#{@_schema}.events").where({person: person, action: action, thing: thing})
-    .then( (rows) ->
-      rows.length > 0
-    )
-
-  has_action: (action) ->
-    @_knex("#{@_schema}.actions").where(action: action)
-    .then( (rows) ->
-      rows.length > 0
-    )
 
   count_events: ->
     @_knex("#{@_schema}.events").count()

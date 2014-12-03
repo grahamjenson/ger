@@ -21,7 +21,7 @@ global.knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'root
 
 global.default_esm = PsqlESM
 
-global.esms = [{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
+global.esms = [{esm: PsqlESM, name: 'PsqlESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
 
 global.init_esm = (ESM = global.default_esm, namespace = 'public') ->
   #in

@@ -1,16 +1,16 @@
 esm_tests = (ESM) ->
   describe 'ESM construction', ->
-    describe 'new', ->
+    describe '#new', ->
       it 'should create new ESM'
 
-    describe 'initialize', ->
+    describe '#initialize', ->
       it 'should create resources for ESM namespace'
 
-    describe 'destroy', ->
+    describe '#destroy', ->
       it 'should destroy resources for ESM namespace'
 
   describe 'ESMs recommendation methods', ->
-    describe 'get_actions', ->
+    describe '#get_actions', ->
       it 'should returns all the assigned actions with weights in descending order', ->
         init_esm(ESM)
         .then (esm) ->
@@ -26,7 +26,7 @@ esm_tests = (ESM) ->
             action_weights[1].weight.should.equal 1
           )
 
-    describe 'find_similar_people' , ->
+    describe '#find_similar_people' , ->
       it 'should return a list of similar people', ->
         init_esm(ESM)
         .then (esm) ->
@@ -91,10 +91,10 @@ esm_tests = (ESM) ->
             people.length.should.equal 0
           )
 
-    describe 'calculate_similarities_from_person', ->
+    describe '#calculate_similarities_from_person', ->
       it 'should calculate the distance between a person and a set of people for a list of actions'
 
-    describe 'recently_actioned_things_by_people', ->
+    describe '#recently_actioned_things_by_people', ->
       it 'should return a list of things that people have actioned', ->
         init_esm(ESM)
         .then (esm) ->
@@ -119,49 +119,126 @@ esm_tests = (ESM) ->
             people_things['p2'].length.should.equal 1
           ) 
 
-    describe 'person_history_count', ->
-      it 'should return the number of things a person has actioned in their history'
+    describe '#person_history_count', ->
+      it 'should return the number of things a person has actioned in their history', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','buy','t1')
+            esm.add_event('p1','view','t2')
+          ]) 
+          .then( ->
+            esm.person_history_count('p1')
+          )
+          .then( (count) ->
+            count.should.equal 2
+            esm.person_history_count('p2')
+          )
+          .then( (count) ->
+            count.should.equal 0
+          ) 
 
-    describe 'filter_things_by_previous_actions', ->
+    describe '#filter_things_by_previous_actions', ->
       it 'should remove things that a person has previously actioned'
 
 
   describe 'ESM inserting data', ->
-    describe 'add_event', ->
-      it 'should add an event to the ESM'
+    describe '#add_event', ->
+      it 'should add an event to the ESM', ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.add_event('p','a','t')
+          .then( ->
+            esm.count_events()
+          )
+          .then( (count) ->
+            count.should.equal 1
+            esm.find_event('p','a', 't')
+          )
+          .then( (event) ->
+            event.should.not.equal null
+          )
 
-    describe 'count_events', ->
-      it 'should '
+    describe '#count_events', ->
+      it 'should return the number of events in the event store', ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.add_event('p','a','t')
+          .then( ->
+            esm.count_events()
+          )
+          .then( (count) ->
+            count.should.equal 1
+          )
 
-    describe 'estimate_event_count', ->
-      it 'should be a fast estimate of events' 
+    describe '#estimate_event_count', ->
+      it 'should be a fast estimate of events', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','view','t3')
+          ]) 
+          .then( ->
+            esm.pre_compact()
+          )
+          .then( ->
+            esm.estimate_event_count()
+          )
+          .then( (count) ->
+            count.should.equal 3
+          )
 
-    describe 'find_event', ->
-      it 'should return the event from the ESM'
 
-    describe 'set_action_weight', ->
+    describe '#find_event', ->
+      it 'should return the event', ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.add_event('p','a','t')
+          .then( ->
+            esm.find_event('p','a','t')
+          )
+          .then( (event) ->
+            event.person.should.equal 'p' 
+            event.action.should.equal 'a'
+            event.thing.should.equal 't'
+          )
+
+      it "should return null if no event matches", ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.find_event('p','a','t')
+          .then( (event) ->
+            true.should.equal event == null
+          )
+
+
+
+    describe '#set_action_weight', ->
       it 'should assign an actions weight'
 
-    describe 'get_action_weight', ->
+    describe '#get_action_weight', ->
       it 'should return an actions weight'
 
-    describe 'bootstrap', ->
+    describe '#bootstrap', ->
       it 'should add a stream of comma separated events (person,action,thing,created_at,expires_at) to the ESM'
 
   describe 'ESM compacting database', ->
-    describe 'pre_compact', ->
+    describe '#pre_compact', ->
       it 'should prepare the ESM for compaction'
 
-    describe 'compact_people', ->
+    describe '#compact_people', ->
       it 'should truncate the events of peoples history'
 
-    describe 'compact_things', ->
+    describe '#compact_things', ->
       it 'should truncate the events of things history'
 
-    describe 'expire_events', ->
+    describe '#expire_events', ->
       it 'should remove events that have expired'
 
-    describe 'post_compact', ->
+    describe '#post_compact', ->
       it 'should perform tasks after compaction'
 
 
