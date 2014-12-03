@@ -22,7 +22,8 @@ global.moment = require "moment"
 global.knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'postgres', password : 'postgres', database : 'ger_test'}})
 global.r = g.r({host: '127.0.0.1',port: 28015,db:'test',timeout: 120000})
 
-global.default_esm = PsqlESM
+#global.default_esm = PsqlESM
+global.default_esm = RethinkDBESM
 
 global.esms = [{esm: RethinkDBESM, name: 'RethinkDBESM'},{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
 

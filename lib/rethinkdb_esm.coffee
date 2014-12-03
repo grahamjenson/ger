@@ -29,6 +29,75 @@ clear_tables = (r) ->
             r.table("events").delete().run().then ->
                 r.table("actions").delete().run()
 
+init_changefeed: (r) ->
+  bb.try(=>
+    r.table("events").changes().run().then((feed) =>
+      feed.each((err, change) =>
+        if !err
+          if (change.old_val is null and change.new_val isnt null)
+            #insert
+            hash = crypto.createHash("sha256")
+            hash.update(change.new_val.person.toString())
+            person_id = hash.digest("hex")
+            r.table("most_common_people").get(person_id).replace((doc) ->
+              doc.default({
+                id: person_id,
+                person: change.new_val.person,
+                count: 0
+              }).merge((valid_doc) ->
+                {
+                  count: valid_doc("count").add(1)
+                }
+              )
+            ).run()
+            hash = crypto.createHash("sha256")
+            hash.update(change.new_val.thing.toString())
+            thing_id = hash.digest("hex")
+            r.table("most_common_things").get(thing_id).replace((doc) ->
+              doc.default({
+                id: thing_id,
+                thing: change.new_val.thing,
+                count: 0
+              }).merge((valid_doc) ->
+                {
+                  count: valid_doc("count").add(1)
+                }
+              )
+            ).run()
+          else if (change.new_val is null)
+            #delete
+            hash = crypto.createHash("sha256")
+            hash.update(change.old_val.person.toString())
+            person_id = hash.digest("hex")
+            r.table("most_common_people").get(person_id).replace((doc) =>
+              doc.default({
+                id: person_id,
+                person: change.old_val.person,
+                count: 1
+              }).merge((valid_doc) =>
+                {
+                  count: r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
+                }
+              )
+            ).run()
+            hash = crypto.createHash("sha256")
+            hash.update(change.old_val.thing.toString())
+            thing_id = hash.digest("hex")
+            r.table("most_common_things").get(thing_id).replace((doc) =>
+              doc.default({
+                id: thing_id,
+                thing: change.old_val.thing,
+                count: 1
+              }).merge((valid_doc) =>
+                {
+                  count: r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
+                }
+              )
+            ).run()
+      )
+    )
+  )
+
 init_tables = (r) ->
   r.tableList().run().then (list) ->
     if list.length > 0
@@ -55,12 +124,15 @@ init_tables = (r) ->
             r.table("most_common_things").indexWait("count").run(),
             r.table("most_common_people").indexWait("count").run(),
             r.table("events").indexWait(["created_at","expires_at","person","action_thing","person_action","person_action_created_at","thing"]).run(),
+            init_changefeed(r)
         ])
       )
 
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
 class EventStoreMapper
+
+  type: "rethinkdb"
 
   invalidate_action_cache: ->
     @action_cache = null
@@ -84,75 +156,6 @@ class EventStoreMapper
 
   vacuum_analyze: ->
     bb.try(-> true)
-
-  init_changefeed: ->
-    bb.try(=>
-        @_r.table("events").changes().run().then((feed) =>
-          feed.each((err, change) =>
-            if !err
-                if (change.old_val is null and change.new_val isnt null)
-                  #insert
-                  hash = crypto.createHash("sha256")
-                  hash.update(change.new_val.person.toString())
-                  person_id = hash.digest("hex")
-                  @_r.table("most_common_people").get(person_id).replace((doc) ->
-                      doc.default({
-                          id: person_id,
-                          person: change.new_val.person,
-                          count: 0
-                      }).merge((valid_doc) ->
-                          {
-                            count: valid_doc("count").add(1)
-                          }
-                      )
-                  ).run()
-                  hash = crypto.createHash("sha256")
-                  hash.update(change.new_val.thing.toString())
-                  thing_id = hash.digest("hex")
-                  @_r.table("most_common_things").get(thing_id).replace((doc) ->
-                      doc.default({
-                          id: thing_id,
-                          thing: change.new_val.thing,
-                          count: 0
-                      }).merge((valid_doc) ->
-                          {
-                            count: valid_doc("count").add(1)
-                          }
-                      )
-                  ).run()
-                else if (change.new_val is null)
-                  #delete
-                  hash = crypto.createHash("sha256")
-                  hash.update(change.old_val.person.toString())
-                  person_id = hash.digest("hex")
-                  @_r.table("most_common_people").get(person_id).replace((doc) =>
-                      doc.default({
-                          id: person_id,
-                          person: change.old_val.person,
-                          count: 1
-                      }).merge((valid_doc) =>
-                          {
-                            count: @_r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
-                          }
-                      )
-                  ).run()
-                  hash = crypto.createHash("sha256")
-                  hash.update(change.old_val.thing.toString())
-                  thing_id = hash.digest("hex")
-                  @_r.table("most_common_things").get(thing_id).replace((doc) =>
-                      doc.default({
-                          id: thing_id,
-                          thing: change.old_val.thing,
-                          count: 1
-                      }).merge((valid_doc) =>
-                          {
-                            count: @_r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
-                          }
-                      )
-                  ).run()
-          )
-        )
-    )
 
   add_event: (person, action, thing, dates = {}) ->
     expires_at = dates.expires_at
@@ -289,16 +292,16 @@ class EventStoreMapper
       row("group").nth(0)
     ).ungroup()
     .map((row) =>
-        @_r.object(row("group"),
-          row("reduction").map((row) ->
-            {
-              thing: row("group").nth(1),
-              last_actioned_at: row("reduction")("created_at").toEpochTime()
-            }
-          )
+      @_r.object(row("group").coerceTo("string"),
+        row("reduction").map((row) ->
+          {
+            thing: row("group").nth(1),
+            last_actioned_at: row("reduction")("created_at").toEpochTime()
+          }
         )
+      )
     )
-    .reduce((a,b) ->
+    .reduce((a,b) =>
         a.merge(b)
     ).default({})
     .run()
@@ -425,7 +428,9 @@ class EventStoreMapper
         })
     ).on("end", =>
       if r_bulk.length > 0
-        @_r.table("events").insert(r_bulk,{conflict: "replace"}).run().then(->
+        @_r.table("events").insert(r_bulk,{conflict: "replace"}).run({
+            durability: "soft"
+          }).then(->
             deferred.resolve(counter.count)
         )
       else
@@ -457,13 +462,13 @@ class EventStoreMapper
     #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'thing';
     @_r.table('most_common_things').orderBy({index: @_r.desc("count")})("thing")
-    .limit(10).default([]).run()
+    .limit(100).default([]).run()
 
   get_active_people: ->
     #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'person';
     @_r.table('most_common_people').orderBy({index: @_r.desc("count")})("person")
-    .limit(10).default([]).run()
+    .limit(100).default([]).run()
 
   compact_people : (compact_database_person_action_limit) ->
     @get_active_people()
