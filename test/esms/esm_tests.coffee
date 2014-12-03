@@ -160,8 +160,54 @@ esm_tests = (ESM) ->
           ) 
 
     describe '#filter_things_by_previous_actions', ->
-      it 'should remove things that a person has previously actioned'
+      it 'should remove things that a person has previously actioned', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.set_action_weight('buy', 1)
+            esm.add_event('p1','view','t1')
+          ]) 
+          .then( ->
+            esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view'])
+          )
+          .then( (things) ->
+            things.length.should.equal 1
+            things[0].should.equal 't2'
+          )
 
+      it 'should filter things only for given actions', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.set_action_weight('buy', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','buy','t2')
+          ]) 
+          .then( ->
+            esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view'])
+          )
+          .then( (things) ->
+            things.length.should.equal 1
+            things[0].should.equal 't2'
+          )
+
+      it 'should filter things for multiple actions', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.set_action_weight('buy', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','buy','t2')
+          ]) 
+          .then( ->
+            esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view', 'buy'])
+          )
+          .then( (things) ->
+            things.length.should.equal 0
+          )
 
   describe 'inserting data', ->
     describe '#add_event', ->

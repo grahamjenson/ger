@@ -85,9 +85,15 @@ class BasicInMemoryESM
     return bb.try(-> _.uniq(things).length)
 
 
+  _filter_things_by_previous_action: (person, things, action) ->
+    things.filter((t) => !person_action_store[@_namespace][person] or !person_action_store[@_namespace][person][action] or !person_action_store[@_namespace][person][action][t])
+
   filter_things_by_previous_actions: (person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
-    return bb.try(-> things)
+    filtered_things = things
+    for action in actions
+      filtered_things = _.intersection(filtered_things, @_filter_things_by_previous_action(person, things, action))
+    return bb.try(-> filtered_things)
 
   add_event: (person, action, thing, dates = {}) ->
     created_at = dates.created_at || new Date()
