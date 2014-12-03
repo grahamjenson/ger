@@ -279,8 +279,8 @@ describe "#bootstrap", ->
 
 describe "Schemas for multitenancy", ->
   it "should have different counts for different schemas", ->
-    psql_esm1 = new PsqlESM(knex, "schema1")
-    psql_esm2 = new PsqlESM(knex, "schema2")
+    psql_esm1 = new PsqlESM("schema1", {knex: knex})
+    psql_esm2 = new PsqlESM("schema2", {knex: knex})
 
     bb.all([psql_esm1.destroy(),psql_esm2.destroy()])
     .then( -> bb.all([psql_esm1.initialize(), psql_esm2.initialize()]) )
@@ -359,20 +359,6 @@ describe 'set_action_weight', ->
       )
 
 
-describe '#get_actions', ->
-  it 'should return actions with weights', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([ esm.set_action_weight('a2',1) , esm.add_event('p','a','t'), esm.add_event('p','a2','t')])
-      .then( -> esm.set_action_weight('a',10))
-      .then( -> esm.get_actions())
-      .then( (action_weights) ->
-        action_weights[0].key.should.equal 'a'
-        action_weights[0].weight.should.equal 10
-        action_weights[1].key.should.equal 'a2'
-        action_weights[1].weight.should.equal 1
-      ) 
-
 
 
 describe '#get_jaccard_distances_between_people', ->
@@ -417,29 +403,4 @@ describe '#get_jaccard_distances_between_people', ->
       .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a']))
       .spread( (jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
-      )   
-
-describe '#recently_actioned_things_by_people', ->
-  it 'should return list of things that people have actioned', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
-      .then( -> esm.recently_actioned_things_by_people('a',['p1','p2']))
-      .then( (people_things) ->
-        people_things['p1'][0].thing.should.equal 't'
-        people_things['p1'].length.should.equal 1
-        people_things['p2'][0].thing.should.equal 't1'
-        people_things['p2'].length.should.equal 1
-      ) 
-
-  it 'should return the same item for different people', ->
-    init_esm()
-    .then (esm) ->
-      bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
-      .then( -> esm.recently_actioned_things_by_people('a',['p1','p2']))
-      .then( (people_things) ->
-        people_things['p1'][0].thing.should.equal 't'
-        people_things['p1'].length.should.equal 1
-        people_things['p2'][0].thing.should.equal 't'
-        people_things['p2'].length.should.equal 1
-      ) 
+      )

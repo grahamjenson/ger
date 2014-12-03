@@ -1,6 +1,6 @@
 describe "minimum_history_limit", ->
   it "should not generate recommendations for events ", ->
-    init_ger(minimum_history_limit: 2)
+    init_ger(default_esm, 'public', minimum_history_limit: 2)
     .then (ger) ->
       bb.all([
         ger.action('view',1),
@@ -20,8 +20,8 @@ describe "minimum_history_limit", ->
 describe "joining multiple gers", ->
   it "similar recommendations should return same confidence", ->
     bb.all([
-      init_ger({similar_people_limit: 2, person_history_limit: 4}, 'ger_1'), 
-      init_ger({similar_people_limit: 4, person_history_limit: 8}, 'ger_2')
+      init_ger(default_esm, 'p1', {similar_people_limit: 2, person_history_limit: 4}, 'ger_1'), 
+      init_ger(default_esm, 'p2', {similar_people_limit: 4, person_history_limit: 8}, 'ger_2')
     ])
     .spread (ger1, ger2) ->
       bb.all([
@@ -224,7 +224,7 @@ describe "weights", ->
 
 describe "person exploits,", ->
   it 'related_things_limit should stop one persons recommendations eliminating the other recommendations', ->
-    init_ger(related_things_limit: 1)
+    init_ger(default_esm, 'public', related_things_limit: 1)
     .then (ger) ->
       bb.all([
         ger.action('view', 1),

@@ -54,13 +54,14 @@ init_tables = (knex, schema = 'public') ->
 
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
-class EventStoreMapper
+class PSQLEventStoreManager
   
   invalidate_action_cache: ->
     @action_cache = null
 
   #INSTANCE ACTIONS
-  constructor: (@_knex, @_schema = 'public') ->
+  constructor: (@_schema = 'public', options = {}) ->
+    @_knex = options.knex
     @action_cache = null
 
   destroy: ->
@@ -193,6 +194,7 @@ class EventStoreMapper
 
   find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
+
     one_degree_similar_people = @_knex(@last_events(person, search_limit ).as('e'))
     .innerJoin("#{@_schema}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
@@ -345,6 +347,8 @@ class EventStoreMapper
 
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
+    return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
+
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
     .spread( (event_weights, recent_event_weights) =>
@@ -540,7 +544,7 @@ class EventStoreMapper
 
 #AMD
 if (typeof define != 'undefined' && define.amd)
-  define([], -> return EventStoreMapper)
+  define([], -> return PSQLEventStoreManager)
 #Node
 else if (typeof module != 'undefined' && module.exports)
-    module.exports = EventStoreMapper;
+    module.exports = PSQLEventStoreManager;

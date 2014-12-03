@@ -26,7 +26,7 @@ describe "compact_database", ->
 
 describe "compact_database_thing_action_limit", ->
   it 'should truncate events on a thing to the set limit', ->
-    init_ger(compact_database_thing_action_limit: 2)
+    init_ger(default_esm, 'public', compact_database_thing_action_limit: 2)
     .then (ger) ->
       bb.all([
         ger.action('view')
@@ -58,7 +58,7 @@ describe "compact_database_thing_action_limit", ->
 
 describe "compact_database_person_action_limit", ->
   it 'should truncate events by a person to the set limit', ->
-    init_ger(compact_database_person_action_limit: 2)
+    init_ger(default_esm, 'public', compact_database_person_action_limit: 2)
     .then (ger) ->
       bb.all([
         ger.action('view', 1)

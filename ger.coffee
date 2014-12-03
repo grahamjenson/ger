@@ -240,6 +240,7 @@ knex = require 'knex'
 RET.knex = knex
 
 RET.PsqlESM = require('./lib/psql_esm')
+RET.MemESM = require('./lib/basic_in_memory_esm')
 
 #AMD
 if (typeof define != 'undefined' && define.amd)

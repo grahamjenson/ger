@@ -96,7 +96,7 @@ describe 'recommendations_for_person', ->
       )   
 
   it 'should filter previously actioned things based on filter events option', ->
-    init_ger(previous_actions_filter: ['buy'])
+    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
     .then (ger) ->
       bb.all([
         ger.action('buy'),
@@ -109,7 +109,7 @@ describe 'recommendations_for_person', ->
       ) 
 
   it 'should filter previously actioned by someone else', ->
-    init_ger(previous_actions_filter: ['buy'])
+    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
     .then (ger) ->
       bb.all([
         ger.action('view'),
@@ -124,7 +124,7 @@ describe 'recommendations_for_person', ->
       )
 
   it 'should not filter non actioned things', ->
-    init_ger(previous_actions_filter: ['buy'])
+    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
     .then (ger) ->
       bb.all([
         ger.action('view'),
@@ -221,7 +221,7 @@ describe 'find_similar_people', ->
 describe 'calculate_similarities_from_person', ->
 
   it "should weight recent events more than past events", ->
-    init_ger(recent_event_days: 1)
+    init_ger(default_esm, 'public', recent_event_days: 1)
     .then (ger) ->
       bb.all([
         ger.action('view', 1),
