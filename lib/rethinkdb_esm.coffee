@@ -51,8 +51,12 @@ init_tables = (r) ->
             r.table("events").indexCreate("person_action",[r.row("person"),r.row("action")]).run(),
             r.table("events").indexCreate("person_action_created_at",[r.row("person"),r.row("action"),r.row("created_at")]).run(),
             r.table("events").indexCreate("thing").run(),
+            r.table("actions").indexWait("weight").run(),
+            r.table("most_common_things").indexWait("count").run(),
+            r.table("most_common_people").indexWait("count").run(),
+            r.table("events").indexWait(["created_at","expires_at","person","action_thing","person_action","person_action_created_at","thing"]).run(),
         ])
-      ).delay(5000) # A ugly hack because the indexes need to be ready before querying
+      )
 
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
