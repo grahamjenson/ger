@@ -97,27 +97,6 @@ describe "Schemas for multitenancy", ->
     )
 
 
-
-
-describe 'set_action_weight', ->
-  it 'should not overwrite if set to false', ->
-    init_esm()
-    .then (esm) ->
-      esm.set_action_weight('a', 1)
-      .then( ->
-        esm.get_action_weight('a')
-      )
-      .then( (weight) ->
-        weight.should.equal 1
-        esm.set_action_weight('a', 10, false).then( -> esm.get_action_weight('a'))
-      )
-      .then( (weight) ->
-        weight.should.equal 1
-      )
-
-
-
-
 describe '#get_jaccard_distances_between_people', ->
   it 'should take a since, return recent as well', ->
     init_esm()

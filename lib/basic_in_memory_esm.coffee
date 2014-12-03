@@ -115,12 +115,13 @@ class BasicInMemoryESM
     return bb.try(-> null) if not person_action_store[@_namespace][person][action][thing]
     return bb.try(=> person_action_store[@_namespace][person][action][thing])
 
-  set_action_weight: (action, weight) ->
+  set_action_weight: (action, weight, overwrite = false) ->
+    return bb.try(-> true) if !overwrite && actions_store[@_namespace][action]
     actions_store[@_namespace][action] = weight
     bb.try(-> true)
 
   get_action_weight: (action) ->
-    bb.try(-> actions_store[@_namespace][action])
+    bb.try(=> actions_store[@_namespace][action])
 
   bootstrap: (stream) ->
 

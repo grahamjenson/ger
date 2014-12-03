@@ -1,5 +1,5 @@
 esm_tests = (ESM) ->
-  describe 'ESM construction', ->
+  describe 'construction', ->
     describe '#new', ->
       it 'should create new ESM'
 
@@ -9,7 +9,7 @@ esm_tests = (ESM) ->
     describe '#destroy', ->
       it 'should destroy resources for ESM namespace'
 
-  describe 'ESMs recommendation methods', ->
+  describe 'recommendation methods', ->
     describe '#get_actions', ->
       it 'should returns all the assigned actions with weights in descending order', ->
         init_esm(ESM)
@@ -143,7 +143,7 @@ esm_tests = (ESM) ->
       it 'should remove things that a person has previously actioned'
 
 
-  describe 'ESM inserting data', ->
+  describe 'inserting data', ->
     describe '#add_event', ->
       it 'should add an event to the ESM', ->
         init_esm(ESM)
@@ -215,12 +215,29 @@ esm_tests = (ESM) ->
           )
 
 
+    describe '#set_action_weight #get_action_weight', ->
+      it 'should assign an actions weight', ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.set_action_weight('a', 2)
+          .then( -> esm.get_action_weight('a'))
+          .then( (weight) ->
+            weight.should.equal 2
+          )
 
-    describe '#set_action_weight', ->
-      it 'should assign an actions weight'
-
-    describe '#get_action_weight', ->
-      it 'should return an actions weight'
+      it 'should not overwrite if set to false', ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.set_action_weight('a', 2)
+          .then( -> esm.get_action_weight('a'))
+          .then( (weight) ->
+            weight.should.equal 2
+            esm.set_action_weight('a', 10, false)
+          )
+          .then(-> esm.get_action_weight('a'))
+          .then( (weight) ->
+            weight.should.equal 2
+          )
 
     describe '#bootstrap', ->
       it 'should add a stream of comma separated events (person,action,thing,created_at,expires_at) to the ESM'
