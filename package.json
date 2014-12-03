@@ -17,7 +17,8 @@
     "pg" : "3.5.0",
     "pg-copy-streams": "0.3.0",
     "underscore": "1.7.0",
-    "moment": "2.8.3"
+    "moment": "2.8.3",
+    "split": "0.3.0"
   },
   "devDependencies": {
     "q-io": "1.11.3", 

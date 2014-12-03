@@ -4,7 +4,27 @@ esm_tests = (ESM) ->
       it 'should create new ESM'
 
     describe '#initialize', ->
-      it 'should create resources for ESM namespace'
+      it 'should create resources for ESM namespace', ->
+        esm1 = new ESM("schema1", {knex: knex}) #pass knex as it might be needed
+        esm2 = new ESM("schema2", {knex: knex}) #pass knex as it might be needed
+
+        bb.all([esm1.destroy(),esm2.destroy()])
+        .then( -> bb.all([esm1.initialize(), esm2.initialize()]) )
+        .then( ->
+          bb.all([
+            esm1.add_event('p','a','t')
+            esm1.add_event('p1','a','t')
+
+            esm2.add_event('p2','a','t')
+          ])
+        )
+        .then( ->
+          bb.all([esm1.count_events(), esm2.count_events() ]) 
+        )
+        .spread((c1,c2) ->
+          c1.should.equal 2
+          c2.should.equal 1
+        )
 
     describe '#destroy', ->
       it 'should destroy resources for ESM namespace'
@@ -240,7 +260,30 @@ esm_tests = (ESM) ->
           )
 
     describe '#bootstrap', ->
-      it 'should add a stream of comma separated events (person,action,thing,created_at,expires_at) to the ESM'
+      it 'should add a stream of events (person,action,thing,created_at,expires_at)', ->
+        init_esm(ESM)
+        .then (esm) ->
+          rs = new Readable();
+          rs.push('person,action,thing,2014-01-01,\n');
+          rs.push('person,action,thing1,2014-01-01,\n');
+          rs.push('person,action,thing2,2014-01-01,\n');
+          rs.push(null);
+
+          esm.bootstrap(rs)
+          .then( (returned_count) -> bb.all([returned_count, esm.count_events()]))
+          .spread( (returned_count, count) -> 
+            count.should.equal 3
+            returned_count.should.equal 3
+          )
+
+     
+      it 'should load a set of events from a file into the database', ->
+        init_esm(ESM)
+        .then (esm) ->
+          fileStream = fs.createReadStream(path.resolve('./test/test_events.csv'))
+          esm.bootstrap(fileStream)
+          .then( -> esm.count_events())
+          .then( (count) -> count.should.equal 3)
 
   describe 'ESM compacting database', ->
     describe '#pre_compact', ->

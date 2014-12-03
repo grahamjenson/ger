@@ -1,11 +1,13 @@
 bb = require 'bluebird'
 _ = require 'underscore'
+split = require 'split'
 
 event_store = {}
 person_action_store = {}
 thing_action_store = {}
 
 actions_store = {}
+
 
 class BasicInMemoryESM
 
@@ -123,7 +125,20 @@ class BasicInMemoryESM
   get_action_weight: (action) ->
     bb.try(=> actions_store[@_namespace][action])
 
+
   bootstrap: (stream) ->
+    deferred = bb.defer()
+    stream = stream.pipe(split(/^/gm))
+    count = 0
+    stream.on('data', (chunk) => 
+      return if chunk == ''
+      e = chunk.split(',')
+      @add_event(e[0], e[1], e[2], {created_at: e[3]})
+      count += 1
+    )
+    stream.on('end', -> deferred.resolve(count))
+    stream.on('error', (error) -> deferred.reject(error))
+    deferred.promise
 
   pre_compact: ->
 

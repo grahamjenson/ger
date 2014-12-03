@@ -35,68 +35,6 @@ describe "filter_things_by_previous_actions", ->
         things[0].should.equal 't2'
       )     
 
-
-bootstream = ->
-  rs = new Readable();
-  rs.push('person,action,thing,2014-01-01,\n');
-  rs.push('person,action,thing1,2014-01-01,\n');
-  rs.push('person,action,thing2,2014-01-01,\n');
-  rs.push(null);
-  rs
-
-describe "#bootstrap", ->
-
-  it 'should not exhaust the pg connections'
-
-  it 'should load a set cof events from a file into the database', -> 
-    init_esm()
-    .then (esm) ->
-      rs = new Readable();
-      rs.push('person,action,thing,2014-01-01,\n');
-      rs.push('person,action,thing1,2014-01-01,\n');
-      rs.push('person,action,thing2,2014-01-01,\n');
-      rs.push(null);
-
-      esm.bootstrap(rs)
-      .then( (returned_count) -> bb.all([returned_count, esm.count_events()]))
-      .spread( (returned_count, count) -> 
-        count.should.equal 3
-        returned_count.should.equal 3
-      )
-
-    
-  it 'should load a set of events from a file into the database', ->
-    init_esm()
-    .then (esm) ->
-      fileStream = fs.createReadStream(path.resolve('./test/test_events.csv'))
-      esm.bootstrap(fileStream)
-      .then( -> esm.count_events())
-      .then( (count) -> count.should.equal 3)
-
-describe "Schemas for multitenancy", ->
-  it "should have different counts for different schemas", ->
-    psql_esm1 = new PsqlESM("schema1", {knex: knex})
-    psql_esm2 = new PsqlESM("schema2", {knex: knex})
-
-    bb.all([psql_esm1.destroy(),psql_esm2.destroy()])
-    .then( -> bb.all([psql_esm1.initialize(), psql_esm2.initialize()]) )
-    .then( ->
-      bb.all([
-        psql_esm1.add_event('p','a','t')
-        psql_esm1.add_event('p1','a','t')
-
-        psql_esm2.add_event('p2','a','t')
-      ])
-    )
-    .then( ->
-      bb.all([psql_esm1.count_events(), psql_esm2.count_events() ]) 
-    )
-    .spread((c1,c2) ->
-      c1.should.equal 2
-      c2.should.equal 1
-    )
-
-
 describe '#get_jaccard_distances_between_people', ->
   it 'should take a since, return recent as well', ->
     init_esm()

@@ -1,3 +1,6 @@
+describe "#bootstrap", ->
+  it 'should not exhaust the pg connections'
+
 describe '#initialize', ->
   it 'should have empty actions table', ->
     init_esm()
