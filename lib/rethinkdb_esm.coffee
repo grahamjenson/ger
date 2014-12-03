@@ -3,6 +3,7 @@ fs = require 'fs'
 crypto = require 'crypto'
 moment = require 'moment'
 shasum = null
+is_changefeed_enabled = false;
 Transform = require('stream').Transform
 
 class CounterStream extends Transform
@@ -15,23 +16,18 @@ class CounterStream extends Transform
 
 #CLASS ACTIONS
 drop_tables = (r) ->
-    true
-    #promises = []
-    #r.tableList().run().then((list) ->
-    #    ["events","actions","most_common_things","most_common_people"].forEach (t) ->
-    #        if(list.indexOf t is -1)
-    #            promises.push(r.tableDrop(t).run().error((err) -> console.log(err)))
-    #    bb.all(promises)
-    #)
+  true
+  #promises = []
+  #r.tableList().run().then((list) ->
+  #    ["events","actions","most_common_things","most_common_people"].forEach (t) ->
+  #        if(list.indexOf t is -1)
+  #            promises.push(r.tableDrop(t).run().error((err) -> console.log(err)))
+  #    bb.all(promises)
+  #)
 
-clear_tables = (r) ->
-    r.table("most_common_things").delete().run().then ->
-        r.table("most_common_people").delete().run().then ->
-            r.table("events").delete().run().then ->
-                r.table("actions").delete().run()
-
-init_changefeed: (r) ->
+init_changefeed = (r) ->
   bb.try(=>
+    is_changefeed_enabled = true
     r.table("events").changes().run().then((feed) =>
       feed.each((err, change) =>
         if !err
@@ -98,6 +94,14 @@ init_changefeed: (r) ->
       )
     )
   )
+
+clear_tables = (r) ->
+  r.table("most_common_things").delete().run().then =>
+    r.table("most_common_people").delete().run().then =>
+      r.table("events").delete().run().then =>
+        r.table("actions").delete().run().then =>
+          init_changefeed(r) if not is_changefeed_enabled
+
 
 init_tables = (r) ->
   r.tableList().run().then (list) ->
@@ -526,6 +530,7 @@ class EventStoreMapper
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables
+EventStoreMapper.init_changefeed = init_changefeed
 EventStoreMapper.clear_tables = clear_tables
 
 module.exports = EventStoreMapper;

@@ -11,7 +11,7 @@ describe '#get_jaccard_distances_between_people', ->
       .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a'], 500, 2))
       .spread( (limit_distances, jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
-      ) 
+      )
 
   it 'should return an object of people to jaccard distance', ->
     init_esm(PsqlESM)
@@ -24,7 +24,7 @@ describe '#get_jaccard_distances_between_people', ->
       .then( -> esm.get_jaccard_distances_between_people('p1',['p2'],['a']))
       .spread( (jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
-      )     
+      )
 
   it 'should not be effected by multiple events of the same type', ->
     init_esm(PsqlESM)
@@ -41,7 +41,7 @@ describe '#get_jaccard_distances_between_people', ->
       .spread( (jaccards) ->
         jaccards['p2']['a'].should.equal 1/2
       )
-      
+
 describe "#bootstrap", ->
   it 'should not exhaust the pg connections'
 
@@ -49,26 +49,28 @@ describe '#initialize', ->
   it 'should have empty actions table', ->
     init_esm(PsqlESM)
     .then (esm) ->
-      knex.schema.hasTable('actions')
-      .then( (has_table) ->
-        has_table.should.equal true
-        esm.count_actions()
-      )
-      .then( (count) ->
-        count.should.equal 0
-      )
+      if esm.type isnt "rethinkdb"
+        knex.schema.hasTable('actions')
+        .then( (has_table) ->
+          has_table.should.equal true
+          esm.count_actions()
+        )
+        .then( (count) ->
+          count.should.equal 0
+        )
 
   it 'should have empty events table', ->
     init_esm(PsqlESM)
     .then (esm) ->
-      knex.schema.hasTable('events')
-      .then( (has_table) ->
-        has_table.should.equal true
-        esm.count_events()
-      )
-      .then( (count) ->
-        count.should.equal 0
-      )
+      if esm.type isnt "rethinkdb"
+        knex.schema.hasTable('events')
+        .then( (has_table) ->
+          has_table.should.equal true
+          esm.count_events()
+        )
+        .then( (count) ->
+          count.should.equal 0
+        )
 
 
 describe "action cache", ->
