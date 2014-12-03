@@ -3,7 +3,8 @@ fs = require 'fs'
 crypto = require 'crypto'
 moment = require 'moment'
 shasum = null
-Transform = require('stream').Transform;
+Transform = require('stream').Transform
+
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
     @count |= 0
@@ -179,7 +180,7 @@ class EventStoreMapper
     shasum = crypto.createHash("sha256")
     shasum.update(identity_attr.toString())
     insert_attr.id = shasum.digest("hex")
-    @_r.table(table).insert(insert_attr, {conflict: conflict_method}).run()
+    @_r.table(table).insert(insert_attr, {conflict: conflict_method}).run({ durability: "soft" })
 
   find_event: (person, action, thing) ->
     shasum = crypto.createHash("sha256")
@@ -408,24 +409,26 @@ class EventStoreMapper
     r_bulk = []
     deferred = bb.defer()
     counter = new CounterStream()
-    stream.pipe(counter)
-    .on("data", (row) ->
-        row = row.toString('utf-8').replace('\n',"").split(",")
-        shasum = crypto.createHash("sha256")
-        shasum.update(row[0] + row[1] + row[2])
-        id = shasum.digest("hex")
-        if row[4]
-            expires_at = new Date(row[4])
-        else
-            expires_at = null
-        r_bulk.push({
-            id: id,
-            person: row[0],
-            action: row[1],
-            thing: row[2],
-            created_at: new Date(row[3]),
-            expires_at: expires_at
-        })
+    stream.pipe(counter).on("data", (row) ->
+        row = row.toString('utf-8').split("\n");
+        for item in row
+          data = item.split(",")
+          if data.length > 1
+            shasum = crypto.createHash("sha256")
+            shasum.update(data[0] + data[1] + data[2])
+            id = shasum.digest("hex")
+            if data[4]
+                expires_at = new Date(data[4])
+            else
+                expires_at = null
+            r_bulk.push({
+                id: id,
+                person: data[0],
+                action: data[1],
+                thing: data[2],
+                created_at: new Date(data[3]),
+                expires_at: expires_at
+            })
     ).on("end", =>
       if r_bulk.length > 0
         @_r.table("events").insert(r_bulk,{conflict: "replace"}).run({
