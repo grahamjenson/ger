@@ -1,4 +1,4 @@
-esm_tests = (esm) ->
+esm_tests = (ESM) ->
   describe 'ESM construction', ->
     describe 'new', ->
       it 'should create new ESM'
@@ -12,7 +12,7 @@ esm_tests = (esm) ->
   describe 'ESMs recommendation methods', ->
     describe 'get_actions', ->
       it 'should returns all the assigned actions with weights in descending order', ->
-        init_esm(esm)
+        init_esm(ESM)
         .then (esm) ->
           bb.all([ 
             esm.set_action_weight('a2',1),
@@ -27,19 +27,80 @@ esm_tests = (esm) ->
           )
 
     describe 'find_similar_people' , ->
-      it 'should return a list of similar people'
+      it 'should return a list of similar people', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.set_action_weight('buy', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p2','view','t1')
+            esm.add_event('p2','buy','t1')
+          ]) 
+          .then( ->
+            esm.find_similar_people('p1', ['view', 'buy'], 'buy')
+          )
+          .then( (people) ->
+            people.length.should.equal 1
+          )
+
+      it 'should not return people that have not actioned action', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.set_action_weight('buy', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p2','view','t1')
+          ]) 
+          .then( ->
+            esm.find_similar_people('p1', ['view','buy'], 'buy')
+          )
+          .then( (people) ->
+            people.length.should.equal 0
+          )
+
+     it 'should not return the given person', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.add_event('p1','view','t1')
+          ]) 
+          .then( ->
+            esm.find_similar_people('p1', ['view'], 'view')
+          )
+          .then( (people) ->
+            people.length.should.equal 0
+          )
+
+      it 'should only return people related via given actions', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.set_action_weight('buy', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p2','view','t1')
+            esm.add_event('p2','buy','t1')
+          ]) 
+          .then( ->
+            esm.find_similar_people('p1', ['buy'], 'buy')
+          )
+          .then( (people) ->
+            people.length.should.equal 0
+          )
 
     describe 'calculate_similarities_from_person', ->
       it 'should calculate the distance between a person and a set of people for a list of actions'
 
     describe 'recently_actioned_things_by_people', ->
       it 'should return a list of things that people have actioned', ->
-        init_esm(esm)
+        init_esm(ESM)
         .then (esm) ->
           bb.all([esm.add_event('p1','a','t'),esm.add_event('p2','a','t1')])
           .then( -> esm.recently_actioned_things_by_people('a',['p1','p2']))
           .then( (people_things) ->
-            console.log people_things
             people_things['p1'][0].thing.should.equal 't'
             people_things['p1'].length.should.equal 1
             people_things['p2'][0].thing.should.equal 't1'
@@ -47,7 +108,7 @@ esm_tests = (esm) ->
           ) 
 
       it 'should return the same item for different people', ->
-        init_esm(esm)
+        init_esm(ESM)
         .then (esm) ->
           bb.all([esm.add_event('p1','a','t'), esm.add_event('p2','a','t')])
           .then( -> esm.recently_actioned_things_by_people('a',['p1','p2']))

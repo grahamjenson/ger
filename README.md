@@ -1,10 +1,15 @@
 
 <img src="./assets/ger300x200.png" align="right" alt="GER logo" />
 
-Good Enough Recommendations (GER) is a collaborative filtering based recommendations engine.
-GER is built to be easy to use and integrate into any application.
+Good Enough Recommendations (GER) is a recommendations engine.
+GER is built to be easy to use, easy to integrate and easy to understand. Its primary goal is to be the calculator to generate recommendations for your application or product.
 
-Read more here [Good Enough Recommendations with GER](http://maori.geek.nz/post/good_enough_recomendations_with_ger)
+Posts about (or related to) GER:
+
+1. Overall description and motivation of GER: [Good Enough Recommendations with GER](http://maori.geek.nz/post/good_enough_recomendations_with_ger)
+2. Testing frameworks being used to test GER: [Testing Javascript with Mocha, Chai, and Sinon](http://www.maori.geek.nz/post/introduction_to_testing_node_js_with_mocha_chai_and_sinon)
+3. Bootstrap function for dumping data into GER: [Streaming directly into Postgres with Hapi.js and pg-copy-stream](http://www.maori.geek.nz/post/streaming_directly_into_postgres_with_hapi_js_and_pg_copy_stream)
+4 [Postgres Upsert (Update or Insert) in GER using Knex.js](http://www.maori.geek.nz/post/postgres_upsert_update_or_insert_in_ger_using_knex_js)
 
 #Quick Start Guide
 
@@ -111,6 +116,7 @@ The API for the ESM to generate recommendations is:
 The API for the ESM to insert data is:
 
 1. `add_event` (also `find_event`)
+2. `count_events` and `estimate_event_count`
 2. `set_action_weight` (also `get_action_weight`)
 3. `bootstrap`
 
