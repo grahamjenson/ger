@@ -145,10 +145,10 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
         ger.action("v'i\new"),
-        ger.event("'p\n1};","v'i\new","'a\n;"),
+        ger.event("'p\n,1};","v'i\new","'a\n;"),
         ger.event("'p\n2};","v'i\new","'a\n;"),
       ])
-      .then(-> ger.recommendations_for_person("'p\n1};","v'i\new"))
+      .then(-> ger.recommendations_for_person("'p\n,1};","v'i\new"))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal "'a\n;"

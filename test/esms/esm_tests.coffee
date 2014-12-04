@@ -167,6 +167,19 @@ esm_tests = (ESM) ->
             similarities['p2']['a'].should.equal similarities['p3']['a']
           )
 
+      it 'should not be effected by having bad names', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight("v'i\new", 1)
+            esm.add_event("'p\n,1};","v'i\new","'a\n;"),
+            esm.add_event("'p\n2};","v'i\new","'a\n;")
+          ])
+          .then(-> esm.calculate_similarities_from_person("'p\n,1};",["'p\n2};"], ["v'i\new"]))
+          .then((similarities) ->
+            similarities["'p\n2};"]["v'i\new"].should.be.greaterThan(0)
+          )
+
     describe '#recently_actioned_things_by_people', ->
       it 'should return a list of things that people have actioned', ->
         init_esm(ESM)
