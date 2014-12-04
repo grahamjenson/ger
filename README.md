@@ -120,7 +120,7 @@ Jaccard similarity is a proper [metric](http://en.wikipedia.org/wiki/Metric_(mat
 
 It is also useful to define *similarity*:
 
-1. Two people are said to be **similar** if the have a non-zero Jaccard distance
+1. Two people are said to be **similar** if the have a non-zero Jaccard similarity
 
 ### Recommendations
 

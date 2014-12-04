@@ -112,7 +112,60 @@ esm_tests = (ESM) ->
           )
 
     describe '#calculate_similarities_from_person', ->
-      it 'should calculate the distance between a person and a set of people for a list of actions'
+      it 'should calculate the similarity between a person and a set of people for a list of actions', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1'),
+            esm.add_event('p2','a','t1')
+          ])
+          .then( -> esm.calculate_similarities_from_person('p1',['p2'],['a']))
+          .then( (similarities) ->
+            similarities['p2']['a'].should.exist
+          ) 
+
+      it 'should have a higher similarity for more recent events', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1'),
+            esm.add_event('p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
+            esm.add_event('p3','a','t1', created_at: moment().subtract(10, 'days').toDate())
+
+          ])
+          .then( -> esm.calculate_similarities_from_person('p1',['p2', 'p3'],['a'], 500, 5))
+          .then( (similarities) ->
+            similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+          )      
+
+      it 'should not be effected by having same events (through add_event)', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1'),
+            esm.add_event('p2','a','t1')
+            esm.add_event('p3','a','t1')
+            esm.add_event('p3','a','t1')
+          ])
+          .then( -> esm.calculate_similarities_from_person('p1',['p2', 'p3'],['a']))
+          .then( (similarities) ->
+            similarities['p2']['a'].should.equal similarities['p3']['a']
+          )
+
+      it 'should not be effected by having same events (through bootstrap)', ->
+        init_esm(ESM)
+        .then (esm) ->
+          rs = new Readable();
+          rs.push('p1,a,t1,2013-01-01,\n');
+          rs.push('p2,a,t1,2013-01-01,\n');
+          rs.push('p3,a,t1,2013-01-01,\n');
+          rs.push('p3,a,t1,2013-01-01,\n');
+          rs.push(null);
+          esm.bootstrap(rs)
+          .then( -> esm.calculate_similarities_from_person('p1',['p2', 'p3'],['a']))
+          .then( (similarities) ->
+            similarities['p2']['a'].should.equal similarities['p3']['a']
+          )
 
     describe '#recently_actioned_things_by_people', ->
       it 'should return a list of things that people have actioned', ->

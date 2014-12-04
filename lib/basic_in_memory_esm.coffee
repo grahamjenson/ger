@@ -2,6 +2,8 @@ bb = require 'bluebird'
 _ = require 'underscore'
 split = require 'split'
 
+moment = require 'moment'
+
 event_store = {}
 person_action_store = {}
 thing_action_store = {}
@@ -64,9 +66,34 @@ class BasicInMemoryESM
 
     return bb.try(-> _.uniq(people))
 
-  calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
+  _recent_jaccard_distance: (p1, p2, action, days) ->
+    recent_date = moment().subtract(days, 'days').toDate()
+
+    p1_things = @_person_history_for_action(p1,action).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
+    p2_things = @_person_history_for_action(p2,action).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
+
+    jaccard = (_.intersection(p1_things, p2_things).length)/(_.union(p1_things, p2_things).length)
+    jaccard = 0 if isNaN(jaccard)
+    return jaccard
+
+  _jaccard_distance: (p1, p2, action) ->
+    p1_things = @_person_history_for_action(p1,action).map((e) -> e.thing)
+    p2_things = @_person_history_for_action(p2,action).map((e) -> e.thing)
+    jaccard = (_.intersection(p1_things, p2_things).length)/(_.union(p1_things, p2_things).length)
+    jaccard = 0 if isNaN(jaccard)
+    return jaccard
+
+  calculate_similarities_from_person: (person, people, actions, person_history_limit=100, recent_event_days= 14) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
-    return bb.try(-> {})
+    similarities = {}
+    for p in people
+      similarities[p] = {}
+      for action in actions
+        jaccard = @_jaccard_distance(person, p, action)
+        recent_jaccard = @_recent_jaccard_distance(person, p, action, recent_event_days)
+        similarities[p][action] = jaccard + recent_jaccard
+
+    return bb.try(-> similarities)
 
   recently_actioned_things_by_people: (action, people, related_things_limit) ->
     return bb.try(->[]) if people.length == 0
@@ -139,7 +166,7 @@ class BasicInMemoryESM
     stream.on('data', (chunk) => 
       return if chunk == ''
       e = chunk.split(',')
-      @add_event(e[0], e[1], e[2], {created_at: e[3]})
+      @add_event(e[0], e[1], e[2], {created_at: new Date(e[3])})
       count += 1
     )
     stream.on('end', -> deferred.resolve(count))
