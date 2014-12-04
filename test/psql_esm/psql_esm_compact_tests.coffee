@@ -1,6 +1,6 @@
 describe '#get_jaccard_distances_between_people', ->
   it 'should take a since, return recent as well', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       bb.all([
         esm.add_event('p1','a','t1'),
@@ -14,7 +14,7 @@ describe '#get_jaccard_distances_between_people', ->
       ) 
 
   it 'should return an object of people to jaccard distance', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       bb.all([
         esm.add_event('p1','a','t1'),
@@ -27,7 +27,7 @@ describe '#get_jaccard_distances_between_people', ->
       )     
 
   it 'should not be effected by multiple events of the same type', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       rs = new Readable();
       rs.push('p1,a,t1,2013-01-01,\n');
@@ -47,7 +47,7 @@ describe "#bootstrap", ->
 
 describe '#initialize', ->
   it 'should have empty actions table', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       knex.schema.hasTable('actions')
       .then( (has_table) ->
@@ -59,7 +59,7 @@ describe '#initialize', ->
       )
 
   it 'should have empty events table', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       knex.schema.hasTable('events')
       .then( (has_table) ->
@@ -73,7 +73,7 @@ describe '#initialize', ->
 
 describe "action cache", ->
   it 'should cache the action and invalidate when action changes', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       esm.set_action_weight('view', 1)
       .then( ->
@@ -98,7 +98,7 @@ describe "action cache", ->
 
 describe "find_similar_people", ->
   it 'should order by persons activity DATE (NOT DATETIME) then by COUNT', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       bb.all([
         esm.set_action_weight('view', 1)
@@ -136,7 +136,7 @@ describe "find_similar_people", ->
 
 describe "get_active_things", ->
   it 'should return an ordered list of the most active things', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       bb.all([
         esm.add_event('p1','view','t1')
@@ -161,7 +161,7 @@ describe "get_active_things", ->
 
 describe "get_active_people", ->
   it 'should work when noone is there', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then( (esm) ->
       esm.add_event('p1','view','t1')
       .then(-> esm.vacuum_analyze())
@@ -169,7 +169,7 @@ describe "get_active_people", ->
     )
 
   it 'should return an ordered list of the most active people', ->
-    init_esm()
+    init_esm(PsqlESM)
     .then (esm) ->
       bb.all([
         esm.add_event('p1','view','t1')

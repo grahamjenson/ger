@@ -91,7 +91,7 @@ class BasicInMemoryESM
       for action in actions
         jaccard = @_jaccard_distance(person, p, action)
         recent_jaccard = @_recent_jaccard_distance(person, p, action, recent_event_days)
-        similarities[p][action] = jaccard + recent_jaccard
+        similarities[p][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
 
     return bb.try(-> similarities)
 
@@ -174,15 +174,20 @@ class BasicInMemoryESM
     deferred.promise
 
   pre_compact: ->
+    bb.try(-> true)
 
   compact_people: ->
+    bb.try(-> true)
 
   compact_things: ->
+    bb.try(-> true)
 
   expire_events: ->
+    bb.try(-> true)
 
   post_compact: ->
-
+    bb.try(-> true)
+    
 #AMD
 if (typeof define != 'undefined' && define.amd)
   define([], -> return BasicInMemoryESM)
