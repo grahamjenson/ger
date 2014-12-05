@@ -137,10 +137,10 @@ init_tables = (r) ->
             r.table("events").indexCreate("person_action",[r.row("person"),r.row("action")]).run(),
             r.table("events").indexCreate("person_action_created_at",[r.row("person"),r.row("action"),r.row("created_at")]).run(),
             r.table("events").indexCreate("thing").run(),
-            r.table("actions").indexWait("weight").run(),
-            r.table("most_common_things").indexWait("count").run(),
-            r.table("most_common_people").indexWait("count").run(),
-            r.table("events").indexWait(["created_at","expires_at","person","action_thing","person_action","person_action_created_at","thing"]).run(),
+            r.table("actions").indexWait().run(),
+            r.table("most_common_things").indexWait().run(),
+            r.table("most_common_people").indexWait().run(),
+            r.table("events").indexWait().run(),
             init_changefeed(r)
         ])
       )
