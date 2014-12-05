@@ -165,15 +165,25 @@ class EventStoreMapper
   add_event: (person, action, thing, dates = {}) ->
     expires_at = dates.expires_at
     if dates.created_at
-        if dates.created_at._isAMomentObject
-          dates.created_at = dates.created_at.format()
-        date = moment(dates.created_at, moment.ISO_8601);
-        if(date.isValid())
-            created_at = @_r.ISO8601(dates.created_at)
-        else
-            created_at = @_r.ISO8601(dates.created_at.toISOString())
+      if dates.created_at._isAMomentObject
+        dates.created_at = dates.created_at.format()
+      date = moment(dates.created_at, moment.ISO_8601);
+      if(date.isValid())
+        created_at = @_r.ISO8601(dates.created_at)
+      else
+        created_at = @_r.ISO8601(dates.created_at.toISOString())
     else
         created_at = @_r.ISO8601(new Date().toISOString())
+    if dates.expires_at
+      if dates.expires_at._isAMomentObject
+        dates.expires_at = dates.expires_at.format()
+      date = moment(dates.expires_at, moment.ISO_8601);
+      if(date.isValid())
+        expires_at = @_r.ISO8601(dates.expires_at)
+      else
+        expires_at = @_r.ISO8601(dates.expires_at.toISOString())
+    else
+      expires_at = null
     @add_event_to_db(person, action, thing, created_at, expires_at)
 
   upsert: (table, insert_attr, identity_attr,overwrite = true) ->

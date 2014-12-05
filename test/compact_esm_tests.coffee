@@ -138,7 +138,7 @@ describe "compact_database_person_action_limit", ->
       )
 
 describe "remove_events_till_size", ->
-  it.only "removes old events till there is only number_of_events left", ->
+  it "removes old events till there is only number_of_events left", ->
     init_esm()
     .then (esm) ->
       rs = new Readable();
@@ -162,7 +162,7 @@ describe "remove_events_till_size", ->
 
 
 describe "expire_events", ->
-  it "removes the events passed their expiry date", ->
+  it.only "removes the events passed their expiry date", ->
     init_esm()
     .then (esm) ->
       esm.add_event('p','a','t', {expires_at: new Date(0).toISOString()} )
