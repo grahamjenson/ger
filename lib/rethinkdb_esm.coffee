@@ -46,7 +46,10 @@ init_changefeed = (r) ->
                   count: valid_doc("count").add(1)
                 }
               )
-            ).run()
+            ).run({
+              durability: "soft",
+              noreply: true
+            })
             hash = crypto.createHash("sha256")
             hash.update(change.new_val.thing.toString())
             thing_id = hash.digest("hex")
@@ -60,7 +63,10 @@ init_changefeed = (r) ->
                   count: valid_doc("count").add(1)
                 }
               )
-            ).run()
+            ).run({
+              durability: "soft",
+              noreply: true
+            })
           else if (change.new_val is null)
             #delete
             hash = crypto.createHash("sha256")
@@ -76,7 +82,10 @@ init_changefeed = (r) ->
                   count: r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
                 }
               )
-            ).run()
+            ).run({
+              durability: "soft",
+              noreply: true
+            })
             hash = crypto.createHash("sha256")
             hash.update(change.old_val.thing.toString())
             thing_id = hash.digest("hex")
@@ -90,7 +99,10 @@ init_changefeed = (r) ->
                   count: r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
                 }
               )
-            ).run()
+            ).run({
+              durability: "soft",
+              noreply: true
+            })
       )
     )
   )
@@ -445,11 +457,18 @@ class EventStoreMapper
             })
     ).on("end", =>
       if r_bulk.length > 0
-        @_r.table("events").insert(r_bulk,{conflict: "replace"}).run({
-          durability: "soft"
-        }).then((result)->
-          deferred.resolve(counter.count)
-        )
+        promises = []
+        sub_bulk = []
+        for item in r_bulk
+          if sub_bulk.length < 50
+            sub_bulk.push item
+          else
+            promises.push @_r.table("events").insert(sub_bulk,{conflict: "replace"}).run({durability: "soft"})
+            sub_bulk = []
+        if sub_bulk.length > 0
+          promises.push @_r.table("events").insert(sub_bulk,{conflict: "replace"}).run({durability: "soft"})
+        console.log(promises.length)
+        bb.all(promises).then((result)-> deferred.resolve(counter.count))
       else
         deferred.resolve(counter.count)
     ).on('error', (error) -> deferred.reject(error))

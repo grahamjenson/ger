@@ -7,24 +7,25 @@ esm_tests = (ESM) ->
       it 'should create resources for ESM namespace', ->
         esm1 = new ESM("schema1", {knex: knex}) #pass knex as it might be needed
         esm2 = new ESM("schema2", {knex: knex}) #pass knex as it might be needed
+        if esm1.type isnt "rethinkdb"
 
-        bb.all([esm1.destroy(),esm2.destroy()])
-        .then( -> bb.all([esm1.initialize(), esm2.initialize()]) )
-        .then( ->
-          bb.all([
-            esm1.add_event('p','a','t')
-            esm1.add_event('p1','a','t')
+            bb.all([esm1.destroy(),esm2.destroy()])
+            .then( -> bb.all([esm1.initialize(), esm2.initialize()]) )
+            .then( ->
+              bb.all([
+                esm1.add_event('p','a','t')
+                esm1.add_event('p1','a','t')
 
-            esm2.add_event('p2','a','t')
-          ])
-        )
-        .then( ->
-          bb.all([esm1.count_events(), esm2.count_events() ]) 
-        )
-        .spread((c1,c2) ->
-          c1.should.equal 2
-          c2.should.equal 1
-        )
+                esm2.add_event('p2','a','t')
+              ])
+            )
+            .then( ->
+              bb.all([esm1.count_events(), esm2.count_events() ])
+            )
+            .spread((c1,c2) ->
+              c1.should.equal 2
+              c2.should.equal 1
+            )
 
     describe '#destroy', ->
       it 'should destroy resources for ESM namespace'
@@ -34,7 +35,7 @@ esm_tests = (ESM) ->
       it 'should returns all the assigned actions with weights in descending order', ->
         init_esm(ESM)
         .then (esm) ->
-          bb.all([ 
+          bb.all([
             esm.set_action_weight('a2',1),
             esm.set_action_weight('a',10)
           ])
@@ -56,7 +57,7 @@ esm_tests = (ESM) ->
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
             esm.add_event('p2','buy','t1')
-          ]) 
+          ])
           .then( ->
             esm.find_similar_people('p1', ['view', 'buy'], 'buy')
           )
@@ -72,7 +73,7 @@ esm_tests = (ESM) ->
             esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
-          ]) 
+          ])
           .then( ->
             esm.find_similar_people('p1', ['view','buy'], 'buy')
           )
@@ -86,7 +87,7 @@ esm_tests = (ESM) ->
           bb.all([
             esm.set_action_weight('view', 1)
             esm.add_event('p1','view','t1')
-          ]) 
+          ])
           .then( ->
             esm.find_similar_people('p1', ['view'], 'view')
           )
@@ -103,7 +104,7 @@ esm_tests = (ESM) ->
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
             esm.add_event('p2','buy','t1')
-          ]) 
+          ])
           .then( ->
             esm.find_similar_people('p1', ['buy'], 'buy')
           )
@@ -122,7 +123,7 @@ esm_tests = (ESM) ->
           .then( -> esm.calculate_similarities_from_person('p1',['p2'],['a']))
           .then( (similarities) ->
             similarities['p2']['a'].should.exist
-          ) 
+          )
 
       it 'should have a higher similarity for more recent events', ->
         init_esm(ESM)
@@ -136,7 +137,7 @@ esm_tests = (ESM) ->
           .then( -> esm.calculate_similarities_from_person('p1',['p2', 'p3'],['a'], 500, 5))
           .then( (similarities) ->
             similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
-          )      
+          )
 
       it 'should not be effected by having same events (through add_event)', ->
         init_esm(ESM)
@@ -191,7 +192,7 @@ esm_tests = (ESM) ->
             people_things['p1'].length.should.equal 1
             people_things['p2'][0].thing.should.equal 't1'
             people_things['p2'].length.should.equal 1
-          ) 
+          )
 
       it 'should return the same item for different people', ->
         init_esm(ESM)
@@ -203,7 +204,7 @@ esm_tests = (ESM) ->
             people_things['p1'].length.should.equal 1
             people_things['p2'][0].thing.should.equal 't'
             people_things['p2'].length.should.equal 1
-          ) 
+          )
 
     describe '#person_history_count', ->
       it 'should return the number of things a person has actioned in their history', ->
@@ -213,7 +214,7 @@ esm_tests = (ESM) ->
             esm.add_event('p1','view','t1')
             esm.add_event('p1','buy','t1')
             esm.add_event('p1','view','t2')
-          ]) 
+          ])
           .then( ->
             esm.person_history_count('p1')
           )
@@ -223,7 +224,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 0
-          ) 
+          )
 
     describe '#filter_things_by_previous_actions', ->
       it 'should remove things that a person has previously actioned', ->
@@ -233,7 +234,7 @@ esm_tests = (ESM) ->
             esm.set_action_weight('view', 1)
             esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
-          ]) 
+          ])
           .then( ->
             esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view'])
           )
@@ -250,7 +251,7 @@ esm_tests = (ESM) ->
             esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p1','buy','t2')
-          ]) 
+          ])
           .then( ->
             esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view'])
           )
@@ -267,7 +268,7 @@ esm_tests = (ESM) ->
             esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p1','buy','t2')
-          ]) 
+          ])
           .then( ->
             esm.filter_things_by_previous_actions('p1', ['t1','t2'], ['view', 'buy'])
           )
@@ -312,7 +313,7 @@ esm_tests = (ESM) ->
             esm.add_event('p1','view','t1')
             esm.add_event('p1','view','t2')
             esm.add_event('p1','view','t3')
-          ]) 
+          ])
           .then( ->
             esm.pre_compact()
           )
@@ -333,7 +334,7 @@ esm_tests = (ESM) ->
             esm.find_event('p','a','t')
           )
           .then( (event) ->
-            event.person.should.equal 'p' 
+            event.person.should.equal 'p'
             event.action.should.equal 'a'
             event.thing.should.equal 't'
           )
@@ -383,12 +384,12 @@ esm_tests = (ESM) ->
 
           esm.bootstrap(rs)
           .then( (returned_count) -> bb.all([returned_count, esm.count_events()]))
-          .spread( (returned_count, count) -> 
+          .spread( (returned_count, count) ->
             count.should.equal 3
             returned_count.should.equal 3
           )
 
-     
+
       it 'should load a set of events from a file into the database', ->
         init_esm(ESM)
         .then (esm) ->
@@ -420,5 +421,5 @@ for esm_name in esms
   describe "TESTING #{name}", ->
     esm_tests(esm)
 
-  
-    
+
+
