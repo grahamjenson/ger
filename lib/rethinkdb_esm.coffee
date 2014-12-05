@@ -399,6 +399,7 @@ class EventStoreMapper
     @_r.table("actions").get(id).ne(null).run()
 
   count_events: ->
+    console.log("count")
     @_r.table("events").count().run()
 
   estimate_event_count: ->
@@ -498,14 +499,13 @@ class EventStoreMapper
       return [] if action_weights.length == 0
       actions = (aw.key for aw in action_weights)
       #cut each action down to size
-      promises = (@truncate_thing_actions(thing, trunc_size, action) for thing in things for action in actions)
+      promises = []
+      for thing in things
+        for action in actions
+          promises.push @_r.table("events").getAll([action,thing], {index: "action_thing"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run()
 
       bb.all(promises)
     )
-
-  truncate_thing_actions: (thing, trunc_size, action) ->
-    @_r.table("events").getAll([action,thing], {index: "action_thing"})
-    .orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run()
 
   truncate_people_per_action: (people, trunc_size) ->
     #TODO do the same thing for things
@@ -514,25 +514,19 @@ class EventStoreMapper
     .then((action_weights) =>
       return bb.try(-> []) if action_weights.length == 0
       actions = (aw.key for aw in action_weights)
+      promises = []
+      for person in people
+        for action in actions
+          promises.push @_r.table("events").getAll([person, action],{index: "person_action"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run()
       #cut each action down to size
-      promises = (@truncate_person_actions(person, trunc_size, action) for person in people for action in actions)
-
       bb.all(promises)
     )
-
-  truncate_person_actions: (person, trunc_size, action) ->
-    deferred = bb.defer()
-    @_r.table("events").getAll([person, action],{index: "person_action"})
-    .orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run().then (result) =>
-      deferred.resolve()
-    deferred.promise
 
   remove_events_till_size: (number_of_events) ->
     #TODO move too offset method
     #removes old events till there is only number_of_events left
-    bb.try =>
-      @_r.table("events").orderBy({index: @_r.desc("created_at")})
-      .skip(number_of_events).delete().run()
+    @_r.table("events").orderBy({index: @_r.desc("created_at")})
+    .skip(number_of_events).delete().run()
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables
