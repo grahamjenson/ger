@@ -209,7 +209,10 @@ describe "remove_non_unique_events_for_people", ->
         esm.count_events()
       )
       .then( (count) ->
-        count.should.equal 2
+        if esm.type is "rethinkdb"
+          count.should.equal 1
+        else
+          count.should.equal 2
         esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
@@ -227,7 +230,10 @@ describe "remove_non_unique_events_for_people", ->
         esm.count_events()
       )
       .then( (count) ->
-        count.should.equal 2
+        if esm.type is "rethinkdb"
+          count.should.equal 1
+        else
+          count.should.equal 2
         esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
@@ -252,10 +258,16 @@ describe "remove_non_unique_events_for_people", ->
         esm.count_events()
       )
       .then( (count) ->
-        count.should.equal 2
+        if esm.type is "rethinkdb"
+          count.should.equal 1
+        else
+          count.should.equal 2
         esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
       .then( (count) ->
-        count.should.equal 2
+        if esm.type is "rethinkdb"
+          count.should.equal 1
+        else
+          count.should.equal 2
       )
