@@ -399,7 +399,6 @@ class EventStoreMapper
     @_r.table("actions").get(id).ne(null).run()
 
   count_events: ->
-    console.log("count")
     @_r.table("events").count().run()
 
   estimate_event_count: ->
@@ -437,9 +436,9 @@ class EventStoreMapper
     ).on("end", =>
       if r_bulk.length > 0
         @_r.table("events").insert(r_bulk,{conflict: "replace"}).run({
-            durability: "soft"
-          }).then(->
-            deferred.resolve(counter.count)
+          durability: "soft"
+        }).then((result)->
+          deferred.resolve(counter.count)
         )
       else
         deferred.resolve(counter.count)

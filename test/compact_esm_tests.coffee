@@ -138,17 +138,17 @@ describe "compact_database_person_action_limit", ->
       )
 
 describe "remove_events_till_size", ->
-  it "removes old events till there is only number_of_events left", ->
+  it.only "removes old events till there is only number_of_events left", ->
     init_esm()
     .then (esm) ->
       rs = new Readable();
       rs.push('person,action,thing,2013-01-01,\n');
-      rs.push('person,action,thing,2014-01-01,\n');
-      rs.push('person,action,thing,2013-01-01,\n');
-      rs.push('person,action,thing,2014-01-01,\n');
+      rs.push('person,action1,thing1,2014-01-01,\n');
+      rs.push('person,action2,thing2,2013-01-01,\n');
+      rs.push('person,action3,thing3,2014-01-01,\n');
       rs.push(null);
       esm.bootstrap(rs)
-      .then( ->
+      .then((count) ->
         esm.count_events()
       )
       .then( (count) ->
