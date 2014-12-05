@@ -162,7 +162,7 @@ describe "remove_events_till_size", ->
 
 
 describe "expire_events", ->
-  it.only "removes the events passed their expiry date", ->
+  it "removes the events passed their expiry date", ->
     init_esm()
     .then (esm) ->
       esm.add_event('p','a','t', {expires_at: new Date(0).toISOString()} )
