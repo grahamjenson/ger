@@ -94,9 +94,10 @@ describe "compact_database_person_action_limit", ->
       )
 
 
-  it 'should truncate people by action', ->
+  it.only 'should truncate people by action', ->
     init_esm()
     .then (esm) ->
+      console.log(esm.type)
       bb.all([
         esm.set_action_weight('view', 1)
         esm.set_action_weight('buy', 10)

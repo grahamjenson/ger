@@ -521,12 +521,18 @@ class EventStoreMapper
     )
 
   truncate_person_actions: (person, trunc_size, action) ->
-    @_r.table("events").getAll([person, action],{index: "person_action"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run()
+    deferred = bb.defer()
+    @_r.table("events").getAll([person, action],{index: "person_action"})
+    .orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run().then (result) =>
+      deferred.resolve()
+    deferred.promise
 
   remove_events_till_size: (number_of_events) ->
     #TODO move too offset method
     #removes old events till there is only number_of_events left
-    @_r.table("events").orderBy({index: @_r.desc("created_at")}).skip(number_of_events).delete().run()
+    bb.try =>
+      @_r.table("events").orderBy({index: @_r.desc("created_at")})
+      .skip(number_of_events).delete().run()
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables
