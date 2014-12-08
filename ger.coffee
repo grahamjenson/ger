@@ -76,7 +76,12 @@ class GER
   filter_recommendations: (person, recommendations) ->
     @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)
     .then( (filter_things) ->
-      ({thing: thing, weight: weight_date.weight, last_actioned_at: weight_date.last_actioned_at} for thing, weight_date of recommendations when thing in filter_things)
+      console.log recommendations, filter_things
+      filtered_recs = []
+      for thing, recommendation_info of recommendations
+        if thing in filter_things
+          filtered_recs.push recommendation_info
+      filtered_recs
     )
 
   people_confidence: (n_people ) ->
@@ -122,7 +127,7 @@ class GER
   recently_actioned_things_by_people: (action, people, related_things_limit) ->
     @esm.recently_actioned_things_by_people(action, people, @related_things_limit)
 
-  generate_recommendations_for_person: (person, action, actions, person_history_count = 1) ->
+  generate_recommendations_for_person: (person, action, actions, person_history_count = 1, explain = false) ->
     @find_similar_people(person, action, actions)
     .then( (people) =>
       bb.all([
@@ -138,10 +143,15 @@ class GER
           thing = thing_date.thing
           last_actioned_at = thing_date.last_actioned_at
 
-          things_weight[thing] = {weight: 0} if things_weight[thing] == undefined
-          things_weight[thing].weight += people_weights[p]
-          if things_weight[thing].last_actioned_at == undefined or things_weight[thing].last_actioned_at < last_actioned_at
-            things_weight[thing].last_actioned_at = last_actioned_at 
+          things_weight[thing] = {thing: thing, weight: 0} if things_weight[thing] == undefined
+          recommendation_info = things_weight[thing]
+          recommendation_info.weight += people_weights[p]
+          if recommendation_info.last_actioned_at == undefined or recommendation_info.last_actioned_at < last_actioned_at
+            recommendation_info.last_actioned_at = last_actioned_at 
+
+          if explain
+            recommendation_info.people = [] if recommendation_info.people == undefined
+            recommendation_info.people.push p
 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(person, things_weight), similar_people] )
@@ -157,10 +167,11 @@ class GER
       things_confidence = @things_confidence(sorted_things)
 
       confidence = people_confidence * history_confidence * things_confidence
+
       {recommendations: sorted_things, confidence: confidence}
     )
 
-  recommendations_for_person: (person, action) ->
+  recommendations_for_person: (person, action, options = {}) ->
     #first a check or two
     bb.all([@esm.person_history_count(person), @esm.get_actions()])
     .spread( (count, action_weights) =>
@@ -176,7 +187,7 @@ class GER
         actions = {}
         (actions[aw.key] = (aw.weight / total_action_weight) for aw in action_weights when aw.weight > 0)
 
-        return @generate_recommendations_for_person(person, action, actions, count)
+        return @generate_recommendations_for_person(person, action, actions, count, !!options.explain)
     )
 
   ##Wrappers of the ESM

@@ -178,6 +178,27 @@ describe 'recommendations_for_person', ->
         item_weights[1].last_actioned_at.should.equal date1.getTime()
       )
 
+  describe "explain option; ", ->
+    it 'should people that contributed to recommendation', ->
+      init_ger()
+      .then (ger) ->
+        bb.all([
+          ger.action('view'),
+          ger.action('buy'),
+          ger.event('p1','buy','a'),
+          ger.event('p1','view','a'),
+
+          ger.event('p2','view','a'),
+        ])
+        .then(-> ger.recommendations_for_person('p2', 'buy', {explain: true}))
+        .then((recommendations) ->
+          console.log recommendations
+          item_weights = recommendations.recommendations
+          item_weights[0].thing.should.equal 'a'
+          item_weights[0].people.should.include 'p1'
+          item_weights[0].people.length.should.equal 1
+        )
+
 
 describe 'find_similar_people', ->
   it 'should return a list of similar people', ->
