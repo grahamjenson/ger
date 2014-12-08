@@ -185,20 +185,41 @@ describe 'recommendations_for_person', ->
         bb.all([
           ger.action('view'),
           ger.action('buy'),
-          ger.event('p1','buy','a'),
-          ger.event('p1','view','a'),
-
+          ger.event('p2','buy','a'),
           ger.event('p2','view','a'),
+
+          ger.event('p1','view','a'),
         ])
-        .then(-> ger.recommendations_for_person('p2', 'buy', {explain: true}))
+        .then(-> ger.recommendations_for_person('p1', 'buy', {explain: true}))
         .then((recommendations) ->
-          console.log recommendations
           item_weights = recommendations.recommendations
           item_weights[0].thing.should.equal 'a'
-          item_weights[0].people.should.include 'p1'
+          item_weights[0].people.should.include 'p2'
           item_weights[0].people.length.should.equal 1
         )
 
+    it 'should return only similar people who contributed to recommendations', ->
+      init_ger(default_esm, 'public', {recommendations_limit: 1})
+      .then (ger) ->
+        bb.all([
+          ger.action('view'),
+          ger.action('buy'),
+          ger.event('p1','view','a'),
+
+          ger.event('p2','buy','a'),
+          ger.event('p2','view','a'),
+
+          ger.event('p3','buy','b'),
+          ger.event('p3','view','a'),
+          ger.event('p3','view','d'),
+        ])
+        .then(-> ger.recommendations_for_person('p1', 'buy', {explain: true}))
+        .then((recommendations) ->
+          recommendations.recommendations.length.should.equal 1
+
+          recommendations.similar_people['p2'].should.exist
+          Object.keys(recommendations.similar_people).length.should.equal 1
+        )
 
 describe 'find_similar_people', ->
   it 'should return a list of similar people', ->

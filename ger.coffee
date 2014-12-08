@@ -76,7 +76,6 @@ class GER
   filter_recommendations: (person, recommendations) ->
     @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), @previous_actions_filter)
     .then( (filter_things) ->
-      console.log recommendations, filter_things
       filtered_recs = []
       for thing, recommendation_info of recommendations
         if thing in filter_things
@@ -158,17 +157,26 @@ class GER
     )
     .spread( (recommendations, similar_people) =>
 
+      recommendations_object = {}
+
       # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
       sorted_things = recommendations.sort((x, y) -> y.weight - x.weight)
-      sorted_things = sorted_things[0...@recommendations_limit]
+      recommendations_object.recommendations = sorted_things[0...@recommendations_limit]
       
+
       people_confidence = @people_confidence(similar_people.n_people)
       history_confidence = @history_confidence(person_history_count)
       things_confidence = @things_confidence(sorted_things)
 
-      confidence = people_confidence * history_confidence * things_confidence
+      recommendations_object.confidence = people_confidence * history_confidence * things_confidence
 
-      {recommendations: sorted_things, confidence: confidence}
+
+      if explain
+        recommendations_object.similar_people = {}
+        for rec in recommendations_object.recommendations
+          for p in rec.people
+            recommendations_object.similar_people[p] = similar_people.people_weights[p]
+      recommendations_object
     )
 
   recommendations_for_person: (person, action, options = {}) ->
@@ -178,8 +186,6 @@ class GER
       if count < @minimum_history_limit
         return {recommendations: [], confidence: 0}
       else
-
-
         total_action_weight = 0
         for aw in action_weights
           total_action_weight += aw.weight
