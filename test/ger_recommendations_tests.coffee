@@ -1,3 +1,56 @@
+describe 'crowd_weight', ->
+  it 'should default do nothing', ->
+    init_ger(default_esm, 'public')
+    .then (ger) ->
+      bb.all([
+        ger.action('view',1),
+        ger.event('p1','view','a'),
+
+        ger.event('p2','view','a'),
+        ger.event('p2','buy','x'),
+
+        ger.event('p3','view','a'),
+        ger.event('p3','view','b')
+        ger.event('p3','buy','y'),
+
+        ger.event('p4','view','a'),
+        ger.event('p4','view','b')
+        ger.event('p4','view','c')
+        ger.event('p4','buy','y'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        recs = recs.recommendations
+        recs[0].thing.should.equal 'x'
+        recs[1].thing.should.equal 'y'
+      )
+
+  it 'should encourage recommendations with more people recommending it', ->
+    init_ger(default_esm, 'public', crowd_weight: 1)
+    .then (ger) ->
+      bb.all([
+        ger.action('view',1),
+        ger.event('p1','view','a'),
+
+        ger.event('p2','view','a'),
+        ger.event('p2','buy','x'),
+
+        ger.event('p3','view','a'),
+        ger.event('p3','view','b')
+        ger.event('p3','buy','y'),
+
+        ger.event('p4','view','a'),
+        ger.event('p4','view','b')
+        ger.event('p4','view','c')
+        ger.event('p4','buy','y'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recs) ->
+        recs = recs.recommendations
+        recs[0].thing.should.equal 'y'
+        recs[1].thing.should.equal 'x'
+      )
+
 describe "minimum_history_limit", ->
   it "should not generate recommendations for events ", ->
     init_ger(default_esm, 'public', minimum_history_limit: 2)

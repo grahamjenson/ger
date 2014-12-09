@@ -131,6 +131,8 @@ In the simple model each action is treated equally when measuring a persons simi
  
 Recommending something that a person has already actioned (e.g. bought) could be undesirable. By providing a list of the actions to filter recommendations, selected recommendations can be removed if they occurred in a persons history. For example, it makes sense to filter `hate` actions to stop recommending things they clearly don't want. However, they could potentially still receive recommendations for things they may have already `like`d, because every year they might like to re-watch movies again.
 
+A single highly similar person can cause bad recommendations by disproportionately dominating the recommendation weights. To mitigate this risk GER encourages recommendations that are recommended by multiple people. Using the `crowd_weight` concept which makes the weight of a recommendation more than just the sum of the peoples weights by also including how many people recommended it.
+
 ## Limitations
 
 When dealing with large sets of data practical limitations are necessary to ensure performance. Here is the list of limitations imposed on the above model and features.
@@ -179,7 +181,7 @@ The API for recommendations follows the core model and accepts a `person` and an
 1. Find similar people to `person` by looking at their history (*limiting the number of returned similar people*)
 2. Calculate the similarities from `person` to the list of people (*limiting the amount of history*)
 3. Find a list of the most recent `thing`s the similar people have `action`ed (*limiting the number returned*)
-4. Calculating the weights of `thing`s using the similarity of the people (*filtering based on filter actions and retuning the highest weighted*)
+4. Calculating the weights of `thing`s using the similarity of the people (*additionally weighting the `crowd_weight`, filtering based on filter actions, then retuning the highest weighted*)
 
 # Technology
 

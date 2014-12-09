@@ -20,8 +20,10 @@ class GER
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500
       person_history_limit: 500
+      crowd_weight: 0
     )
 
+    @crowd_weight = options.crowd_weight
     @minimum_history_limit = options.minimum_history_limit;
     @similar_people_limit = options.similar_people_limit
     @previous_actions_filter = options.previous_actions_filter
@@ -126,6 +128,11 @@ class GER
   recently_actioned_things_by_people: (action, people, related_things_limit) ->
     @esm.recently_actioned_things_by_people(action, people, @related_things_limit)
 
+  crowd_weight_confidence: (weight, n_people) ->
+    crowd_size = Math.pow(n_people, @crowd_weight)
+    cwc = 1.0 - Math.pow(Math.E,( (- crowd_size) / 4 ))
+    cwc * weight
+
   generate_recommendations_for_person: (person, action, actions, person_history_count = 1) ->
     @find_similar_people(person, action, actions)
     .then( (people) =>
@@ -151,6 +158,8 @@ class GER
             recommendation_info.last_actioned_at = last_actioned_at
             
             
+      for thing, ri of things_weight
+        ri.weight = @crowd_weight_confidence(ri.weight, ri.people.length)
 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(person, things_weight), similar_people] )
