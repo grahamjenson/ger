@@ -221,6 +221,9 @@ The API for the ESM to compact the database is:
 
 
 #Changelog
+
+2014-12-9 - Added more explanation to the returned recommendations so they can be reasoned about externally
+
 2014-12-4 - Changed ESM API to be more understandable and also updated README
 
 2014-11-27 - Started returning the last actioned at date with recommendations

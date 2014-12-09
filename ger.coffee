@@ -126,7 +126,7 @@ class GER
   recently_actioned_things_by_people: (action, people, related_things_limit) ->
     @esm.recently_actioned_things_by_people(action, people, @related_things_limit)
 
-  generate_recommendations_for_person: (person, action, actions, person_history_count = 1, explain = false) ->
+  generate_recommendations_for_person: (person, action, actions, person_history_count = 1) ->
     @find_similar_people(person, action, actions)
     .then( (people) =>
       bb.all([
@@ -145,12 +145,12 @@ class GER
           things_weight[thing] = {thing: thing, weight: 0} if things_weight[thing] == undefined
           recommendation_info = things_weight[thing]
           recommendation_info.weight += people_weights[p]
+          recommendation_info.people = [] if recommendation_info.people == undefined
+          recommendation_info.people.push p
           if recommendation_info.last_actioned_at == undefined or recommendation_info.last_actioned_at < last_actioned_at
-            recommendation_info.last_actioned_at = last_actioned_at 
-
-          if explain
-            recommendation_info.people = [] if recommendation_info.people == undefined
-            recommendation_info.people.push p
+            recommendation_info.last_actioned_at = last_actioned_at
+            
+            
 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(person, things_weight), similar_people] )
@@ -171,15 +171,16 @@ class GER
       recommendations_object.confidence = people_confidence * history_confidence * things_confidence
 
 
-      if explain
-        recommendations_object.similar_people = {}
-        for rec in recommendations_object.recommendations
-          for p in rec.people
-            recommendations_object.similar_people[p] = similar_people.people_weights[p]
+      recommendations_object.similar_people = {}
+      for rec in recommendations_object.recommendations
+        for p in rec.people
+          recommendations_object.similar_people[p] = similar_people.people_weights[p]
+
       recommendations_object
+
     )
 
-  recommendations_for_person: (person, action, options = {}) ->
+  recommendations_for_person: (person, action) ->
     #first a check or two
     bb.all([@esm.person_history_count(person), @esm.get_actions()])
     .spread( (count, action_weights) =>
@@ -193,7 +194,7 @@ class GER
         actions = {}
         (actions[aw.key] = (aw.weight / total_action_weight) for aw in action_weights when aw.weight > 0)
 
-        return @generate_recommendations_for_person(person, action, actions, count, !!options.explain)
+        return @generate_recommendations_for_person(person, action, actions, count)
     )
 
   ##Wrappers of the ESM
@@ -227,9 +228,7 @@ class GER
     #this will require manually adding the actions
     @esm.bootstrap(stream)
     
-
   #  DATABASE CLEANING #
-
   compact_database: ->
     @esm.pre_compact()
     .then( =>
