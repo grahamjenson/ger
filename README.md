@@ -8,6 +8,7 @@ Good Enough Recommendations (**GER**) is an attempt to reduce this difficulty by
 Posts about (or related to) GER:
 
 1. Overall description and motivation of GER: [Good Enough Recommendations with GER](http://maori.geek.nz/post/good_enough_recomendations_with_ger)
+2. How GER works [GER's Anatomy: How to Generate Good Enough Recommendations](http://www.maori.geek.nz/post/how_ger_generates_recommendations_the_anatomy_of_a_recommendations_engine)
 2. Testing frameworks being used to test GER: [Testing Javascript with Mocha, Chai, and Sinon](http://www.maori.geek.nz/post/introduction_to_testing_node_js_with_mocha_chai_and_sinon)
 3. Bootstrap function for dumping data into GER: [Streaming directly into Postgres with Hapi.js and pg-copy-stream](http://www.maori.geek.nz/post/streaming_directly_into_postgres_with_hapi_js_and_pg_copy_stream)
 4. [Postgres Upsert (Update or Insert) in GER using Knex.js](http://www.maori.geek.nz/post/postgres_upsert_update_or_insert_in_ger_using_knex_js)
