@@ -4,6 +4,11 @@ things = [1..100]
 
 esm_tests = (ESM) ->
   describe 'performance tests', ->
+    naction = 200
+    nevents = 2000
+    nbevents = 20000
+    ncompact = 3
+    nrecommendations = 50
 
     it 'adding 1000 events takes so much time', ->
       self = @
@@ -22,36 +27,34 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
 
           promises = []
-          for x in [1..100]
+          for x in [1..naction]
             promises.push ger.action(sample(actions) , sample([1..10]))
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/100
+            pe = time/naction
             console.log "#{pe}ms per action"
           )
         )
         .then( ->
-          if ger.esm.type isnt "rethinkdb"
-            # don't do this with single inserts, with a workload like this, always batch
-            st = new Date().getTime()
-            promises = []
-            for x in [1..2000]
-              promises.push ger.event(sample(people), sample(actions) , sample(things))
-            bb.all(promises)
-            .then(->
-              et = new Date().getTime()
-              time = et-st
-              pe = time/2000
-              console.log "#{pe}ms per event"
-            )
+          st = new Date().getTime()
+          promises = []
+          for x in [1..nevents]
+            promises.push ger.event(sample(people), sample(actions) , sample(things))
+          bb.all(promises)
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/nevents
+            console.log "#{pe}ms per event"
+          )
         )
         .then( ->
           st = new Date().getTime()
 
           rs = new Readable();
-          for x in [1..20000]
+          for x in [1..nbevents]
             rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,\n")
           rs.push(null);
 
@@ -59,34 +62,34 @@ esm_tests = (ESM) ->
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/20000
+            pe = time/nbevents
             console.log "#{pe}ms per bootstrapped event"
           )
         )
         .then( ->
           st = new Date().getTime()
           promises = []
-          for x in [1..3]
+          for x in [1..ncompact]
             promises.push ger.compact_database()
 
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/3
+            pe = time/ncompact
             console.log "#{pe}ms for compact"
           )
         )
         .then( ->
           st = new Date().getTime()
           promises = []
-          for x in [1..25]
+          for x in [1..nrecommendations]
             promises.push ger.recommendations_for_person(sample(people), sample(actions))
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/25
+            pe = time/nrecommendations
             console.log "#{pe}ms per recommendations_for_person"
           )
         )
