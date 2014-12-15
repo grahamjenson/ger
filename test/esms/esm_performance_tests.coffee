@@ -6,6 +6,7 @@ esm_tests = (ESM) ->
   describe 'performance tests', ->
 
     it 'adding 1000 events takes so much time', ->
+      self = @
       console.log ""
       console.log ""
       console.log "####################################################"
@@ -13,13 +14,13 @@ esm_tests = (ESM) ->
       console.log "####################################################"
       console.log ""
       console.log ""
-      this.timeout(60000);
+      @timeout(360000)
       init_ger(ESM)
       .then((ger) ->
         bb.try( ->
 
           st = new Date().getTime()
-          
+
           promises = []
           for x in [1..100]
             promises.push ger.action(sample(actions) , sample([1..10]))
@@ -32,17 +33,19 @@ esm_tests = (ESM) ->
           )
         )
         .then( ->
-          st = new Date().getTime()
-          promises = []
-          for x in [1..2000]
-            promises.push ger.event(sample(people), sample(actions) , sample(things))
-          bb.all(promises)
-          .then(->
-            et = new Date().getTime()
-            time = et-st
-            pe = time/2000
-            console.log "#{pe}ms per event"
-          )
+          if ger.esm.type isnt "rethinkdb"
+            # don't do this with single inserts, with a workload like this, always batch
+            st = new Date().getTime()
+            promises = []
+            for x in [1..2000]
+              promises.push ger.event(sample(people), sample(actions) , sample(things))
+            bb.all(promises)
+            .then(->
+              et = new Date().getTime()
+              time = et-st
+              pe = time/2000
+              console.log "#{pe}ms per event"
+            )
         )
         .then( ->
           st = new Date().getTime()
@@ -103,4 +106,4 @@ for esm_name in esms
   esm = esm_name.esm
   describe "TESTING #{name}", ->
     esm_tests(esm)
-    
+
