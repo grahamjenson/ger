@@ -3,7 +3,6 @@ fs = require 'fs'
 crypto = require 'crypto'
 moment = require 'moment'
 shasum = null
-is_changefeed_enabled = false;
 Transform = require('stream').Transform
 
 class CounterStream extends Transform
@@ -25,125 +24,10 @@ drop_tables = (r) ->
   #    bb.all(promises)
   #)
 
-init_changefeed = (r) ->
-  bb.try(=>
-    is_changefeed_enabled = true
-    r.table("events").changes().run().then((feed) =>
-      feed.each((err, change) =>
-        if !err
-          if (change.old_val is null and change.new_val isnt null)
-            #insert
-            hash = crypto.createHash("sha256")
-            hash.update(change.new_val.person.toString())
-            person_id = hash.digest("hex")
-            r.table("most_common_people").get(person_id).replace((doc) ->
-              doc.default({
-                id: person_id,
-                person: change.new_val.person,
-                count: 0
-              }).merge((valid_doc) ->
-                {
-                  count: valid_doc("count").add(1)
-                }
-              )
-            ).run({
-              durability: "soft",
-              noreply: true
-            })
-            hash = crypto.createHash("sha256")
-            hash.update(change.new_val.thing.toString())
-            thing_id = hash.digest("hex")
-            r.table("most_common_things").get(thing_id).replace((doc) ->
-              doc.default({
-                id: thing_id,
-                thing: change.new_val.thing,
-                count: 0
-              }).merge((valid_doc) ->
-                {
-                  count: valid_doc("count").add(1)
-                }
-              )
-            ).run({
-              durability: "soft",
-              noreply: true
-            })
-          else if (change.new_val is null)
-            #delete
-            hash = crypto.createHash("sha256")
-            hash.update(change.old_val.person.toString())
-            person_id = hash.digest("hex")
-            r.table("most_common_people").get(person_id).replace((doc) =>
-              doc.default({
-                id: person_id,
-                person: change.old_val.person,
-                count: 1
-              }).merge((valid_doc) =>
-                {
-                  count: r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
-                }
-              )
-            ).run({
-              durability: "soft",
-              noreply: true
-            })
-            hash = crypto.createHash("sha256")
-            hash.update(change.old_val.thing.toString())
-            thing_id = hash.digest("hex")
-            r.table("most_common_things").get(thing_id).replace((doc) =>
-              doc.default({
-                id: thing_id,
-                thing: change.old_val.thing,
-                count: 1
-              }).merge((valid_doc) =>
-                {
-                  count: r.branch(valid_doc("count").gt(0),valid_doc("count").sub(1),0)
-                }
-              )
-            ).run({
-              durability: "soft",
-              noreply: true
-            })
-      )
-    )
-  )
-
-clear_tables = (r) ->
-  r.table("most_common_things").delete().run().then =>
-    r.table("most_common_people").delete().run().then =>
-      r.table("events").delete().run().then =>
-        r.table("actions").delete().run().then =>
-          init_changefeed(r) if not is_changefeed_enabled
 
 
 init_tables = (r) ->
-  r.tableList().run().then (list) ->
-    if list.length > 0
-      bb.try -> clear_tables(r)
-    else
-      bb.all([
-        r.tableCreate("most_common_things").run(),
-        r.tableCreate("most_common_people").run(),
-        r.tableCreate("events").run(),
-        r.tableCreate("actions").run(),
-      ]).then(->
-        bb.join([
-            r.table("actions").indexCreate("weight").run(),
-            r.table("most_common_things").indexCreate("count").run(),
-            r.table("most_common_people").indexCreate("count").run(),
-            r.table("events").indexCreate("created_at").run(),
-            r.table("events").indexCreate("expires_at").run(),
-            r.table("events").indexCreate("person").run(),
-            r.table("events").indexCreate("action_thing",[r.row("action"),r.row("thing")]).run(),
-            r.table("events").indexCreate("person_action",[r.row("person"),r.row("action")]).run(),
-            r.table("events").indexCreate("person_action_created_at",[r.row("person"),r.row("action"),r.row("created_at")]).run(),
-            r.table("events").indexCreate("thing").run(),
-            r.table("actions").indexWait().run(),
-            r.table("most_common_things").indexWait().run(),
-            r.table("most_common_people").indexWait().run(),
-            r.table("events").indexWait().run(),
-            init_changefeed(r)
-        ])
-      )
+
 
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
@@ -159,11 +43,53 @@ class EventStoreMapper
     @_r = orms.r
     @action_cache = null
 
+  try_create_table: (table, table_list) ->
+    if table in table_list
+      return bb.try(-> false)
+    else
+      return @_r.tableCreate(table).run().then(-> true)
+
+  try_drop_table: (table, table_list) ->
+    if table in table_list
+      return @_r.table(table).delete().run().then(-> true)
+    else
+      return bb.try(-> false)
+
   destroy: ->
-    drop_tables(@_r)
+    @_r.tableList().run().then( (list) =>
+      bb.all([
+        @try_drop_table("events", list),
+        @try_drop_table("actions", list)
+      ])
+    )
 
   initialize: ->
-    init_tables(@_r)
+    @_r.tableList().run().then( (list) =>
+      bb.all([
+        @try_create_table("events", list)
+        @try_create_table("actions", list)
+      ])
+    )
+    .spread( (events_created, actions_created) =>
+      promises = []
+      if events_created
+        promises = promises.concat([@_r.table("events").indexCreate("created_at").run(),
+          @_r.table("events").indexCreate("expires_at").run(),
+          @_r.table("events").indexCreate("person").run(),
+          @_r.table("events").indexCreate("action_thing",[@_r.row("action"),@_r.row("thing")]).run(),
+          @_r.table("events").indexCreate("person_action",[@_r.row("person"),@_r.row("action")]).run(),
+          @_r.table("events").indexCreate("person_action_created_at",[@_r.row("person"),@_r.row("action"),@_r.row("created_at")]).run(),
+          @_r.table("events").indexCreate("thing").run(),
+          @_r.table("events").indexWait().run()
+        ])
+
+      if actions_created
+        promises = promises.concat([
+          @_r.table("actions").indexCreate("weight").run(),
+          @_r.table("actions").indexWait().run()
+        ])
+      bb.all(promises)
+    )
 
   clear_tables: ->
     clear_tables(@_r)
@@ -492,16 +418,11 @@ class EventStoreMapper
   remove_non_unique_events_for_person: (people) ->
     bb.try( -> [])
 
-  #TODO refactor out useful methods
   get_active_things: ->
-    #TODO WILL NOT WORK IF COMMA IN NAME
-    #select most_common_vals from pg_stats where attname = 'thing';
-    @_r.table('most_common_things').orderBy({index: @_r.desc("count")})("thing")
+    @_r.table('events').sample(100).pluck("thing")
     .limit(100).default([]).run()
 
   get_active_people: ->
-    #TODO WILL NOT WORK IF COMMA IN NAME
-    #select most_common_vals from pg_stats where attname = 'person';
     @_r.table('most_common_people').orderBy({index: @_r.desc("count")})("person")
     .limit(100).default([]).run()
 
@@ -557,7 +478,5 @@ class EventStoreMapper
 
 EventStoreMapper.drop_tables = drop_tables
 EventStoreMapper.init_tables = init_tables
-EventStoreMapper.init_changefeed = init_changefeed
-EventStoreMapper.clear_tables = clear_tables
 
 module.exports = EventStoreMapper;
