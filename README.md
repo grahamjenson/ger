@@ -7,6 +7,7 @@ Good Enough Recommendations (**GER**) is an attempt to reduce this difficulty by
 
 Posts about (or related to) GER:
 
+1. Demo Movie Recommendations Site: [Yeah, Nah](http://yeahnah.maori.geek.nz/)
 1. Overall description and motivation of GER: [Good Enough Recommendations with GER](http://maori.geek.nz/post/good_enough_recomendations_with_ger)
 2. How GER works [GER's Anatomy: How to Generate Good Enough Recommendations](http://www.maori.geek.nz/post/how_ger_generates_recommendations_the_anatomy_of_a_recommendations_engine)
 2. Testing frameworks being used to test GER: [Testing Javascript with Mocha, Chai, and Sinon](http://www.maori.geek.nz/post/introduction_to_testing_node_js_with_mocha_chai_and_sinon)
