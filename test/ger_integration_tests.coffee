@@ -108,6 +108,23 @@ describe 'recommendations_for_person', ->
         item_weights.length.should.equal 0
       ) 
 
+  it 'should filter actioned things from other people', ->
+    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
+    .then (ger) ->
+      bb.all([
+        ger.action('buy'),
+        ger.event('p1','buy','a'),
+        ger.event('p1','buy','b'),
+        ger.event('p2','buy','b'),
+        ger.event('p2','buy','c'),
+      ])
+      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
+        item_weights.length.should.equal 1
+        item_weights[0].thing.should.equal 'c'
+      ) 
+
   it 'should filter previously actioned by someone else', ->
     init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
     .then (ger) ->
