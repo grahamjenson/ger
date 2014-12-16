@@ -3,37 +3,11 @@ fs = require 'fs'
 crypto = require 'crypto'
 moment = require 'moment'
 shasum = null
-Transform = require('stream').Transform
-
-class CounterStream extends Transform
-  _transform: (chunk, encoding, done) ->
-    @count |= 0
-    for ch in chunk
-      @count += 1 if ch == 10
-    @push(chunk)
-    done()
-
-#CLASS ACTIONS
-drop_tables = (r) ->
-  true
-  #promises = []
-  #r.tableList().run().then((list) ->
-  #    ["events","actions","most_common_things","most_common_people"].forEach (t) ->
-  #        if(list.indexOf t is -1)
-  #            promises.push(r.tableDrop(t).run().error((err) -> console.log(err)))
-  #    bb.all(promises)
-  #)
-
-
-
-init_tables = (r) ->
-
+split = require 'split'
 
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
 class EventStoreMapper
-
-  type: "rethinkdb"
 
   invalidate_action_cache: ->
     @action_cache = null
@@ -100,28 +74,24 @@ class EventStoreMapper
   vacuum_analyze: ->
     bb.try(-> true)
 
+  convert_date: (date) ->
+    if date
+      date = new Date(date)
+      if date._isAMomentObject
+        date = date.format()
+      valid_date = moment(date, moment.ISO_8601);
+      if(valid_date.isValid())
+        ret = @_r.ISO8601(date)
+      else
+        ret = @_r.ISO8601(date.toISOString())
+      return ret
+    else
+      return null
+
   add_event: (person, action, thing, dates = {}) ->
-    expires_at = dates.expires_at
-    if dates.created_at
-      if dates.created_at._isAMomentObject
-        dates.created_at = dates.created_at.format()
-      date = moment(dates.created_at, moment.ISO_8601);
-      if(date.isValid())
-        created_at = @_r.ISO8601(dates.created_at)
-      else
-        created_at = @_r.ISO8601(dates.created_at.toISOString())
-    else
-        created_at = @_r.ISO8601(new Date().toISOString())
-    if dates.expires_at
-      if dates.expires_at._isAMomentObject
-        dates.expires_at = dates.expires_at.format()
-      date = moment(dates.expires_at, moment.ISO_8601);
-      if(date.isValid())
-        expires_at = @_r.ISO8601(dates.expires_at)
-      else
-        expires_at = @_r.ISO8601(dates.expires_at.toISOString())
-    else
-      expires_at = null
+    created_at = @convert_date(dates.created_at) || @_r.ISO8601(new Date().toISOString())
+    expires_at =  @convert_date(dates.expires_at)
+
     @add_event_to_db(person, action, thing, created_at, expires_at)
 
   upsert: (table, insert_attr, identity_attr,overwrite = true) ->
@@ -132,7 +102,7 @@ class EventStoreMapper
     shasum = crypto.createHash("sha256")
     shasum.update(identity_attr.toString())
     insert_attr.id = shasum.digest("hex")
-    @_r.table(table).insert(insert_attr, {conflict: conflict_method}).run({ durability: "soft" })
+    @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
   find_event: (person, action, thing) ->
     shasum = crypto.createHash("sha256")
@@ -216,11 +186,11 @@ class EventStoreMapper
         }
     )
     .ungroup().map((row) ->
-        {
-            created_at_day: row("reduction")("created_at").day(),
-            count: row("reduction")("count"),
-            person: row("group")
-        }
+      {
+          created_at_day: row("reduction")("created_at").day(),
+          count: row("reduction")("count"),
+          person: row("group")
+      }
     ).orderBy(@_r.desc("created_at_day"),@_r.desc("count"))
     .eqJoin([@_r.row("person"),action],@_r.table("events"),{index: "person_action"})
     .pluck({left: true}).zip().limit(limit)("person").default([]).run()
@@ -355,48 +325,44 @@ class EventStoreMapper
   count_actions: ->
     @_r.table("actions").count().run()
 
+  bulk_load: (events) ->
+    
+
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
     #this will require manually adding the actions
     r_bulk = []
+    chain_promise = bb.try(-> true)
     deferred = bb.defer()
-    counter = new CounterStream()
-    stream.pipe(counter).on("data", (row) ->
-        row = row.toString('utf-8').split("\n");
-        for item in row
-          data = item.split(",")
-          if data.length > 1
-            shasum = crypto.createHash("sha256")
-            shasum.update(data[0] + data[1] + data[2])
-            id = shasum.digest("hex")
-            if data[4]
-                expires_at = new Date(data[4])
-            else
-                expires_at = null
-            r_bulk.push({
-                id: id,
-                person: data[0],
-                action: data[1],
-                thing: data[2],
-                created_at: new Date(data[3]),
-                expires_at: expires_at
-            })
+    counter = 0
+    stream.pipe(split(/^/gm)).on("data", (row) =>
+      row = row.toString().trim()
+      data = row.split(",")
+      if data.length > 1
+        shasum = crypto.createHash("sha256")
+        shasum.update(data[0] + data[1] + data[2])
+        id = shasum.digest("hex")
+        r_bulk.push({
+            id: id,
+            person: data[0],
+            action: data[1],
+            thing: data[2],
+            created_at: @convert_date(data[3]),
+            expires_at: @convert_date(data[4])
+        })
+
+        if r_bulk.length > 200
+          counter += r_bulk.length
+          chain_promise = bb.all([chain_promise, @_r.table("events").insert(r_bulk,{conflict: "replace", durability: "soft"}).run()])
+          r_bulk = []
+
     ).on("end", =>
-      if r_bulk.length > 0
-        promises = []
-        sub_bulk = []
-        for item in r_bulk
-          if sub_bulk.length < 100
-            sub_bulk.push item
-          else
-            promises.push @_r.table("events").insert(sub_bulk,{conflict: "replace"}).run({durability: "soft"})
-            sub_bulk = []
-        if sub_bulk.length > 0
-          promises.push @_r.table("events").insert(sub_bulk,{conflict: "replace"}).run({durability: "soft"})
-        bb.all(promises).then((result)-> deferred.resolve(counter.count))
-      else
-        deferred.resolve(counter.count)
-    ).on('error', (error) -> deferred.reject(error))
+      return if r_bulk.length == 0
+      counter += r_bulk.length
+      console.log counter
+      bb.all([chain_promise, @_r.table("events").insert(r_bulk,{conflict: "replace", durability: "soft"}).run()])
+      .then(-> deferred.resolve(counter))
+    )
 
     deferred.promise
 
@@ -419,11 +385,14 @@ class EventStoreMapper
     bb.try( -> [])
 
   get_active_things: ->
+    return bb.try( -> [])
     @_r.table('events').sample(100).pluck("thing")
     .limit(100).default([]).run()
 
   get_active_people: ->
-    @_r.table('most_common_people').orderBy({index: @_r.desc("count")})("person")
+    return bb.try( -> [])
+    #replace with a smart sample method
+    @_r.table('events').sample(100).pluck("person")
     .limit(100).default([]).run()
 
   compact_people : (compact_database_person_action_limit) ->
@@ -476,7 +445,5 @@ class EventStoreMapper
     @_r.table("events").orderBy({index: @_r.desc("created_at")})
     .skip(number_of_events).delete().run()
 
-EventStoreMapper.drop_tables = drop_tables
-EventStoreMapper.init_tables = init_tables
 
 module.exports = EventStoreMapper;

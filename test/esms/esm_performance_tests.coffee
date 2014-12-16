@@ -6,7 +6,7 @@ esm_tests = (ESM) ->
   describe 'performance tests', ->
     naction = 200
     nevents = 2000
-    nbevents = 20000
+    nbevents = 5000
     ncompact = 3
     nrecommendations = 50
 
