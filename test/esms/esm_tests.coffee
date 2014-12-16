@@ -5,8 +5,8 @@ esm_tests = (ESM) ->
 
     describe '#initialize', ->
       it 'should create resources for ESM namespace', ->
-        esm1 = new ESM("schema1", {knex: knex}) #pass knex as it might be needed
-        esm2 = new ESM("schema2", {knex: knex}) #pass knex as it might be needed
+        esm1 = new ESM("schema1", {knex: knex, r: r}) #pass knex as it might be needed
+        esm2 = new ESM("schema2", {knex: knex, r: r}) #pass knex as it might be needed
         if esm1.type isnt "rethinkdb"
 
             bb.all([esm1.destroy(),esm2.destroy()])
@@ -15,7 +15,7 @@ esm_tests = (ESM) ->
               bb.all([
                 esm1.add_event('p','a','t')
                 esm1.add_event('p1','a','t')
-
+                
                 esm2.add_event('p2','a','t')
               ])
             )
