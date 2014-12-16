@@ -33,7 +33,7 @@ class EventStoreMapper
     @_r.tableList().run().then( (list) =>
       bb.all([
         @try_drop_table("#{@schema}_events", list),
-        @try_drop_table("actions", list)
+        @try_drop_table("#{@schema}_actions", list)
       ])
     )
 
@@ -41,7 +41,7 @@ class EventStoreMapper
     @_r.tableList().run().then( (list) =>
       bb.all([
         @try_create_table("#{@schema}_events", list)
-        @try_create_table("actions", list)
+        @try_create_table("#{@schema}_actions", list)
       ])
     )
     .spread( (events_created, actions_created) =>
@@ -59,8 +59,8 @@ class EventStoreMapper
 
       if actions_created
         promises = promises.concat([
-          @_r.table("actions").indexCreate("weight").run(),
-          @_r.table("actions").indexWait().run()
+          @_r.table("#{@schema}_actions").indexCreate("weight").run(),
+          @_r.table("#{@schema}_actions").indexWait().run()
         ])
       bb.all(promises)
     )
@@ -120,7 +120,7 @@ class EventStoreMapper
     now = new Date()
     insert_attr =  {action: action, weight: +weight, created_at: now, updated_at: now}
     identity_attr = action
-    @upsert("actions", insert_attr, identity_attr,overwrite)
+    @upsert("#{@schema}_actions", insert_attr, identity_attr,overwrite)
 
   person_history_count: (person) ->
     @_r.table("#{@schema}_events").getAll(person,{index: "person"})("thing")
@@ -129,7 +129,7 @@ class EventStoreMapper
   get_ordered_action_set_with_weights: ->
     return bb.try( => @action_cache) if @action_cache
     bb.try =>
-        @_r.table("actions").orderBy({index: @_r.desc("weight")})
+        @_r.table("#{@schema}_actions").orderBy({index: @_r.desc("weight")})
         .map((row) => {key: row("action"), weight: row('weight')}).run()
         .then( (rows) =>
           @action_cache = rows
@@ -138,7 +138,7 @@ class EventStoreMapper
 
   get_actions: ->
     return bb.try( => @action_cache) if @action_cache
-    @_r.table("actions").orderBy({index: @_r.desc("weight")})
+    @_r.table("#{@schema}_actions").orderBy({index: @_r.desc("weight")})
     .map((row) ->
       return {
         key: row("action"),
@@ -155,41 +155,41 @@ class EventStoreMapper
     shasum = crypto.createHash("sha256")
     shasum.update(action.toString())
     id = shasum.digest("hex")
-    @_r.table("actions").get(id)('weight').default(null).run()
+    @_r.table("#{@schema}_actions").get(id)('weight').default(null).run()
 
   find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
-    @_r.table("#{@schema}_events").getAll(person,{index: "person"})
+    @_r.table("#{@schema}_events").getAll(person, {index: "person"})
     .pluck("person", "action", "thing", "created_at")
     .orderBy(@_r.desc('created_at'))
     .limit(search_limit)
     .eqJoin([@_r.row("action"),@_r.row("thing")],r.table("#{@schema}_events"),{index: "action_thing"})
     .filter((row) =>
-        row("right")("person").ne(row("left")("person")).and(@_r.expr(actions).contains(row("right")("action")))
+      row("right")("person").ne(row("left")("person")).and(@_r.expr(actions).contains(row("right")("action")))
     )
     .pluck({
-        left: ["created_at"],
-        right: true
+      left: ["created_at"],
+      right: true
     })
     .zip()
     .group("person")
     .map((row) ->
-        {
-            created_at: row("created_at"),
-            count: 1
-        }
+      {
+        created_at: row("created_at"),
+        count: 1
+      }
     )
     .reduce((a,b) =>
-        {
-            created_at: @_r.expr([a("created_at"),b("created_at")]).max(),
-            count: a("count").add(b("count"))
-        }
+      {
+        created_at: @_r.expr([a("created_at"),b("created_at")]).max(),
+        count: a("count").add(b("count"))
+      }
     )
     .ungroup().map((row) ->
       {
-          created_at_day: row("reduction")("created_at").day(),
-          count: row("reduction")("count"),
-          person: row("group")
+        created_at_day: row("reduction")("created_at").day(),
+        count: row("reduction")("count"),
+        person: row("group")
       }
     ).orderBy(@_r.desc("created_at_day"),@_r.desc("count"))
     .eqJoin([@_r.row("person"),action],@_r.table("#{@schema}_events"),{index: "person_action"})
@@ -314,7 +314,7 @@ class EventStoreMapper
     shasum = crypto.createHash("sha256")
     shasum.update(action.toString())
     id = shasum.digest("hex")
-    @_r.table("actions").get(id).ne(null).run()
+    @_r.table("#{@schema}_actions").get(id).ne(null).run()
 
   count_events: ->
     @_r.table("#{@schema}_events").count().run()
@@ -323,7 +323,7 @@ class EventStoreMapper
     @_r.table("#{@schema}_events").count().run()
 
   count_actions: ->
-    @_r.table("actions").count().run()    
+    @_r.table("#{@schema}_actions").count().run()    
 
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV

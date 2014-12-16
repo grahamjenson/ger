@@ -12,10 +12,7 @@ describe "compact_database", ->
         ger.count_events()
       )
       .then( (count) ->
-        if ger.esm.type is "rethinkdb"
-            count.should.equal 1
-        else
-            count.should.equal 2
+        count.should.equal 2
         ger.compact_database()
       )
       .then( ->
@@ -209,10 +206,7 @@ describe "remove_non_unique_events_for_people", ->
         esm.count_events()
       )
       .then( (count) ->
-        if esm.type is "rethinkdb"
-          count.should.equal 1
-        else
-          count.should.equal 2
+        count.should.equal 2
         esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
@@ -230,10 +224,7 @@ describe "remove_non_unique_events_for_people", ->
         esm.count_events()
       )
       .then( (count) ->
-        if esm.type is "rethinkdb"
-          count.should.equal 1
-        else
-          count.should.equal 2
+        count.should.equal 2
         esm.remove_non_unique_events_for_people(['person'])
       )
       .then( -> esm.count_events())
@@ -246,28 +237,3 @@ describe "remove_non_unique_events_for_people", ->
         event.created_at.getFullYear().should.equal expected_created_at.getFullYear()
       )
 
-  it "ignores expiring events", ->
-    init_esm()
-    .then (esm) ->
-      rs = new Readable();
-      rs.push('person,action,thing,2013-01-01,2016-01-01\n');
-      rs.push('person,action,thing,2014-01-01,\n');
-      rs.push(null);
-      esm.bootstrap(rs)
-      .then( ->
-        esm.count_events()
-      )
-      .then( (count) ->
-        if esm.type is "rethinkdb"
-          count.should.equal 1
-        else
-          count.should.equal 2
-        esm.remove_non_unique_events_for_people(['person'])
-      )
-      .then( -> esm.count_events())
-      .then( (count) ->
-        if esm.type is "rethinkdb"
-          count.should.equal 1
-        else
-          count.should.equal 2
-      )
