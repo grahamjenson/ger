@@ -5,8 +5,9 @@ things = [1..100]
 esm_tests = (ESM) ->
   describe 'performance tests', ->
     naction = 200
-    nevents = 2000
+    nevents = 3000
     nbevents = 5000
+    nfindpeople = 100
     ncompact = 3
     nrecommendations = 50
 
@@ -78,6 +79,21 @@ esm_tests = (ESM) ->
             time = et-st
             pe = time/ncompact
             console.log "#{pe}ms for compact"
+          )
+        )
+        .then( ->
+          st = new Date().getTime()
+
+          promises = []
+          for x in [1..nfindpeople]
+            promises.push ger.esm.find_similar_people(sample(people), actions, sample(actions))
+          bb.all(promises)
+          
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/nfindpeople
+            console.log "#{pe}ms per find_similar_people"
           )
         )
         .then( ->

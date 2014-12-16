@@ -407,10 +407,60 @@ esm_tests = (ESM) ->
       it 'should prepare the ESM for compaction'
 
     describe '#compact_people', ->
-      it 'should truncate the events of peoples history'
+      it 'should truncate the events of peoples history', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','view','t3')
+          ])
+          .then( -> 
+            esm.pre_compact()
+          )
+          .then( ->
+            esm.count_events()
+          )
+          .then( (count) ->
+            count.should.equal 3
+            esm.compact_people(2)
+          )
+          .then( -> 
+            console.log "THE FINAL COUNT"
+            esm.count_events()
+          )
+          .then( (count) ->
+            count.should.equal 2
+          )
 
     describe '#compact_things', ->
-      it 'should truncate the events of things history'
+      it 'should truncate the events of things history', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.set_action_weight('view', 1)
+            esm.add_event('p1','view','t1')
+            esm.add_event('p2','view','t1')
+            esm.add_event('p3','view','t1')
+          ])
+          .then( -> 
+            esm.pre_compact()
+          )
+          .then( ->
+            esm.count_events()
+          )
+          .then( (count) ->
+            count.should.equal 3
+            esm.compact_things(2)
+          )
+          .then( -> 
+            esm.count_events()
+          )
+          .then( (count) ->
+            console.log count
+            count.should.equal 2
+          )
 
     describe '#expire_events', ->
       it 'should remove events that have expired'

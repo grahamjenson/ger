@@ -382,25 +382,21 @@ class EventStoreMapper
 
   get_active_things: ->
     #Select 10K events, count frequencies order them and return
-    @_r.table("#{@schema}_events").sample(10000)
+    @_r.table("#{@schema}_events", {useOutdated: true}).sample(10000)
     .group('thing')
     .count()
     .ungroup()
     .orderBy(r.desc('reduction'))
-    .limit(100).run().then((rows) ->
-      (r.group for r in rows)
-    )
+    .limit(100)('group').run()
 
   get_active_people: ->
     #Select 10K events, count frequencies order them and return
-    @_r.table("#{@schema}_events").sample(10000)
+    @_r.table("#{@schema}_events", {useOutdated: true}).sample(10000)
     .group('person')
     .count()
     .ungroup()
     .orderBy(r.desc('reduction'))
-    .limit(100).run().then((rows) ->
-      (r.group for r in rows)
-    )
+    .limit(100)('group').run()
 
   compact_people : (compact_database_person_action_limit) ->
     @get_active_people()
