@@ -399,7 +399,7 @@ esm_tests = (ESM) ->
         .then (esm) ->
           fileStream = fs.createReadStream(path.resolve('./test/test_events.csv'))
           esm.bootstrap(fileStream)
-          .then( (count) -> console.log "FINAL", count; count.should.equal 3; esm.count_events())
+          .then( (count) -> count.should.equal 3; esm.count_events())
           .then( (count) -> count.should.equal 3)
 
   describe 'ESM compacting database', ->

@@ -359,7 +359,6 @@ class EventStoreMapper
     ).on("end", =>
       return if r_bulk.length == 0
       counter += r_bulk.length
-      console.log counter
       bb.all([chain_promise, @_r.table("events").insert(r_bulk,{conflict: "replace", durability: "soft"}).run()])
       .then(-> deferred.resolve(counter))
     )
@@ -385,15 +384,26 @@ class EventStoreMapper
     bb.try( -> [])
 
   get_active_things: ->
-    return bb.try( -> [])
-    @_r.table('events').sample(100).pluck("thing")
-    .limit(100).default([]).run()
+    #Select 10K events, count frequencies order them and return
+    @_r.table("events").sample(10000)
+    .group('thing')
+    .count()
+    .ungroup()
+    .orderBy(r.desc('reduction'))
+    .limit(100).run().then((rows) ->
+      (r.group for r in rows)
+    )
 
   get_active_people: ->
-    return bb.try( -> [])
-    #replace with a smart sample method
-    @_r.table('events').sample(100).pluck("person")
-    .limit(100).default([]).run()
+    #Select 10K events, count frequencies order them and return
+    @_r.table("events").sample(10000)
+    .group('person')
+    .count()
+    .ungroup()
+    .orderBy(r.desc('reduction'))
+    .limit(100).run().then((rows) ->
+      (r.group for r in rows)
+    )
 
   compact_people : (compact_database_person_action_limit) ->
     @get_active_people()
