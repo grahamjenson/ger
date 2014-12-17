@@ -408,6 +408,29 @@ esm_tests = (ESM) ->
             returned_count.should.equal 3
           )
 
+      it 'should select the most recent created_at date for any duplicate events', ->
+        init_esm(ESM)
+        .then (esm) ->
+          rs = new Readable();
+          rs.push('person,action,thing,2013-01-01,\n');
+          rs.push('person,action,thing,2014-01-01,\n');
+          rs.push(null);
+          esm.bootstrap(rs)
+          .then( ->
+            esm.pre_compact()
+          )
+          .then( ->
+            esm.compact_people()
+          )
+          .then( -> esm.count_events())
+          .then( (count) ->
+            count.should.equal 1
+            esm.find_event('person','action','thing')
+          )
+          .then( (event) ->
+            expected_created_at = new Date('2014-01-01')
+            event.created_at.getFullYear().should.equal expected_created_at.getFullYear()
+          )
 
       it 'should load a set of events from a file into the database', ->
         init_esm(ESM)
@@ -416,70 +439,6 @@ esm_tests = (ESM) ->
           esm.bootstrap(fileStream)
           .then( (count) -> count.should.equal 3; esm.count_events())
           .then( (count) -> count.should.equal 3)
-
-  describe 'ESM compacting database', ->
-    describe '#pre_compact', ->
-      it 'should prepare the ESM for compaction'
-
-    describe '#compact_people', ->
-      it 'should truncate the events of peoples history', ->
-        init_esm(ESM)
-        .then (esm) ->
-          bb.all([
-            esm.set_action_weight('view', 1)
-            esm.add_event('p1','view','t1')
-            esm.add_event('p1','view','t2')
-            esm.add_event('p1','view','t3')
-          ])
-          .then( -> 
-            esm.pre_compact()
-          )
-          .then( ->
-            esm.count_events()
-          )
-          .then( (count) ->
-            count.should.equal 3
-            esm.compact_people(2)
-          )
-          .then( -> 
-            esm.count_events()
-          )
-          .then( (count) ->
-            count.should.equal 2
-          )
-
-    describe '#compact_things', ->
-      it 'should truncate the events of things history', ->
-        init_esm(ESM)
-        .then (esm) ->
-          bb.all([
-            esm.set_action_weight('view', 1)
-            esm.add_event('p1','view','t1')
-            esm.add_event('p2','view','t1')
-            esm.add_event('p3','view','t1')
-          ])
-          .then( -> 
-            esm.pre_compact()
-          )
-          .then( ->
-            esm.count_events()
-          )
-          .then( (count) ->
-            count.should.equal 3
-            esm.compact_things(2)
-          )
-          .then( -> 
-            esm.count_events()
-          )
-          .then( (count) ->
-            count.should.equal 2
-          )
-
-    describe '#expire_events', ->
-      it 'should remove events that have expired'
-
-    describe '#post_compact', ->
-      it 'should perform tasks after compaction'
 
 
 for esm_name in esms

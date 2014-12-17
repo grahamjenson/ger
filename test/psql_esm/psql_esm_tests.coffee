@@ -191,3 +191,15 @@ describe "get_active_people", ->
         people[0].should.equal 'p1'
         people[1].should.equal 'p2'
       )
+
+describe '#compact method', ->
+  it 'should not fail with no people and/or no actions', ->
+    init_esm()
+    .then (esm) ->
+      bb.all([])
+      .then( ->
+        esm.truncate_people_per_action([], 1)
+      )
+      .then( ->
+        esm.truncate_people_per_action(['p1'], 1)
+      )

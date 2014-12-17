@@ -124,17 +124,23 @@ class BasicInMemoryESM
 
   add_event: (person, action, thing, dates = {}) ->
     created_at = dates.created_at || new Date()
-    e = {person: person, action: action, thing: thing, created_at: created_at, expires_at: dates.expires_at}
-    
-    event_store[@_namespace].push e
+    expires_at = if dates.expires_at then new Date(dates.expires_at) else null
+    found_event = @_find_event(person, action, thing)
 
-    person_action_store[@_namespace][person] ||= {}
-    person_action_store[@_namespace][person][action] ||= {}
-    person_action_store[@_namespace][person][action][thing] = e
+    if found_event
+      found_event.created_at = if created_at > found_event.created_at then created_at else found_event.created_at
+      found_event.expires_at = if expires_at && expires_at > found_event.expires_at then expires_at else found_event.expires_at
+    else
+      e = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
+      event_store[@_namespace].push e
 
-    thing_action_store[@_namespace][thing] ||= {}
-    thing_action_store[@_namespace][thing][action] ||= {}
-    thing_action_store[@_namespace][thing][action][person] = e
+      person_action_store[@_namespace][person] ||= {}
+      person_action_store[@_namespace][person][action] ||= {}
+      person_action_store[@_namespace][person][action][thing] = e
+
+      thing_action_store[@_namespace][thing] ||= {}
+      thing_action_store[@_namespace][thing][action] ||= {}
+      thing_action_store[@_namespace][thing][action][person] = e
 
     bb.try(-> true)
 
@@ -144,11 +150,14 @@ class BasicInMemoryESM
   estimate_event_count: ->
     return bb.try(=> event_store[@_namespace].length)
 
+  _find_event: (person, action, thing) ->
+    return null if not person_action_store[@_namespace][person]
+    return null if not person_action_store[@_namespace][person][action]
+    return null if not person_action_store[@_namespace][person][action][thing]
+    return person_action_store[@_namespace][person][action][thing]
+
   find_event: (person, action, thing) ->
-    return bb.try(-> null) if not person_action_store[@_namespace][person]
-    return bb.try(-> null) if not person_action_store[@_namespace][person][action]
-    return bb.try(-> null) if not person_action_store[@_namespace][person][action][thing]
-    return bb.try(=> person_action_store[@_namespace][person][action][thing])
+    return bb.try(=> @_find_event(person, action, thing))
 
   set_action_weight: (action, weight, overwrite = false) ->
     return bb.try(-> true) if !overwrite && actions_store[@_namespace][action]
@@ -166,7 +175,8 @@ class BasicInMemoryESM
     stream.on('data', (chunk) => 
       return if chunk == ''
       e = chunk.split(',')
-      @add_event(e[0], e[1], e[2], {created_at: new Date(e[3])})
+      expires_at = if e[4] != '' then new Date(e[4]) else null
+      @add_event(e[0], e[1], e[2], {created_at: new Date(e[3]), expires_at: expires_at})
       count += 1
     )
     stream.on('end', -> deferred.resolve(count))
@@ -208,6 +218,12 @@ class BasicInMemoryESM
     bb.try(-> true)
 
   expire_events: ->
+    marked_for_deletion = []
+    for e in event_store[@_namespace]
+      if e && e.expires_at && e.expires_at < new Date()
+        marked_for_deletion.push e
+
+    @delete_events(marked_for_deletion)
     bb.try(-> true)
 
   post_compact: ->
