@@ -299,7 +299,9 @@ class EventStoreMapper
       for p in people
         temp[p] = {}
         for ac in actions
-          temp[p][ac] = ((recent_event_weights[p][ac] * 4) + (event_weights[p][ac] * 1))/5.0
+          recent_weight = if recent_event_weights[p] && recent_event_weights[p][ac] then recent_event_weights[p][ac] else 0
+          event_weight = if event_weights[p] && event_weights[p][ac] then event_weights[p][ac] else 0
+          temp[p][ac] = ((recent_weight * 4) + ( event_weight * 1))/5.0
 
       temp
     )

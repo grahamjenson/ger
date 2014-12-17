@@ -1,6 +1,8 @@
 chai = require 'chai'
 should = chai.should()
 
+global._ = require 'underscore'
+
 global.bb = require 'bluebird'
 bb.Promise.longStackTraces();
 
@@ -41,6 +43,4 @@ global.init_ger = (ESM = global.default_esm, namespace = 'public', options = {})
 global.compare_floats = (f1,f2) ->
   Math.abs(f1 - f2) < 0.00001
 
-global.sample = (list) ->
-  v = list[Math.floor(Math.random()*list.length)]
-  v
+global.sample = _.sample

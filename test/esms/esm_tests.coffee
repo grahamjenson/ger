@@ -129,11 +129,11 @@ esm_tests = (ESM) ->
             similarities['p2']['a'].should.exist
           )
 
-      it 'should have a higher similarity for more recent events', ->
+      it 'should have a higher similarity for more recent events of person', ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.add_event('p1','a','t1'),
+            esm.add_event('p1','a','t1', created_at: new Date()),
             esm.add_event('p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
             esm.add_event('p3','a','t1', created_at: moment().subtract(10, 'days').toDate())
 
@@ -141,6 +141,21 @@ esm_tests = (ESM) ->
           .then( -> esm.calculate_similarities_from_person('p1',['p2', 'p3'],['a'], 500, 5))
           .then( (similarities) ->
             similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+          )
+
+      it 'should have a same similarity if histories are inversed', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1', created_at: new Date()),
+            esm.add_event('p2','a','t1', created_at: moment().subtract(10, 'days').toDate())
+
+            esm.add_event('p1','a','t2', created_at: moment().subtract(10, 'days').toDate()),
+            esm.add_event('p3','a','t2', created_at: new Date())
+          ])
+          .then( -> esm.calculate_similarities_from_person('p1',['p2', 'p3'],['a'], 500, 5))
+          .then( (similarities) ->
+            similarities['p3']['a'].should.equal similarities['p2']['a']
           )
 
       it 'should not be effected by having same events (through add_event)', ->
@@ -427,7 +442,6 @@ esm_tests = (ESM) ->
             esm.compact_people(2)
           )
           .then( -> 
-            console.log "THE FINAL COUNT"
             esm.count_events()
           )
           .then( (count) ->
@@ -458,7 +472,6 @@ esm_tests = (ESM) ->
             esm.count_events()
           )
           .then( (count) ->
-            console.log count
             count.should.equal 2
           )
 

@@ -10,7 +10,7 @@ thing_action_store = {}
 
 actions_store = {}
 
-
+#This is a simple implementation of an ESM to demonstrate the API and NOT FOR PRODUCTION PURPOSES
 class BasicInMemoryESM
 
   constructor: (@_namespace = 'public', options = {}) ->
@@ -176,10 +176,35 @@ class BasicInMemoryESM
   pre_compact: ->
     bb.try(-> true)
 
-  compact_people: ->
+  delete_events: (events) ->
+    event_store[@_namespace] = event_store[@_namespace].filter((x) -> x not in events)
+    for e in events
+      delete person_action_store[@_namespace][e.person][e.action][e.thing]
+      delete thing_action_store[@_namespace][e.thing][e.action][e.person]
+
+  compact_people: (limit) ->
+    #remove all 
+    marked_for_deletion = []
+    for person, action_store of person_action_store[@_namespace]
+      for action, weight of actions_store[@_namespace]
+        events = @_person_history_for_action(person, action)
+        if events.length > limit
+          marked_for_deletion = marked_for_deletion.concat events[limit..-1]
+
+    @delete_events(marked_for_deletion)
     bb.try(-> true)
 
-  compact_things: ->
+
+  compact_things: (limit) ->
+    marked_for_deletion = []
+    for thing, action_store of thing_action_store[@_namespace]
+      for action, weight of actions_store[@_namespace]
+        events = @_thing_history_for_action(thing, action)
+        if events.length > limit
+          
+          marked_for_deletion = marked_for_deletion.concat events[limit..-1]
+
+    @delete_events(marked_for_deletion)
     bb.try(-> true)
 
   expire_events: ->

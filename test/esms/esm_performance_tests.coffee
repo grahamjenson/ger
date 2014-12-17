@@ -4,10 +4,11 @@ things = [1..100]
 
 esm_tests = (ESM) ->
   describe 'performance tests', ->
-    naction = 200
+    naction = 50
     nevents = 3000
     nbevents = 5000
-    nfindpeople = 100
+    nfindpeople = 50
+    ncalcpeople = 50
     ncompact = 3
     nrecommendations = 50
 
@@ -29,7 +30,8 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..naction]
-            promises.push ger.action(sample(actions) , sample([1..10]))
+            for action in actions
+              promises.push ger.action(action , sample([1..10]))
           bb.all(promises)
           .then(->
             et = new Date().getTime()
@@ -94,6 +96,22 @@ esm_tests = (ESM) ->
             time = et-st
             pe = time/nfindpeople
             console.log "#{pe}ms per find_similar_people"
+          )
+        )
+        .then( ->
+          st = new Date().getTime()
+
+          promises = []
+          for x in [1..ncalcpeople]
+            peeps = _.unique((sample(people) for i in [0..10]))
+            promises.push ger.esm.calculate_similarities_from_person(peeps[0], peeps[1..-1] , actions, 500, 5)
+          bb.all(promises)
+          
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/ncalcpeople
+            console.log "#{pe}ms per calculate_similarities_from_person"
           )
         )
         .then( ->
