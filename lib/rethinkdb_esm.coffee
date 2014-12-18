@@ -159,41 +159,21 @@ class EventStoreMapper
 
   find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
-    @_r.table("#{@schema}_events").getAll(person, {index: "person"})
-    .pluck("person", "action", "thing", "created_at")
-    .orderBy(@_r.desc('created_at'))
+    r = @_r
+    person_actions = ([person, a] for a in actions)
+    r.table("#{@schema}_events").getAll(person_actions..., {index: "person_action"} )
+    .orderBy(r.desc('created_at'))
     .limit(search_limit)
-    .eqJoin([@_r.row("action"),@_r.row("thing")],r.table("#{@schema}_events"),{index: "action_thing"})
-    .filter((row) =>
-      row("right")("person").ne(row("left")("person")).and(@_r.expr(actions).contains(row("right")("action")))
-    )
-    .pluck({
-      left: ["created_at"],
-      right: true
-    })
+    .eqJoin([r.row("action"),r.row("thing")],r.table("#{@schema}_events"),{index: "action_thing"})
     .zip()
-    .group("person")
-    .map((row) ->
-      {
-        created_at: row("created_at"),
-        count: 1
-      }
+    .filter(r.row("person").ne(person))
+    .pluck("person")
+    .group("person").count().ungroup().orderBy(r.desc('reduction'))
+    .filter((row) ->
+      return r.table("public_events").getAll([row('group'),'buy'], {index: "person_action"}).count().gt(0)
     )
-    .reduce((a,b) =>
-      {
-        created_at: @_r.expr([a("created_at"),b("created_at")]).max(),
-        count: a("count").add(b("count"))
-      }
-    )
-    .ungroup().map((row) ->
-      {
-        created_at_day: row("reduction")("created_at").day(),
-        count: row("reduction")("count"),
-        person: row("group")
-      }
-    ).orderBy(@_r.desc("created_at_day"),@_r.desc("count"))
-    .eqJoin([@_r.row("person"),action],@_r.table("#{@schema}_events"),{index: "person_action"})
-    .pluck({left: true}).zip().limit(limit)("person").default([]).run()
+    .limit(limit)("group")
+    .run()
 
   filter_things_by_previous_actions: (person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0

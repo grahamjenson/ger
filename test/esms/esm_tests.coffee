@@ -59,6 +59,7 @@ esm_tests = (ESM) ->
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
             esm.add_event('p2','buy','t1')
+            esm.add_event('p1','buy','t1')
           ])
           .then( ->
             esm.find_similar_people('p1', ['view', 'buy'], 'buy')
