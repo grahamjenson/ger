@@ -118,6 +118,43 @@ esm_tests = (ESM) ->
           )
 
     describe '#calculate_similarities_from_person', ->
+      it 'more similar histories should be greater', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1')
+            esm.add_event('p1','a','t2')
+
+            esm.add_event('p2','a','t1')
+            esm.add_event('p2','a','t2')
+
+            esm.add_event('p3','a','t1')
+            esm.add_event('p3','a','t3')
+          ])
+          .then( -> esm.calculate_similarities_from_person('p1',['p2','p3'],['a']))
+          .then( (similarities) ->
+            similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+          )
+
+      it 'should handle multiple actions', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1')
+            esm.add_event('p1','b','t2')
+
+            esm.add_event('p2','a','t1')
+            esm.add_event('p2','b','t2')
+
+            esm.add_event('p3','a','t1')
+            esm.add_event('p3','b','t3')
+          ])
+          .then( -> esm.calculate_similarities_from_person('p1',['p2','p3'],['a','b']))
+          .then( (similarities) ->
+            similarities['p3']['b'].should.be.lessThan(similarities['p2']['b'])
+            similarities['p3']['a'].should.be.equal(similarities['p2']['a'])
+          )
+
       it 'should calculate the similarity between a person and a set of people for a list of actions', ->
         init_esm(ESM)
         .then (esm) ->

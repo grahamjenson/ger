@@ -4,7 +4,7 @@ crypto = require 'crypto'
 moment = require 'moment'
 shasum = null
 split = require 'split'
-
+_ = require 'underscore'
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
 class EventStoreMapper
@@ -211,61 +211,74 @@ class EventStoreMapper
 
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
-    #TODO allow for arbitrary distance measurements here
+    r = @_r
 
-    
-    flat_people_actions = []
-    people_actions = ([p, a] for a in actions for p in people)
-    flat_people_actions = flat_people_actions.concat.apply(flat_people_actions, people_actions)
-    person_actions = []
+    people_actions = []
     for a in actions
-        person_actions.push [person, a]
+      people_actions.push {
+        person: person
+        action: a
+      }
+      for p in people
+        people_actions.push {
+          person: p
+          action: a
+        }
 
-    query = @_r.table("#{@schema}_events").getAll(@_r.args(flat_people_actions), {index: "person_action"})
-    .group("person","action").ungroup()
-    .map((row) ->
-        {
-            person: row("group").nth(0),
-            action: row("group").nth(1),
-            things: row("reduction").pluck("created_at","thing")
-        }
+    r.expr(people_actions)
+    .merge((row) =>
+      return {
+        person: row('person'),
+        action: row('action'),
+        history: r.table("#{@schema}_events")
+                  .getAll([row('person'), row('action')], {index: 'person_action'})
+                  .orderBy(r.desc("created_at"))
+                  .limit(limit)
+                  .pluck('thing')("thing")
+        recent_history: r.table("#{@schema}_events")
+                  .getAll([row('person'), row('action')], {index: 'person_action'})
+                  .orderBy(r.desc("created_at"))
+                  .limit(limit)
+                  .filter((event_row) => event_row("created_at").gt(r.now().sub(days_ago * 24 * 60 * 60)))
+                  .pluck('thing')("thing")
+      }
     )
-    .map((row) =>
-        people_things = row("things")("thing").distinct().coerceTo("ARRAY")
-        people_recent_things = row("things").filter((row2) =>
-            row2("created_at").gt(@_r.now().sub(days_ago * 24 * 60 * 60))
-        )("thing").coerceTo("ARRAY")
-        person_data = @_r.table("#{@schema}_events").getAll([person, row("action")], {index: "person_action"})
-        .group("thing").ungroup().coerceTo("ARRAY")
-        person_recent_things = person_data.filter((row2) =>
-            row2("reduction")("created_at").gt(@_r.now().sub(days_ago * 24 * 60 * 60))
-        ).map((row2) ->
-            row2("reduction")("thing")
-        ).coerceTo("ARRAY")
-        person_things = person_data.map((row2) ->
-            row2("group")
-        ).coerceTo("ARRAY")
-        intersection = @_r.expr(people_things).setIntersection(person_things).count()
-        union = people_things.union(person_things).distinct().count()
-        intersection_recent = @_r.expr(people_recent_things).setIntersection(person_recent_things).count()
-        union_recent = people_recent_things.union(person_recent_things).distinct().count()
-        return {
-            person: row("person"),
-            action: row("action"),
-            things: people_things,
-            limit_distance: intersection.div(@_r.branch(r.expr(union).gt(0), union, 1)),
-            recent_distance: intersection_recent.div(@_r.branch(r.expr(union_recent).gt(0), union_recent, 1)),
+    .run()
+    .then( (rows) ->
+      #TODO eventually move this calculation into rethinkdb
+      person_action_things_histories = {}
+      #compile the 
+      for row in rows
+        p = row.person
+        a = row.action
+        his = {
+          history: row.history
+          recent_history: row.recent_history
         }
-    )
-    query.run().then( (rows) ->
+
+        person_action_things_histories[p] ||= {}
+        person_action_things_histories[p][a] = his
+
+
       limit_distance = {}
       recent_distance = {}
-      for row in rows
-        recent_distance[row["person"]] ||= {}
-        limit_distance[row["person"]] ||= {}
 
-        limit_distance[row["person"]][row["action"]] = row["limit_distance"]
-        recent_distance[row["person"]][row["action"]] = row["recent_distance"]
+      for a in actions
+        
+        person_histories = person_action_things_histories[person][a]
+        person_history = person_histories.history
+        person_recent_history = person_histories.recent_history
+
+        for p in people
+          p_histories = person_action_things_histories[p][a]
+          p_history = p_histories.history
+          p_recent_history = p_histories.recent_history
+
+          recent_distance[p] ||= {}
+          limit_distance[p] ||= {}
+
+          limit_distance[p][a] = (_.intersection(p_history, person_history).length/_.union(p_history, person_history).length)
+          recent_distance[p][a] = (_.intersection(p_recent_history, person_recent_history).length/_.union(p_recent_history, person_recent_history).length)
 
       [limit_distance, recent_distance]
     )
@@ -282,7 +295,6 @@ class EventStoreMapper
           recent_weight = if recent_event_weights[p] && recent_event_weights[p][ac] then recent_event_weights[p][ac] else 0
           event_weight = if event_weights[p] && event_weights[p][ac] then event_weights[p][ac] else 0
           temp[p][ac] = ((recent_weight * 4) + ( event_weight * 1))/5.0
-
       temp
     )
 
