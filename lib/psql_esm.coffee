@@ -2,7 +2,7 @@ bb = require 'bluebird'
 fs = require 'fs'
 pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
-
+_ = require 'underscore'
 
 Transform = require('stream').Transform;
 class CounterStream extends Transform
@@ -484,7 +484,7 @@ class PSQLEventStoreManager
       actions = (aw.key for aw in action_weights)
       #cut each action down to size
       promises = (@truncate_thing_actions(thing, trunc_size, action) for thing in things for action in actions)
-
+      promises = _.flatten(promises)
       bb.all(promises)
     )
 
@@ -496,8 +496,7 @@ class PSQLEventStoreManager
          (select id from #{@_schema}.events where action = $2 and thing = $1
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
-    .then( (rows) ->
-    )
+
 
   truncate_people_per_action: (people, trunc_size) ->
     #TODO do the same thing for things
@@ -508,21 +507,17 @@ class PSQLEventStoreManager
       actions = (aw.key for aw in action_weights)
       #cut each action down to size
       promises = (@truncate_person_actions(person, trunc_size, action) for person in people for action in actions)
-
+      promises = _.flatten(promises)
       bb.all(promises)
     )
     
   truncate_person_actions: (person, trunc_size, action) ->
     bindings = [person, action]
-
     q = "delete from #{@_schema}.events as e 
          where e.id in 
          (select id from #{@_schema}.events where action = $2 and person = $1
          order by created_at DESC offset #{trunc_size});"
-    
     @_knex.raw(q ,bindings)
-    .then( (rows) ->
-    )
     
   remove_events_till_size: (number_of_events) ->
     #TODO move too offset method

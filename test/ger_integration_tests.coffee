@@ -26,7 +26,7 @@ describe '#count_events', ->
       )
 
 describe 'recommendations_for_person', ->
-  
+
   it 'should reccommend basic things', ->
     init_ger()
     .then (ger) ->
@@ -92,8 +92,8 @@ describe 'recommendations_for_person', ->
         item_weights[0].thing.should.equal 'a'
         item_weights[1].thing.should.equal 'c'
         item_weights[2].thing.should.equal 'd'
-        
-      )   
+
+      )
 
   it 'should filter previously actioned things based on filter events option', ->
     init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
@@ -106,7 +106,7 @@ describe 'recommendations_for_person', ->
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
-      ) 
+      )
 
   it 'should filter actioned things from other people', ->
     init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
@@ -155,7 +155,7 @@ describe 'recommendations_for_person', ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
         item_weights[0].thing.should.equal 'a'
-      ) 
+      )
 
   it 'should not break with weird names (SQL INJECTION)', ->
     init_ger()
@@ -192,7 +192,7 @@ describe 'recommendations_for_person', ->
 
         item_weights[0].thing.should.equal "a"
         item_weights[1].thing.should.equal "b"
-        item_weights[1].last_actioned_at.should.equal date1.getTime()
+        (+item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime()
       )
 
   it 'should people that contributed to recommendation', ->
@@ -374,7 +374,7 @@ describe 'setting action weights', ->
           ])
       )
       .then(-> ger.esm.get_actions())
-      .then((actions) -> 
+      .then((actions) ->
         actions[0].key.should.equal "buybuy"
         actions[0].weight.should.equal 10
         actions[1].key.should.equal "viewview"

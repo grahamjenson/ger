@@ -1,5 +1,2 @@
 .vagrant
-test_events
 .DS_Store
-events
-user_items.json

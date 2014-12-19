@@ -4,8 +4,16 @@ things = [1..100]
 
 esm_tests = (ESM) ->
   describe 'performance tests', ->
+    naction = 50
+    nevents = 3000
+    nbevents = 5000
+    nfindpeople = 50
+    ncalcpeople = 50
+    ncompact = 3
+    nrecommendations = 50
 
     it 'adding 1000 events takes so much time', ->
+      self = @
       console.log ""
       console.log ""
       console.log "####################################################"
@@ -13,34 +21,35 @@ esm_tests = (ESM) ->
       console.log "####################################################"
       console.log ""
       console.log ""
-      this.timeout(60000);
+      @timeout(360000)
       init_ger(ESM)
       .then((ger) ->
         bb.try( ->
 
           st = new Date().getTime()
-          
+
           promises = []
-          for x in [1..100]
-            promises.push ger.action(sample(actions) , sample([1..10]))
+          for x in [1..naction]
+            for action in actions
+              promises.push ger.action(action , sample([1..10]))
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/100
+            pe = time/naction
             console.log "#{pe}ms per action"
           )
         )
         .then( ->
           st = new Date().getTime()
           promises = []
-          for x in [1..2000]
+          for x in [1..nevents]
             promises.push ger.event(sample(people), sample(actions) , sample(things))
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/2000
+            pe = time/nevents
             console.log "#{pe}ms per event"
           )
         )
@@ -48,7 +57,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
 
           rs = new Readable();
-          for x in [1..20000]
+          for x in [1..nbevents]
             rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,\n")
           rs.push(null);
 
@@ -56,34 +65,65 @@ esm_tests = (ESM) ->
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/20000
+            pe = time/nbevents
             console.log "#{pe}ms per bootstrapped event"
           )
         )
         .then( ->
           st = new Date().getTime()
           promises = []
-          for x in [1..3]
+          for x in [1..ncompact]
             promises.push ger.compact_database()
 
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/3
+            pe = time/ncompact
             console.log "#{pe}ms for compact"
           )
         )
         .then( ->
           st = new Date().getTime()
+
           promises = []
-          for x in [1..25]
+          for x in [1..nfindpeople]
+            promises.push ger.esm.find_similar_people(sample(people), actions, sample(actions))
+          bb.all(promises)
+          
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/nfindpeople
+            console.log "#{pe}ms per find_similar_people"
+          )
+        )
+        .then( ->
+          st = new Date().getTime()
+
+          promises = []
+          for x in [1..ncalcpeople]
+            peeps = _.unique((sample(people) for i in [0..10]))
+            promises.push ger.esm.calculate_similarities_from_person(peeps[0], peeps[1..-1] , actions, 500, 5)
+          bb.all(promises)
+          
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/ncalcpeople
+            console.log "#{pe}ms per calculate_similarities_from_person"
+          )
+        )
+        .then( ->
+          st = new Date().getTime()
+          promises = []
+          for x in [1..nrecommendations]
             promises.push ger.recommendations_for_person(sample(people), sample(actions))
           bb.all(promises)
           .then(->
             et = new Date().getTime()
             time = et-st
-            pe = time/25
+            pe = time/nrecommendations
             console.log "#{pe}ms per recommendations_for_person"
           )
         )
@@ -103,4 +143,4 @@ for esm_name in esms
   esm = esm_name.esm
   describe "TESTING #{name}", ->
     esm_tests(esm)
-    
+
