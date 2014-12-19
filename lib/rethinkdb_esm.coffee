@@ -169,11 +169,12 @@ class EventStoreMapper
     .filter(r.row("person").ne(person))
     .pluck("person")
     .group("person").count().ungroup().orderBy(r.desc('reduction'))
-    .filter((row) ->
-      return r.table("public_events").getAll([row('group'),'buy'], {index: "person_action"}).count().gt(0)
+    .filter((row) =>
+      return r.table("#{@schema}_events").getAll([row('group'),action], {index: "person_action"}).count().gt(0)
     )
     .limit(limit)("group")
     .run()
+
 
   filter_things_by_previous_actions: (person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
@@ -185,29 +186,39 @@ class EventStoreMapper
   recently_actioned_things_by_people: (action, people, limit = 50) ->
     return bb.try(->[]) if people.length == 0
 
-    indexes = []
+    people_actions = []
     for p in people
-      indexes.push([p,action])
+      people_actions.push {
+        person: p
+        action: action
+      }
 
-    @_r.table("#{@schema}_events").getAll(@_r.args(indexes),{index: "person_action"})
-    .group("person","thing").max("created_at").ungroup().limit(limit)
-    .group((row) ->
-      row("group").nth(0)
-    ).ungroup()
-    .map((row) =>
-      @_r.object(row("group").coerceTo("string"),
-        row("reduction").map((row) ->
-          {
-            thing: row("group").nth(1),
-            last_actioned_at: row("reduction")("created_at").toEpochTime()
-          }
-        )
-      )
+    r.expr(people_actions)
+    .merge((row) =>
+      return {
+        person: row('person'),
+        action: row('action'),
+        history: r.table("#{@schema}_events")
+                  .getAll([row('person'), row('action')], {index: 'person_action'})
+                  .orderBy(r.desc("created_at"))
+                  .limit(limit)
+                  .pluck('thing', "created_at")
+      }
     )
-    .reduce((a,b) =>
-        a.merge(b)
-    ).default({})
     .run()
+    .then((rows) ->
+      #TODO move more of this logic to rethinkdb
+      histories = {}
+      for p in rows
+        histories[p.person] = []
+        for thing_date in p.history
+          histories[p.person].push {
+            thing: thing_date.thing
+            last_actioned_at: thing_date.created_at.getTime()
+          }
+          
+      histories
+    )
 
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
@@ -233,14 +244,12 @@ class EventStoreMapper
         history: r.table("#{@schema}_events")
                   .getAll([row('person'), row('action')], {index: 'person_action'})
                   .orderBy(r.desc("created_at"))
-                  .limit(limit)
-                  .pluck('thing')("thing")
+                  .limit(limit)("thing")
         recent_history: r.table("#{@schema}_events")
                   .getAll([row('person'), row('action')], {index: 'person_action'})
                   .orderBy(r.desc("created_at"))
                   .limit(limit)
-                  .filter((event_row) => event_row("created_at").gt(r.now().sub(days_ago * 24 * 60 * 60)))
-                  .pluck('thing')("thing")
+                  .filter((event_row) => event_row("created_at").gt(r.now().sub(days_ago * 24 * 60 * 60)))("thing")
       }
     )
     .run()

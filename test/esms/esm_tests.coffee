@@ -263,6 +263,20 @@ esm_tests = (ESM) ->
             people_things['p2'].length.should.equal 1
           )
 
+      it 'should be limited by related things limit', ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1'),
+            esm.add_event('p1','a','t2'),
+            esm.add_event('p2','a','t2')
+          ])
+          .then( -> esm.recently_actioned_things_by_people('a',['p1','p2'], 1))
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 1
+            people_things['p2'].length.should.equal 1
+          )
+
     describe '#person_history_count', ->
       it 'should return the number of things a person has actioned in their history', ->
         init_esm(ESM)

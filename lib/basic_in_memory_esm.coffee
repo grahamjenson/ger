@@ -99,7 +99,7 @@ class BasicInMemoryESM
     return bb.try(->[]) if people.length == 0
     things = {}
     for person in people
-      history = @_person_history_for_action(person, action)[..related_things_limit]
+      history = @_person_history_for_action(person, action)[...related_things_limit]
       things[person] = ({thing: event.thing, last_actioned_at: event.created_at} for event in history)
 
     bb.try(-> things)
