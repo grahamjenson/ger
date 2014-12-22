@@ -45,34 +45,6 @@ describe '#get_jaccard_distances_between_people', ->
 describe "#bootstrap", ->
   it 'should not exhaust the pg connections'
 
-describe '#initialize', ->
-  it 'should have empty actions table', ->
-    init_esm(PsqlESM)
-    .then (esm) ->
-      if esm.type isnt "rethinkdb"
-        knex.schema.hasTable('actions')
-        .then( (has_table) ->
-          has_table.should.equal true
-          esm.count_actions()
-        )
-        .then( (count) ->
-          count.should.equal 0
-        )
-
-  it 'should have empty events table', ->
-    init_esm(PsqlESM)
-    .then (esm) ->
-      if esm.type isnt "rethinkdb"
-        knex.schema.hasTable('events')
-        .then( (has_table) ->
-          has_table.should.equal true
-          esm.count_events()
-        )
-        .then( (count) ->
-          count.should.equal 0
-        )
-
-
 describe "action cache", ->
   it 'should cache the action and invalidate when action changes', ->
     init_esm(PsqlESM)

@@ -16,16 +16,21 @@ class BasicInMemoryESM
   constructor: (@_namespace = 'public', options = {}) ->
 
   initialize: ->
-    event_store[@_namespace] = []
-    person_action_store[@_namespace] = {}
-    thing_action_store[@_namespace] = {}
-    actions_store[@_namespace] = {}
+    event_store[@_namespace] ||= []
+    person_action_store[@_namespace] ||= {}
+    thing_action_store[@_namespace] ||= {}
+    actions_store[@_namespace] ||= {}
+    bb.try(-> )
 
   destroy: ->
     delete event_store[@_namespace]
     delete person_action_store[@_namespace]
     delete thing_action_store[@_namespace]
     delete actions_store[@_namespace]
+    bb.try(-> )
+
+  exists: ->
+    bb.try(=> !!event_store[@_namespace])
 
   get_actions: ->
     action_weights = ({key: action, weight: weight} for action, weight of actions_store[@_namespace])

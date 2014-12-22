@@ -23,18 +23,31 @@ class EventStoreMapper
     else
       return @_r.tableCreate(table).run().then(-> true)
 
+  try_delete_table: (table, table_list) ->
+    if table in table_list
+      #DELETES all the events because drop and create are VERY slow
+      return @_r.table(table).delete().run().then(( ret ) -> true)
+    else
+      return bb.try(-> false)
+
   try_drop_table: (table, table_list) ->
     if table in table_list
-      return @_r.table(table).delete().run().then(-> true)
+      #DELETES all the events because drop and create are VERY slow
+      return @_r.tableDrop(table).run().then(( ret ) -> true)
     else
       return bb.try(-> false)
 
   destroy: ->
     @_r.tableList().run().then( (list) =>
       bb.all([
-        @try_drop_table("#{@schema}_events", list),
-        @try_drop_table("#{@schema}_actions", list)
+        @try_delete_table("#{@schema}_events", list),
+        @try_drop_table("#{@schema}_actions", list) #only drop actions because it costs so much to recreate events indexes
       ])
+    )
+
+  exists: ->
+    @_r.tableList().run().then( (list) =>
+      "#{@schema}_events" in list and "#{@schema}_actions" in list
     )
 
   initialize: ->
@@ -55,12 +68,6 @@ class EventStoreMapper
           @_r.table("#{@schema}_events").indexCreate("person_action_created_at",[@_r.row("person"),@_r.row("action"),@_r.row("created_at")]).run(),
           @_r.table("#{@schema}_events").indexCreate("thing").run(),
           @_r.table("#{@schema}_events").indexWait().run()
-        ])
-
-      if actions_created
-        promises = promises.concat([
-          @_r.table("#{@schema}_actions").indexCreate("weight").run(),
-          @_r.table("#{@schema}_actions").indexWait().run()
         ])
       bb.all(promises)
     )
@@ -126,19 +133,9 @@ class EventStoreMapper
     @_r.table("#{@schema}_events").getAll(person,{index: "person"})("thing")
     .default([]).distinct().count().run()
 
-  get_ordered_action_set_with_weights: ->
-    return bb.try( => @action_cache) if @action_cache
-    bb.try =>
-        @_r.table("#{@schema}_actions").orderBy({index: @_r.desc("weight")})
-        .map((row) => {key: row("action"), weight: row('weight')}).run()
-        .then( (rows) =>
-          @action_cache = rows
-          rows
-        )
-
   get_actions: ->
     return bb.try( => @action_cache) if @action_cache
-    @_r.table("#{@schema}_actions").orderBy({index: @_r.desc("weight")})
+    @_r.table("#{@schema}_actions")
     .map((row) ->
       return {
         key: row("action"),
@@ -147,6 +144,7 @@ class EventStoreMapper
     )
     .run()
     .then( (rows) =>
+      rows = _.sortBy(rows, (a) -> - a.weight)
       @action_cache = rows
       rows
     )

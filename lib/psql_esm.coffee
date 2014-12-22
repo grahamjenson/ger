@@ -68,7 +68,17 @@ class PSQLEventStoreManager
     drop_tables(@_knex,@_schema)
 
   initialize: ->
-    init_tables(@_knex,@_schema)
+    @exists()
+    .then( (exists) =>
+      if !exists
+        init_tables(@_knex,@_schema)
+    )
+
+  exists: ->
+    @_knex.raw("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{@_schema}'")
+    .then((result) =>
+      result.rows.length >= 1
+    )
 
   add_event: (person, action, thing, dates = {}) ->
     expires_at = dates.expires_at

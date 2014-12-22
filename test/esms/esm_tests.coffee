@@ -1,36 +1,58 @@
 esm_tests = (ESM) ->
   describe 'construction', ->
-    describe '#new', ->
-      it 'should create new ESM'
 
-    describe '#initialize', ->
+    describe '#initialize #exists', ->
+      it 'should initialize namespace', ->
+        esm = new ESM("namespace", {knex: knex, r: r})
+        esm.destroy()
+        .then( -> esm.exists())
+        .then( (exist) -> exist.should.equal false)
+        .then( -> esm.initialize())
+        .then( -> esm.exists())
+        .then( (exist) -> exist.should.equal true)    
+
+      it 'should start with no actions or events', ->
+        esm = new ESM("namespace", {knex: knex, r: r})
+        esm.destroy()
+        .then( -> esm.initialize())
+        .then( -> bb.all([esm.count_events(), esm.get_actions()]))
+        .spread( (count, actions) -> 
+          count.should.equal 0
+          actions.length.should.equal 0
+        )
+        
+      it 'should not error out or remove events if re-initialized', ->
+        esm = new ESM("namespace", {knex: knex, r: r})
+        esm.destroy()
+        .then( -> esm.initialize())
+        .then( -> esm.add_event('p','a','t'))
+        .then( -> esm.count_events())
+        .then( (count) -> count.should.equal 1)
+        .then( -> esm.initialize())
+        .then( -> esm.count_events())
+        .then( (count) -> count.should.equal 1)
+
       it 'should create resources for ESM namespace', ->
-        esm1 = new ESM("schema1", {knex: knex, r: r}) #pass knex as it might be needed
-        esm2 = new ESM("schema2", {knex: knex, r: r}) #pass knex as it might be needed
-        if esm1.type isnt "rethinkdb"
+        esm1 = new ESM("namespace1", {knex: knex, r: r}) #pass knex as it might be needed
+        esm2 = new ESM("namespace2", {knex: knex, r: r}) #pass knex as it might be needed
+        bb.all([esm1.destroy(), esm2.destroy()])
+        .then( -> bb.all([esm1.initialize(), esm2.initialize()]) )
+        .then( ->
+          bb.all([
+            esm1.add_event('p','a','t')
+            esm1.add_event('p1','a','t')
+            
+            esm2.add_event('p2','a','t')
+          ])
+        )
+        .then( ->
+          bb.all([esm1.count_events(), esm2.count_events() ])
+        )
+        .spread((c1,c2) ->
+          c1.should.equal 2
+          c2.should.equal 1
+        )
 
-            bb.all([esm1.destroy(),esm2.destroy()])
-            .then( -> bb.all([esm1.initialize(), esm2.initialize()]) )
-            .then( ->
-              bb.all([
-                esm1.add_event('p','a','t')
-                esm1.add_event('p1','a','t')
-                
-                esm2.add_event('p2','a','t')
-              ])
-            )
-            .then( ->
-              bb.all([esm1.count_events(), esm2.count_events() ])
-            )
-            .spread((c1,c2) ->
-              c1.should.equal 2
-              c2.should.equal 1
-            )
-        else
-            "foo".should.equal "foo"
-
-    describe '#destroy', ->
-      it 'should destroy resources for ESM namespace'
 
   describe 'recommendation methods', ->
     describe '#get_actions', ->

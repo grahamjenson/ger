@@ -196,8 +196,9 @@ Currently there is an in memory ESM and a PostgreSQL ESM. There is also a Rethin
 The API for Initialization
 
 1. `esm = new ESM(namespace, options = {})`
-2. `initialize()` will create resources necessary for ESM to function
-3. `destroy()` will destroy all resources for ESM
+2. `initialize()` will create resources necessary for ESM to function for namespace
+3. `destroy()` will destroy all resources for ESM in namespace
+4, `exists()` will check if the namespace exists
 
 The API for the ESM to generate recommendations is:
 

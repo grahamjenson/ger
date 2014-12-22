@@ -24,22 +24,11 @@ esm_tests = (ESM) ->
       @timeout(360000)
       init_ger(ESM)
       .then((ger) ->
-        bb.try( ->
-
-          st = new Date().getTime()
-
-          promises = []
-          for x in [1..naction]
-            for action in actions
-              promises.push ger.action(action , sample([1..10]))
-          bb.all(promises)
-          .then(->
-            et = new Date().getTime()
-            time = et-st
-            pe = time/naction
-            console.log "#{pe}ms per action"
-          )
-        )
+        bb.all([
+          ger.action("buy" , 5),
+          ger.action("like" , 3),
+          ger.action("view" , 2),
+        ])
         .then( ->
           st = new Date().getTime()
           promises = []
