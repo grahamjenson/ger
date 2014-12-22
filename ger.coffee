@@ -228,7 +228,7 @@ class GER
   get_action:(action) ->
     @esm.get_action_weight(action)
     .then( (weight) -> 
-      return null if weight == null
+      return null if weight == null || weight == undefined
       {action: action, weight: weight}
     )
 
