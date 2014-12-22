@@ -1,7 +1,7 @@
 esm_tests = (ESM) ->
   describe 'construction', ->
 
-    describe '#initialize #exists', ->
+    describe '#initialize #exists #destroy', ->
       it 'should initialize namespace', ->
         esm = new ESM("namespace", {knex: knex, r: r})
         esm.destroy()
@@ -53,6 +53,10 @@ esm_tests = (ESM) ->
           c2.should.equal 1
         )
 
+      it 'should destroy should not break if resource does not exist', ->
+        esm = new ESM("namespace", {knex: knex, r: r})
+        esm.destroy()
+        .then( -> esm.destroy())
 
   describe 'recommendation methods', ->
     describe '#get_actions', ->
