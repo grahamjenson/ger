@@ -165,13 +165,19 @@ class EventStoreMapper
     .eqJoin([r.row("action"),r.row("thing")],r.table("#{@schema}_events"),{index: "action_thing"})
     .zip()
     .filter(r.row("person").ne(person))
-    .pluck("person")
-    .group("person").count().ungroup()
+    .group("person")
+    .ungroup()
     .filter((row) =>
-      return r.table("#{@schema}_events").getAll([row('group'),action], {index: "person_action"}).count().gt(0)
+      row("reduction")("action").contains(action)
     )
-    .orderBy(r.desc('reduction'))
-    .limit(limit)("group")
+    .map((row) =>
+      {
+        person: row("group"),
+        count: row("reduction").count()
+      }
+    )
+    .orderBy(r.desc('count'))
+    .limit(limit)("person")
     .run()
 
 
