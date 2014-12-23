@@ -241,44 +241,39 @@ class EventStoreMapper
       )
     ).reduce((a,b) ->
         a.merge(b)
+    ).do((rows) ->
+        r.expr(actions).concatMap((a) ->
+            _a = r.expr(a).coerceTo("string")
+            person_histories = rows(r.expr(person).coerceTo("string"))(_a).default(null)
+            person_history = r.branch(person_histories.ne(null), person_histories("history"),[])
+            person_recent_history = r.branch(person_histories.ne(null), person_histories("recent_history"),[])
+            r.expr(people).map((p) ->
+                _p = r.expr(p).coerceTo("string")
+                p_histories = rows(_p)(_a).default(null)
+                p_history = r.branch(p_histories.ne(null),p_histories("history"),[])
+                p_recent_history = r.branch(p_histories.ne(null),p_histories("recent_history"),[])
+                limit_distance = r.object(_p,r.object(_a,r.expr(p_history).setIntersection(person_history).count().div(r.expr([r.expr(p_history).setUnion(person_history).count(),1]).max())))
+                recent_distance = r.object(_p,r.object(_a,r.expr(p_recent_history).setIntersection(person_recent_history).count().div(r.expr([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max())))
+                {
+                    limit_distance: limit_distance,
+                    recent_distance: recent_distance
+                }
+            )
+        )
+        .reduce((a,b) ->
+          {
+            limit_distance: a("limit_distance").merge(b("limit_distance")),
+            recent_distance: a("recent_distance").merge(b("recent_distance"))
+          }
+        )
     ).run()
-    .then( (rows) ->
-      person_action_things_histories = rows
-
-      limit_distance = {}
-      recent_distance = {}
-
-      for a in actions
-        person_histories = person_action_things_histories[person]?[a]
-        if !!person_histories
-          person_history = person_histories.history
-          person_recent_history = person_histories.recent_history
-        else
-          person_history = []
-          person_recent_history = []
-
-        for p in people
-          p_histories = person_action_things_histories[p]?[a]
-          if !!p_histories
-            p_history = p_histories.history
-            p_recent_history = p_histories.recent_history
-          else
-            p_history = []
-            p_recent_history = []
-
-          recent_distance[p] ||= {}
-          limit_distance[p] ||= {}
-
-          limit_distance[p][a] = (_.intersection(p_history, person_history).length/_.union(p_history, person_history).length)
-          recent_distance[p][a] = (_.intersection(p_recent_history, person_recent_history).length/_.union(p_recent_history, person_recent_history).length)
-
-      [limit_distance, recent_distance]
-    )
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
-    .spread( (event_weights, recent_event_weights) =>
+    .then( (data) =>
+      event_weights = data.limit_distance
+      recent_event_weights = data.recent_distance
       temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
       for p in people
