@@ -227,12 +227,18 @@ class EventStoreMapper
     .orderBy(r.desc("created_at"))
     .limit(limit).ungroup()
     .map((row) ->
-        return r.object(row("group").nth(0).coerceTo("string"),r.object(row("group").nth(1).coerceTo("string"),{
+      r.object(
+        row("group").nth(0).coerceTo("string"),
+        r.object(
+          row("group").nth(1).coerceTo("string"),
+          {
             history: row("reduction")("thing"),
             recent_history: row("reduction").filter((row) =>
-                row("created_at").during(r.now().sub(days_ago * 24 * 60 * 60),r.now())
+              row("created_at").during(r.now().sub(days_ago * 24 * 60 * 60),r.now())
             )("thing")
-        }))
+          }
+        )
+      )
     ).reduce((a,b) ->
         a.merge(b)
     ).run()
