@@ -5,12 +5,12 @@ things = [1..100]
 esm_tests = (ESM) ->
   describe 'performance tests', ->
     naction = 50
-    nevents = 3000
-    nbevents = 5000
-    nfindpeople = 50
-    ncalcpeople = 50
+    nevents = 5000
+    nbevents = 10000
+    nfindpeople = 100
+    ncalcpeople = 100
     ncompact = 3
-    nrecommendations = 50
+    nrecommendations = 100
 
     it 'adding 1000 events takes so much time', ->
       self = @
