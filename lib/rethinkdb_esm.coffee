@@ -119,7 +119,7 @@ class EventStoreMapper
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
-    identity_attr = person + action + thing
+    identity_attr = person.toString() + action + thing
     @upsert("#{@schema}_events", insert_attr, identity_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
@@ -166,10 +166,11 @@ class EventStoreMapper
     .zip()
     .filter(r.row("person").ne(person))
     .pluck("person")
-    .group("person").count().ungroup().orderBy(r.desc('reduction'))
+    .group("person").count().ungroup()
     .filter((row) =>
       return r.table("#{@schema}_events").getAll([row('group'),action], {index: "person_action"}).count().gt(0)
     )
+    .orderBy(r.desc('reduction'))
     .limit(limit)("group")
     .run()
 
@@ -186,100 +187,78 @@ class EventStoreMapper
 
     people_actions = []
     for p in people
-      people_actions.push {
-        person: p
-        action: action
-      }
+      people_actions.push [p,action]
 
-    r.expr(people_actions)
-    .merge((row) =>
-      return {
-        person: row('person'),
-        action: row('action'),
-        history: r.table("#{@schema}_events")
-                  .getAll([row('person'), row('action')], {index: 'person_action'})
-                  .orderBy(r.desc("created_at"))
-                  .limit(limit)
-                  .pluck('thing', "created_at")
-      }
+    r.table("#{@schema}_events")
+    .getAll(r.args(people_actions), {index: 'person_action'})
+    .group("person","action")
+    .orderBy(r.desc("created_at"))
+    .limit(limit)
+    .map((row) ->
+        {
+            thing: row("thing"),
+            last_actioned_at: row("created_at").toEpochTime()
+        }
     )
+    .ungroup()
+    .map((row) =>
+        r.object(row("group").nth(0).coerceTo("string"),row("reduction"))
+    )
+    .reduce((a,b) ->
+        a.merge(b)
+    )
+    .default({})
     .run()
-    .then((rows) ->
-      #TODO move more of this logic to rethinkdb
-      histories = {}
-      for p in rows
-        histories[p.person] = []
-        for thing_date in p.history
-          histories[p.person].push {
-            thing: thing_date.thing
-            last_actioned_at: thing_date.created_at.getTime()
-          }
-          
-      histories
-    )
 
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
     r = @_r
 
     people_actions = []
+
     for a in actions
-      people_actions.push {
-        person: person
-        action: a
-      }
+      people_actions.push [person, a]
       for p in people
-        people_actions.push {
-          person: p
-          action: a
-        }
+        people_actions.push [p,a]
 
-    r.expr(people_actions)
-    .merge((row) =>
-      return {
-        person: row('person'),
-        action: row('action'),
-        history: r.table("#{@schema}_events")
-                  .getAll([row('person'), row('action')], {index: 'person_action'})
-                  .orderBy(r.desc("created_at"))
-                  .limit(limit)("thing")
-        recent_history: r.table("#{@schema}_events")
-                  .getAll([row('person'), row('action')], {index: 'person_action'})
-                  .orderBy(r.desc("created_at"))
-                  .limit(limit)
-                  .filter((event_row) => event_row("created_at").gt(r.now().sub(days_ago * 24 * 60 * 60)))("thing")
-      }
-    )
-    .run()
+    r.table("#{@schema}_events")
+    .getAll(r.args(people_actions), {index: 'person_action'})
+    .group("person","action")
+    .orderBy(r.desc("created_at"))
+    .limit(limit).ungroup()
+    .map((row) ->
+        return r.object(row("group").nth(0).coerceTo("string"),r.object(row("group").nth(1).coerceTo("string"),{
+            history: row("reduction")("thing"),
+            recent_history: row("reduction").filter((row) =>
+                row("created_at").during(r.now().sub(days_ago * 24 * 60 * 60),r.now())
+            )("thing")
+        }))
+    ).reduce((a,b) ->
+        a.merge(b)
+    ).run()
     .then( (rows) ->
-      #TODO eventually move this calculation into rethinkdb
-      person_action_things_histories = {}
-      #compile the 
-      for row in rows
-        p = row.person
-        a = row.action
-        his = {
-          history: row.history
-          recent_history: row.recent_history
-        }
-
-        person_action_things_histories[p] ||= {}
-        person_action_things_histories[p][a] = his
-
+      person_action_things_histories = rows
 
       limit_distance = {}
       recent_distance = {}
 
       for a in actions
-        
-        person_histories = person_action_things_histories[person][a]
-        person_history = person_histories.history
-        person_recent_history = person_histories.recent_history
+        person_histories = person_action_things_histories[person]?[a]
+        if !!person_histories
+          person_history = person_histories.history
+          person_recent_history = person_histories.recent_history
+        else
+          person_history = []
+          person_recent_history = []
 
         for p in people
-          p_histories = person_action_things_histories[p][a]
-          p_history = p_histories.history
-          p_recent_history = p_histories.recent_history
+          p_histories = person_action_things_histories[p]?[a]
+          if !!p_histories
+            p_history = p_histories.history
+            p_recent_history = p_histories.recent_history
+          else
+            p_history = []
+            p_recent_history = []
 
           recent_distance[p] ||= {}
           limit_distance[p] ||= {}
@@ -324,7 +303,7 @@ class EventStoreMapper
     @_r.table("#{@schema}_events").count().run()
 
   count_actions: ->
-    @_r.table("#{@schema}_actions").count().run()    
+    @_r.table("#{@schema}_actions").count().run()
 
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
