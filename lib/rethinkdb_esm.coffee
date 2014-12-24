@@ -162,9 +162,15 @@ class EventStoreMapper
     r.table("#{@schema}_events").getAll(person_actions..., {index: "person_action"} )
     .orderBy(r.desc('created_at'))
     .limit(search_limit)
-    .eqJoin([r.row("action"),r.row("thing")],r.table("#{@schema}_events"),{index: "action_thing"})
-    .zip()
-    .filter(r.row("person").ne(person))
+    .concatMap((row) =>
+        r.table("#{@schema}_events").getAll([row("action"),row("thing")],{index: "action_thing"})
+        .filter((row) ->
+            row("person").ne(person)
+        )
+        .map((row) ->
+            {person: row("person"),action: row("action")}
+        )
+    )
     .group("person")
     .ungroup()
     .filter((row) =>
@@ -272,24 +278,38 @@ class EventStoreMapper
             recent_distance: a("recent_distance").merge(b("recent_distance"))
           }
         )
-    ).run()
+    )
+    .do((data) ->
+        r.expr(people).concatMap((p) ->
+            _p = r.expr(p).coerceTo("string")
+            r.expr(actions).map((a) ->
+                _a = r.expr(a).coerceTo("string")
+                recent_weight = r.branch(data("recent_distance")(_p).ne(null).and(data("recent_distance")(_p)(_a).ne(null)),data("recent_distance")(_p)(_a), 0)
+                event_weight = r.branch(data("limit_distance")(_p).ne(null).and(data("limit_distance")(_p)(_a).ne(null)),data("limit_distance")(_p)(_a), 0)
+                r.object(_p,r.object(_a, recent_weight.mul(4).add(event_weight.mul(1)).div(5)))
+            )
+        ).reduce((a,b) ->
+            a.merge(b)
+        )
+    )
+    .run()
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
-    .then( (data) =>
-      event_weights = data.limit_distance
-      recent_event_weights = data.recent_distance
-      temp = {}
+    #.then( (data) =>
+    #  event_weights = data.limit_distance
+    #  recent_event_weights = data.recent_distance
+    #  temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
-      for p in people
-        temp[p] = {}
-        for ac in actions
-          recent_weight = if recent_event_weights[p] && recent_event_weights[p][ac] then recent_event_weights[p][ac] else 0
-          event_weight = if event_weights[p] && event_weights[p][ac] then event_weights[p][ac] else 0
-          temp[p][ac] = ((recent_weight * 4) + ( event_weight * 1))/5.0
-      temp
-    )
+    #  for p in people
+    #    temp[p] = {}
+    #    for ac in actions
+    #      recent_weight = if recent_event_weights[p] && recent_event_weights[p][ac] then recent_event_weights[p][ac] else 0
+    #      event_weight = if event_weights[p] && event_weights[p][ac] then event_weights[p][ac] else 0
+    #      temp[p][ac] = ((recent_weight * 4) + ( event_weight * 1))/5.0
+    #  temp
+    #)
 
   has_event: (person, action, thing) ->
     shasum = crypto.createHash("sha256")
