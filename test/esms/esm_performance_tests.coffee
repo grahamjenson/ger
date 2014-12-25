@@ -5,12 +5,12 @@ things = [1..100]
 esm_tests = (ESM) ->
   describe 'performance tests', ->
     naction = 50
-    nevents = 3000
-    nbevents = 5000
-    nfindpeople = 50
-    ncalcpeople = 50
+    nevents = 5000
+    nbevents = 10000
+    nfindpeople = 100
+    ncalcpeople = 100
     ncompact = 3
-    nrecommendations = 50
+    nrecommendations = 100
 
     it 'adding 1000 events takes so much time', ->
       self = @
@@ -79,7 +79,7 @@ esm_tests = (ESM) ->
           for x in [1..nfindpeople]
             promises.push ger.esm.find_similar_people(sample(people), actions, sample(actions))
           bb.all(promises)
-          
+
           .then(->
             et = new Date().getTime()
             time = et-st
@@ -95,7 +95,7 @@ esm_tests = (ESM) ->
             peeps = _.unique((sample(people) for i in [0..10]))
             promises.push ger.esm.calculate_similarities_from_person(peeps[0], peeps[1..-1] , actions, 500, 5)
           bb.all(promises)
-          
+
           .then(->
             et = new Date().getTime()
             time = et-st

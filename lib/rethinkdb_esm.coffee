@@ -119,7 +119,7 @@ class EventStoreMapper
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
-    identity_attr = person + action + thing
+    identity_attr = person.toString() + action + thing
     @upsert("#{@schema}_events", insert_attr, identity_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
@@ -162,15 +162,28 @@ class EventStoreMapper
     r.table("#{@schema}_events").getAll(person_actions..., {index: "person_action"} )
     .orderBy(r.desc('created_at'))
     .limit(search_limit)
-    .eqJoin([r.row("action"),r.row("thing")],r.table("#{@schema}_events"),{index: "action_thing"})
-    .zip()
-    .filter(r.row("person").ne(person))
-    .pluck("person")
-    .group("person").count().ungroup().orderBy(r.desc('reduction'))
-    .filter((row) =>
-      return r.table("#{@schema}_events").getAll([row('group'),action], {index: "person_action"}).count().gt(0)
+    .concatMap((row) =>
+      r.table("#{@schema}_events").getAll([row("action"),row("thing")],{index: "action_thing"})
+      .filter((row) ->
+        row("person").ne(person)
+      )
+      .map((row) ->
+        {person: row("person"),action: row("action")}
+      )
     )
-    .limit(limit)("group")
+    .group("person")
+    .ungroup()
+    .filter((row) =>
+      row("reduction")("action").contains(action)
+    )
+    .map((row) =>
+      {
+        person: row("group"),
+        count: row("reduction").count()
+      }
+    )
+    .orderBy(r.desc('count'))
+    .limit(limit)("person")
     .run()
 
 
@@ -186,124 +199,105 @@ class EventStoreMapper
 
     people_actions = []
     for p in people
-      people_actions.push {
-        person: p
-        action: action
-      }
+      people_actions.push [p,action]
 
-    r.expr(people_actions)
-    .merge((row) =>
-      return {
-        person: row('person'),
-        action: row('action'),
-        history: r.table("#{@schema}_events")
-                  .getAll([row('person'), row('action')], {index: 'person_action'})
-                  .orderBy(r.desc("created_at"))
-                  .limit(limit)
-                  .pluck('thing', "created_at")
+    r.table("#{@schema}_events")
+    .getAll(r.args(people_actions), {index: 'person_action'})
+    .group("person","action")
+    .orderBy(r.desc("created_at"))
+    .limit(limit)
+    .map((row) ->
+      {
+        thing: row("thing"),
+        last_actioned_at: row("created_at").toEpochTime()
       }
     )
-    .run()
-    .then((rows) ->
-      #TODO move more of this logic to rethinkdb
-      histories = {}
-      for p in rows
-        histories[p.person] = []
-        for thing_date in p.history
-          histories[p.person].push {
-            thing: thing_date.thing
-            last_actioned_at: thing_date.created_at.getTime()
-          }
-          
-      histories
+    .ungroup()
+    .map((row) =>
+      r.object(row("group").nth(0).coerceTo("string"),row("reduction"))
     )
+    .reduce((a,b) ->
+      a.merge(b)
+    )
+    .default({})
+    .run()
 
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
     r = @_r
 
     people_actions = []
-    for a in actions
-      people_actions.push {
-        person: person
-        action: a
-      }
-      for p in people
-        people_actions.push {
-          person: p
-          action: a
-        }
 
-    r.expr(people_actions)
-    .merge((row) =>
-      return {
-        person: row('person'),
-        action: row('action'),
-        history: r.table("#{@schema}_events")
-                  .getAll([row('person'), row('action')], {index: 'person_action'})
-                  .orderBy(r.desc("created_at"))
-                  .limit(limit)("thing")
-        recent_history: r.table("#{@schema}_events")
-                  .getAll([row('person'), row('action')], {index: 'person_action'})
-                  .orderBy(r.desc("created_at"))
-                  .limit(limit)
-                  .filter((event_row) => event_row("created_at").gt(r.now().sub(days_ago * 24 * 60 * 60)))("thing")
-      }
+    for a in actions
+      people_actions.push [person, a]
+      for p in people
+        people_actions.push [p,a]
+
+    r.table("#{@schema}_events")
+    .getAll(r.args(people_actions), {index: 'person_action'})
+    .group("person","action")
+    .orderBy(r.desc("created_at"))
+    .limit(limit).ungroup()
+    .map((row) ->
+      r.object(
+        row("group").nth(0).coerceTo("string"),
+        r.object(
+          row("group").nth(1).coerceTo("string"),
+          {
+            history: row("reduction")("thing"),
+            recent_history: row("reduction").filter((row) =>
+              row("created_at").during(r.now().sub(days_ago * 24 * 60 * 60),r.now())
+            )("thing")
+          }
+        )
+      )
+    ).reduce((a,b) ->
+        a.merge(b)
+    ).do((rows) ->
+      r.expr(actions).concatMap((a) ->
+        _a = r.expr(a).coerceTo("string")
+        person_histories = rows(r.expr(person).coerceTo("string"))(_a).default(null)
+        person_history = r.branch(person_histories.ne(null), person_histories("history"),[])
+        person_recent_history = r.branch(person_histories.ne(null), person_histories("recent_history"),[])
+        r.expr(people).map((p) ->
+          _p = r.expr(p).coerceTo("string")
+          p_histories = rows(_p)(_a).default(null)
+          p_history = r.branch(p_histories.ne(null),p_histories("history"),[])
+          p_recent_history = r.branch(p_histories.ne(null),p_histories("recent_history"),[])
+          limit_distance = r.object(_p,r.object(_a,r.expr(p_history).setIntersection(person_history).count().div(r.expr([r.expr(p_history).setUnion(person_history).count(),1]).max())))
+          recent_distance = r.object(_p,r.object(_a,r.expr(p_recent_history).setIntersection(person_recent_history).count().div(r.expr([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max())))
+          {
+              limit_distance: limit_distance,
+              recent_distance: recent_distance
+          }
+        )
+      )
+      .reduce((a,b) ->
+        {
+          limit_distance: a("limit_distance").merge(b("limit_distance")),
+          recent_distance: a("recent_distance").merge(b("recent_distance"))
+        }
+      )
+    )
+    .do((data) ->
+      r.expr(people).concatMap((p) ->
+        _p = r.expr(p).coerceTo("string")
+        r.expr(actions).map((a) ->
+          _a = r.expr(a).coerceTo("string")
+          recent_weight = r.branch(data("recent_distance")(_p).ne(null).and(data("recent_distance")(_p)(_a).ne(null)),data("recent_distance")(_p)(_a), 0)
+          event_weight = r.branch(data("limit_distance")(_p).ne(null).and(data("limit_distance")(_p)(_a).ne(null)),data("limit_distance")(_p)(_a), 0)
+          r.object(_p,r.object(_a, recent_weight.mul(4).add(event_weight.mul(1)).div(5)))
+        )
+      ).reduce((a,b) ->
+          a.merge(b)
+      )
     )
     .run()
-    .then( (rows) ->
-      #TODO eventually move this calculation into rethinkdb
-      person_action_things_histories = {}
-      #compile the 
-      for row in rows
-        p = row.person
-        a = row.action
-        his = {
-          history: row.history
-          recent_history: row.recent_history
-        }
-
-        person_action_things_histories[p] ||= {}
-        person_action_things_histories[p][a] = his
-
-
-      limit_distance = {}
-      recent_distance = {}
-
-      for a in actions
-        
-        person_histories = person_action_things_histories[person][a]
-        person_history = person_histories.history
-        person_recent_history = person_histories.recent_history
-
-        for p in people
-          p_histories = person_action_things_histories[p][a]
-          p_history = p_histories.history
-          p_recent_history = p_histories.recent_history
-
-          recent_distance[p] ||= {}
-          limit_distance[p] ||= {}
-
-          limit_distance[p][a] = (_.intersection(p_history, person_history).length/_.union(p_history, person_history).length)
-          recent_distance[p][a] = (_.intersection(p_recent_history, person_recent_history).length/_.union(p_recent_history, person_recent_history).length)
-
-      [limit_distance, recent_distance]
-    )
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
-    .spread( (event_weights, recent_event_weights) =>
-      temp = {}
-      #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
-      for p in people
-        temp[p] = {}
-        for ac in actions
-          recent_weight = if recent_event_weights[p] && recent_event_weights[p][ac] then recent_event_weights[p][ac] else 0
-          event_weight = if event_weights[p] && event_weights[p][ac] then event_weights[p][ac] else 0
-          temp[p][ac] = ((recent_weight * 4) + ( event_weight * 1))/5.0
-      temp
-    )
+
 
   has_event: (person, action, thing) ->
     shasum = crypto.createHash("sha256")
@@ -324,7 +318,7 @@ class EventStoreMapper
     @_r.table("#{@schema}_events").count().run()
 
   count_actions: ->
-    @_r.table("#{@schema}_actions").count().run()    
+    @_r.table("#{@schema}_actions").count().run()
 
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
