@@ -163,13 +163,13 @@ class EventStoreMapper
     .orderBy(r.desc('created_at'))
     .limit(search_limit)
     .concatMap((row) =>
-        r.table("#{@schema}_events").getAll([row("action"),row("thing")],{index: "action_thing"})
-        .filter((row) ->
-            row("person").ne(person)
-        )
-        .map((row) ->
-            {person: row("person"),action: row("action")}
-        )
+      r.table("#{@schema}_events").getAll([row("action"),row("thing")],{index: "action_thing"})
+      .filter((row) ->
+        row("person").ne(person)
+      )
+      .map((row) ->
+        {person: row("person"),action: row("action")}
+      )
     )
     .group("person")
     .ungroup()
@@ -207,17 +207,17 @@ class EventStoreMapper
     .orderBy(r.desc("created_at"))
     .limit(limit)
     .map((row) ->
-        {
-            thing: row("thing"),
-            last_actioned_at: row("created_at").toEpochTime()
-        }
+      {
+        thing: row("thing"),
+        last_actioned_at: row("created_at").toEpochTime()
+      }
     )
     .ungroup()
     .map((row) =>
-        r.object(row("group").nth(0).coerceTo("string"),row("reduction"))
+      r.object(row("group").nth(0).coerceTo("string"),row("reduction"))
     )
     .reduce((a,b) ->
-        a.merge(b)
+      a.merge(b)
     )
     .default({})
     .run()
@@ -254,62 +254,50 @@ class EventStoreMapper
     ).reduce((a,b) ->
         a.merge(b)
     ).do((rows) ->
-        r.expr(actions).concatMap((a) ->
-            _a = r.expr(a).coerceTo("string")
-            person_histories = rows(r.expr(person).coerceTo("string"))(_a).default(null)
-            person_history = r.branch(person_histories.ne(null), person_histories("history"),[])
-            person_recent_history = r.branch(person_histories.ne(null), person_histories("recent_history"),[])
-            r.expr(people).map((p) ->
-                _p = r.expr(p).coerceTo("string")
-                p_histories = rows(_p)(_a).default(null)
-                p_history = r.branch(p_histories.ne(null),p_histories("history"),[])
-                p_recent_history = r.branch(p_histories.ne(null),p_histories("recent_history"),[])
-                limit_distance = r.object(_p,r.object(_a,r.expr(p_history).setIntersection(person_history).count().div(r.expr([r.expr(p_history).setUnion(person_history).count(),1]).max())))
-                recent_distance = r.object(_p,r.object(_a,r.expr(p_recent_history).setIntersection(person_recent_history).count().div(r.expr([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max())))
-                {
-                    limit_distance: limit_distance,
-                    recent_distance: recent_distance
-                }
-            )
-        )
-        .reduce((a,b) ->
+      r.expr(actions).concatMap((a) ->
+        _a = r.expr(a).coerceTo("string")
+        person_histories = rows(r.expr(person).coerceTo("string"))(_a).default(null)
+        person_history = r.branch(person_histories.ne(null), person_histories("history"),[])
+        person_recent_history = r.branch(person_histories.ne(null), person_histories("recent_history"),[])
+        r.expr(people).map((p) ->
+          _p = r.expr(p).coerceTo("string")
+          p_histories = rows(_p)(_a).default(null)
+          p_history = r.branch(p_histories.ne(null),p_histories("history"),[])
+          p_recent_history = r.branch(p_histories.ne(null),p_histories("recent_history"),[])
+          limit_distance = r.object(_p,r.object(_a,r.expr(p_history).setIntersection(person_history).count().div(r.expr([r.expr(p_history).setUnion(person_history).count(),1]).max())))
+          recent_distance = r.object(_p,r.object(_a,r.expr(p_recent_history).setIntersection(person_recent_history).count().div(r.expr([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max())))
           {
-            limit_distance: a("limit_distance").merge(b("limit_distance")),
-            recent_distance: a("recent_distance").merge(b("recent_distance"))
+              limit_distance: limit_distance,
+              recent_distance: recent_distance
           }
         )
+      )
+      .reduce((a,b) ->
+        {
+          limit_distance: a("limit_distance").merge(b("limit_distance")),
+          recent_distance: a("recent_distance").merge(b("recent_distance"))
+        }
+      )
     )
     .do((data) ->
-        r.expr(people).concatMap((p) ->
-            _p = r.expr(p).coerceTo("string")
-            r.expr(actions).map((a) ->
-                _a = r.expr(a).coerceTo("string")
-                recent_weight = r.branch(data("recent_distance")(_p).ne(null).and(data("recent_distance")(_p)(_a).ne(null)),data("recent_distance")(_p)(_a), 0)
-                event_weight = r.branch(data("limit_distance")(_p).ne(null).and(data("limit_distance")(_p)(_a).ne(null)),data("limit_distance")(_p)(_a), 0)
-                r.object(_p,r.object(_a, recent_weight.mul(4).add(event_weight.mul(1)).div(5)))
-            )
-        ).reduce((a,b) ->
-            a.merge(b)
+      r.expr(people).concatMap((p) ->
+        _p = r.expr(p).coerceTo("string")
+        r.expr(actions).map((a) ->
+          _a = r.expr(a).coerceTo("string")
+          recent_weight = r.branch(data("recent_distance")(_p).ne(null).and(data("recent_distance")(_p)(_a).ne(null)),data("recent_distance")(_p)(_a), 0)
+          event_weight = r.branch(data("limit_distance")(_p).ne(null).and(data("limit_distance")(_p)(_a).ne(null)),data("limit_distance")(_p)(_a), 0)
+          r.object(_p,r.object(_a, recent_weight.mul(4).add(event_weight.mul(1)).div(5)))
         )
+      ).reduce((a,b) ->
+          a.merge(b)
+      )
     )
     .run()
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
-    #.then( (data) =>
-    #  event_weights = data.limit_distance
-    #  recent_event_weights = data.recent_distance
-    #  temp = {}
-      #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
-    #  for p in people
-    #    temp[p] = {}
-    #    for ac in actions
-    #      recent_weight = if recent_event_weights[p] && recent_event_weights[p][ac] then recent_event_weights[p][ac] else 0
-    #      event_weight = if event_weights[p] && event_weights[p][ac] then event_weights[p][ac] else 0
-    #      temp[p][ac] = ((recent_weight * 4) + ( event_weight * 1))/5.0
-    #  temp
-    #)
+
 
   has_event: (person, action, thing) ->
     shasum = crypto.createHash("sha256")
