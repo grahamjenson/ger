@@ -384,9 +384,10 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 1
-            esm.find_event('p','a', 't')
+            esm.find_events('p','a', 't')
           )
-          .then( (event) ->
+          .then( (events) ->
+            event = events[0]
             event.should.not.equal null
           )
 
@@ -421,16 +422,97 @@ esm_tests = (ESM) ->
             count.should.equal 3
           )
 
+    describe '#delete_events', ->
+      it "should return 0 if no events are deleted", ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.delete_events('p','a','t')
+          .then( (ret) ->
+            ret.deleted.should.equal 0
+          )
 
-    describe '#find_event', ->
+      it "should delete events from esm", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events('p1','view','t1')
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 1
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 2
+          )
+
+      it "should delete events from esm for person", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events('p1')
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 3
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 0
+          )
+
+      it "should delete events from esm for action", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events(null, 'view')
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 2
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 1
+          )
+
+      it "should delete all events if no value is given", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events()
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 3
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 0
+          )
+
+    describe '#find_events', ->
       it 'should return the event', ->
         init_esm(ESM)
         .then (esm) ->
           esm.add_event('p','a','t')
           .then( ->
-            esm.find_event('p','a','t')
+            esm.find_events('p','a','t')
           )
-          .then( (event) ->
+          .then( (events) ->
+            event = events[0]
             event.person.should.equal 'p'
             event.action.should.equal 'a'
             event.thing.should.equal 't'
@@ -439,11 +521,74 @@ esm_tests = (ESM) ->
       it "should return null if no event matches", ->
         init_esm(ESM)
         .then (esm) ->
-          esm.find_event('p','a','t')
-          .then( (event) ->
-            true.should.equal event == null
+          esm.find_events('p','a','t')
+          .then( (events) ->
+            events.length.should.equal 0
           )
 
+      it "should find event with only one argument", ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.add_event('p','a','t')
+          .then( ->
+            bb.all([
+              esm.find_events('p')
+              esm.find_events(null, 'a')
+              esm.find_events(null, undefined, 't')
+            ])
+          )
+          .spread( (events1, events2, events3) ->
+            e1 = events1[0]
+            e2 = events2[0]
+            e3 = events3[0]
+            for event in [e1, e2, e3]
+              event.person.should.equal 'p'
+              event.action.should.equal 'a'
+              event.thing.should.equal 't'
+          )
+
+      it "should return multiple events", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            bb.all([
+              esm.find_events('p1')
+              esm.find_events('p1', 'view')
+              esm.find_events('p1', 'view', 't1')
+              esm.find_events(null, 'view', null)
+              esm.find_events('p1', null, 't1')
+            ])
+          )
+          .spread( (events1, events2, events3, events4, events5) ->
+            events1.length.should.equal 3
+            events2.length.should.equal 2
+            events3.length.should.equal 1
+            events4.length.should.equal 2
+            events5.length.should.equal 2
+          )
+
+      it "should return events in created_at descending order (most recent first)", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1', created_at: new Date()),
+            esm.add_event('p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
+            esm.add_event('p1','a','t3', created_at: moment().subtract(10, 'days').toDate())
+          ])
+          .then( ->
+            esm.find_events('p1')
+          )
+          .then( (events) ->
+            events.length.should.equal 3
+            events[0].thing.should.equal 't1'
+            events[1].thing.should.equal 't2'
+            events[2].thing.should.equal 't3'
+          )
 
     describe '#set_action_weight #get_action_weight', ->
       it 'should assign an actions weight', ->
@@ -503,9 +648,10 @@ esm_tests = (ESM) ->
           .then( -> esm.count_events())
           .then( (count) ->
             count.should.equal 1
-            esm.find_event('person','action','thing')
+            esm.find_events('person','action','thing')
           )
-          .then( (event) ->
+          .then( (events) ->
+            event = events[0]
             expected_created_at = new Date('2014-01-01')
             event.created_at.getFullYear().should.equal expected_created_at.getFullYear()
           )

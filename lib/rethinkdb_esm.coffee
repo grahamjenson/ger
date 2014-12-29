@@ -67,6 +67,7 @@ class EventStoreMapper
           @_r.table("#{@schema}_events").indexCreate("person_action",[@_r.row("person"),@_r.row("action")]).run(),
           @_r.table("#{@schema}_events").indexCreate("person_action_created_at",[@_r.row("person"),@_r.row("action"),@_r.row("created_at")]).run(),
           @_r.table("#{@schema}_events").indexCreate("thing").run(),
+          @_r.table("#{@schema}_events").indexCreate("action").run(),
           @_r.table("#{@schema}_events").indexWait().run()
         ])
       bb.all(promises)
@@ -111,11 +112,24 @@ class EventStoreMapper
     insert_attr.id = shasum.digest("hex")
     @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
-  find_event: (person, action, thing) ->
-    shasum = crypto.createHash("sha256")
-    shasum.update(person.toString() + action + thing)
-    id = shasum.digest("hex")
-    @_r.table("#{@schema}_events").get(id).without("id").default(null).run()
+  _event_selection: (person, action, thing) ->
+    #TODO make faster using secondary indexes and `getAll`
+    q = @_r.table("#{@schema}_events")
+    q = q.orderBy(r.desc('created_at'))
+    q = q.filter((row) => row('person').eq(person)) if person
+    q = q.filter((row) => row('action').eq(action)) if action
+    q = q.filter((row) => row('thing').eq(thing)) if thing
+
+    return q
+
+  find_events: (person, action, thing) ->
+    @_event_selection(person, action, thing)
+    .run()
+  
+  delete_events: (person, action, thing) ->
+    @_event_selection(person, action, thing)
+    .delete()
+    .run()
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
