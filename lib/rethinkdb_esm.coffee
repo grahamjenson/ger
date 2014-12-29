@@ -115,6 +115,7 @@ class EventStoreMapper
   _event_selection: (person, action, thing) ->
     #TODO make faster using secondary indexes and `getAll`
     q = @_r.table("#{@schema}_events")
+    q = q.orderBy(r.desc('created_at'))
     q = q.filter((row) => row('person').eq(person)) if person
     q = q.filter((row) => row('action').eq(action)) if action
     q = q.filter((row) => row('thing').eq(thing)) if thing

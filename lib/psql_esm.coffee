@@ -138,7 +138,8 @@ class PSQLEventStoreManager
   _event_selection: (person, action, thing) ->
     q = @_knex("#{@_schema}.events")
     .select("person", "action", "thing", "created_at", "expires_at")
-    
+    .orderBy('created_at', 'desc')
+
     q = q.where(person: person) if person
     q = q.where(action: action) if action
     q = q.where(thing: thing) if thing

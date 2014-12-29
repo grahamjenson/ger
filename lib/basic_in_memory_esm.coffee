@@ -170,6 +170,8 @@ class BasicInMemoryESM
       add = false if action and action != e.action
       add = false if thing and thing != e.thing
       events.push e if add
+    events = _.sortBy(events, (x) -> - x.created_at.getTime())
+
     return events
 
   find_events: (person, action, thing) ->
