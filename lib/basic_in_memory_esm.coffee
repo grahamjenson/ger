@@ -161,8 +161,19 @@ class BasicInMemoryESM
     return null if not person_action_store[@_namespace][person][action][thing]
     return person_action_store[@_namespace][person][action][thing]
 
-  find_event: (person, action, thing) ->
-    return bb.try(=> @_find_event(person, action, thing))
+  _find_events: (person, action, thing) ->
+    #returns all events fitting the above description
+    events = []
+    for e in event_store[@_namespace]
+      add = true
+      add = false if person and person != e.person
+      add = false if action and action != e.action
+      add = false if thing and thing != e.thing
+      events.push e if add
+    return events
+
+  find_events: (person, action, thing) ->
+    return bb.try(=> @_find_events(person, action, thing))
 
   set_action_weight: (action, weight, overwrite = false) ->
     return bb.try(-> true) if !overwrite && actions_store[@_namespace][action]

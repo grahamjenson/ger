@@ -211,10 +211,15 @@ The API for the ESM to generate recommendations is:
 
 The API for the ESM to insert data is:
 
-1. `add_event` (also `find_event`)
+1. `add_event`
 2. `count_events` and `estimate_event_count`
-2. `set_action_weight` (also `get_action_weight`)
+2. `set_action_weight` (and `get_action_weight`)
 3. `bootstrap`
+
+The API for the ESM to search and manipulate the events store:
+
+1. `find_events(person, action, thing)` at least one of the arguments must be provided
+2. `delete_events(person, action, thing)` at least one of the arguments must be provided
 
 The API for the ESM to compact the database is:
 

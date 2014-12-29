@@ -52,12 +52,12 @@ esm_tests = (ESM) ->
             esm.post_compact()
           )
           .then( ->
-            bb.all([esm.count_events(), esm.find_event('p1','view','t1'), esm.find_event('p1','buy','t1')])
+            bb.all([esm.count_events(), esm.find_events('p1','view','t1'), esm.find_events('p1','buy','t1')])
           )
-          .spread( (count, e1, e2) ->
+          .spread( (count, es1, es2) ->
             count.should.equal 2
-            (null != e1).should.be.true
-            (null != e2).should.be.true
+            es1.length.should.equal 1
+            es2.length.should.equal 1
           )
 
       it 'should have no duplicate events after', ->
@@ -135,9 +135,10 @@ esm_tests = (ESM) ->
         .then( -> esm.count_events())
         .then( (count) ->
           count.should.equal 2
-          esm.find_event('p2','a','t')
+          esm.find_events('p2','a','t')
         )
-        .then( (event) ->
+        .then( (events) ->
+          event = events[0]
           event.expires_at.getTime().should.equal (new Date(2050,10,10)).getTime()
         )
 

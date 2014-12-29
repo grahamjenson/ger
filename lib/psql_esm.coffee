@@ -136,16 +136,16 @@ class PSQLEventStoreManager
     )
 
 
-  find_event: (person, action, thing) ->
-    @_knex("#{@_schema}.events")
+  find_events: (person, action, thing) ->
+    q = @_knex("#{@_schema}.events")
     .select("person", "action", "thing", "created_at", "expires_at")
-    .where(person: person, action: action, thing: thing)
-    .limit(1)
-    .then((rows)->
-      if rows.length > 0
-        return rows[0]
-      else
-        return null
+    
+    q = q.where(person: person) if person
+    q = q.where(action: action) if action
+    q = q.where(thing: thing) if thing
+
+    q.then((rows)->
+      rows
     )
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->

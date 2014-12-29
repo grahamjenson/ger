@@ -222,8 +222,8 @@ class GER
     @esm.set_action_weight(action, weight, override)
     .then( -> {action: action, weight: weight}) 
 
-  find_event: (person, action, thing) ->
-    @esm.find_event(person, action, thing)
+  find_events: (person, action, thing) ->
+    @esm.find_events(person, action, thing)
 
   get_action:(action) ->
     @esm.get_action_weight(action)
