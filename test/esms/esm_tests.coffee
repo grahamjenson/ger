@@ -422,6 +422,86 @@ esm_tests = (ESM) ->
             count.should.equal 3
           )
 
+    describe '#delete_events', ->
+      it "should return 0 if no events are deleted", ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.delete_events('p','a','t')
+          .then( (ret) ->
+            ret.deleted.should.equal 0
+          )
+
+      it "should delete events from esm", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events('p1','view','t1')
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 1
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 2
+          )
+
+      it "should delete events from esm for person", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events('p1')
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 3
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 0
+          )
+
+      it "should delete events from esm for action", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events(null, 'view')
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 2
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 1
+          )
+
+      it "should delete all events if no value is given", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','view','t1')
+            esm.add_event('p1','view','t2')
+            esm.add_event('p1','like','t1')
+          ])
+          .then( ->
+            esm.delete_events()
+          )
+          .then( (ret) ->
+            ret.deleted.should.equal 3
+            esm.count_events()
+          ).then( (count) ->
+            count.should.equal 0
+          )
 
     describe '#find_events', ->
       it 'should return the event', ->

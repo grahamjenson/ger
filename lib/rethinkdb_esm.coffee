@@ -112,13 +112,23 @@ class EventStoreMapper
     insert_attr.id = shasum.digest("hex")
     @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
-  find_events: (person, action, thing) ->
+  _event_selection: (person, action, thing) ->
     #TODO make faster using secondary indexes and `getAll`
     q = @_r.table("#{@schema}_events")
     q = q.filter((row) => row('person').eq(person)) if person
     q = q.filter((row) => row('action').eq(action)) if action
     q = q.filter((row) => row('thing').eq(thing)) if thing
-    q.run()
+
+    return q
+
+  find_events: (person, action, thing) ->
+    @_event_selection(person, action, thing)
+    .run()
+  
+  delete_events: (person, action, thing) ->
+    @_event_selection(person, action, thing)
+    .delete()
+    .run()
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}

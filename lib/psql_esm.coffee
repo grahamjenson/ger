@@ -135,8 +135,7 @@ class PSQLEventStoreManager
       deferred.promise.finally( => @_knex.client.releaseConnection(connection))
     )
 
-
-  find_events: (person, action, thing) ->
+  _event_selection: (person, action, thing) ->
     q = @_knex("#{@_schema}.events")
     .select("person", "action", "thing", "created_at", "expires_at")
     
@@ -144,9 +143,20 @@ class PSQLEventStoreManager
     q = q.where(action: action) if action
     q = q.where(thing: thing) if thing
 
-    q.then((rows)->
+    return q
+
+  find_events: (person, action, thing) ->
+    @_event_selection(person, action, thing).then((rows)->
       rows
     )
+
+  delete_events: (person, action, thing) ->
+    @_event_selection(person, action, thing)
+    .del()
+    .then((delete_count)->
+      {deleted: delete_count}
+    )
+
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}

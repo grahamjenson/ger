@@ -225,6 +225,9 @@ class GER
   find_events: (person, action, thing) ->
     @esm.find_events(person, action, thing)
 
+  delete_events: (person, action, thing) ->
+    @esm.delete_events(person, action, thing)
+
   get_action:(action) ->
     @esm.get_action_weight(action)
     .then( (weight) -> 

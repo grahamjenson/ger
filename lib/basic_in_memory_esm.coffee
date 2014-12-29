@@ -202,12 +202,18 @@ class BasicInMemoryESM
   pre_compact: ->
     bb.try(-> true)
 
-  delete_events: (events) ->
+  _delete_events: (events) ->
     event_store[@_namespace] = event_store[@_namespace].filter((x) -> x not in events)
     for e in events
       delete person_action_store[@_namespace][e.person][e.action][e.thing]
       delete thing_action_store[@_namespace][e.thing][e.action][e.person]
 
+  delete_events: (person, action, thing) ->
+    events = @_find_events(person, action, thing) 
+    @_delete_events(events)
+    bb.try(=> {deleted: events.length})
+
+  
   compact_people: (limit) ->
     #remove all 
     marked_for_deletion = []
@@ -217,7 +223,7 @@ class BasicInMemoryESM
         if events.length > limit
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
 
-    @delete_events(marked_for_deletion)
+    @_delete_events(marked_for_deletion)
     bb.try(-> true)
 
 
@@ -230,7 +236,7 @@ class BasicInMemoryESM
           
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
 
-    @delete_events(marked_for_deletion)
+    @_delete_events(marked_for_deletion)
     bb.try(-> true)
 
   expire_events: ->
@@ -239,7 +245,7 @@ class BasicInMemoryESM
       if e && e.expires_at && e.expires_at < new Date()
         marked_for_deletion.push e
 
-    @delete_events(marked_for_deletion)
+    @_delete_events(marked_for_deletion)
     bb.try(-> true)
 
   post_compact: ->
