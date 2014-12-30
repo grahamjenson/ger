@@ -232,6 +232,8 @@ The API for the ESM to compact the database is:
 
 #Changelog
 
+2014-12-30 - added find and delete events methods.
+
 2014-12-22 - added exists to check if namespace is initilaized. also changed some indexes in rethinkdb, and changed some semantics around initialize 
 
 2014-12-22 - Added Rethink DB Event Store Manager.
