@@ -590,6 +590,39 @@ esm_tests = (ESM) ->
             events[2].thing.should.equal 't3'
           )
 
+      it "should limit the returned events to size", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1', created_at: new Date()),
+            esm.add_event('p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
+            esm.add_event('p1','a','t3', created_at: moment().subtract(10, 'days').toDate())
+          ])
+          .then( ->
+            esm.find_events('p1', null, null, {size: 2})
+          )
+          .then( (events) ->
+            events.length.should.equal 2
+            events[0].thing.should.equal 't1'
+            events[1].thing.should.equal 't2'
+          )
+
+      it "should return pagable events", ->
+        init_esm(ESM)
+        .then (esm) ->
+          bb.all([
+            esm.add_event('p1','a','t1', created_at: new Date()),
+            esm.add_event('p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
+            esm.add_event('p1','a','t3', created_at: moment().subtract(10, 'days').toDate())
+          ])
+          .then( ->
+            esm.find_events('p1', null, null, {size: 2, page: 1})
+          )
+          .then( (events) ->
+            events.length.should.equal 1
+            events[0].thing.should.equal 't3'
+          )
+
     describe '#set_action_weight #get_action_weight', ->
       it 'should assign an actions weight', ->
         init_esm(ESM)

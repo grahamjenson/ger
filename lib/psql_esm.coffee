@@ -146,8 +146,15 @@ class PSQLEventStoreManager
 
     return q
 
-  find_events: (person, action, thing) ->
-    @_event_selection(person, action, thing).then((rows)->
+  find_events: (person, action, thing, options = {}) ->
+    options = _.defaults(options, {size: 50, page: 0})
+    size = options.size
+    page = options.page
+    
+    @_event_selection(person, action, thing)
+    .limit(size)
+    .offset(size*page)
+    .then((rows)->
       rows
     )
 

@@ -174,8 +174,14 @@ class BasicInMemoryESM
 
     return events
 
-  find_events: (person, action, thing) ->
-    return bb.try(=> @_find_events(person, action, thing))
+  find_events: (person, action, thing, options = {}) ->
+    options = _.defaults(options, {size: 50, page: 0})
+    size = options.size
+    page = options.page
+
+    events = @_find_events(person, action, thing)
+    events = events[size*page ... size*(page+1)]
+    return bb.try(=> events)
 
   set_action_weight: (action, weight, overwrite = false) ->
     return bb.try(-> true) if !overwrite && actions_store[@_namespace][action]
