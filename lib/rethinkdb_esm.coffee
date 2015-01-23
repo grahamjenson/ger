@@ -113,13 +113,10 @@ class EventStoreMapper
     @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
   _event_selection: (person, action, thing) ->
-    #TODO make faster using secondary indexes and `getAll`
-    q = @_r.table("#{@schema}_events")
-    q = q.orderBy(r.desc('created_at'))
-    q = q.filter((row) => row('person').eq(person)) if person
-    q = q.filter((row) => row('action').eq(action)) if action
-    q = q.filter((row) => row('thing').eq(thing)) if thing
-
+    shasum = crypto.createHash("sha256")
+    shasum.update(person.toString() + action + thing)
+    id = shasum.digest("hex")
+    q = @_r.table("#{@schema}_events").get(id)
     return q
 
   find_events: (person, action, thing, options = {}) ->
@@ -127,8 +124,9 @@ class EventStoreMapper
     size = options.size
     page = options.page
 
+    # RethinkDB adapter doesn't store event duplicates, therefore this will always return one record if existing
     @_event_selection(person, action, thing)
-    .slice(page*size, size*(page + 1))
+    #.slice(page*size, size*(page + 1))
     .run()
   
   delete_events: (person, action, thing) ->
@@ -314,9 +312,7 @@ class EventStoreMapper
     .run()
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
-    #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
-
 
   has_event: (person, action, thing) ->
     shasum = crypto.createHash("sha256")
