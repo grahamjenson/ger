@@ -4,6 +4,7 @@ before_install:
   - sudo apt-get install rethinkdb -y --force-yes
 before_script:
   - rethinkdb &
+  - sleep 10
   - psql -c 'create database ger_test;' -U postgres
 language: node_js
 node_js:
