@@ -1,8 +1,9 @@
-before_script:
+before_install:
   - sudo add-apt-repository ppa:rethinkdb/ppa -y
-  - sudo apt-get update -q
-  - sudo apt-get install rethinkdb
-  - sudo rethinkdb --daemon
+  - sudo apt-get update -qq
+  - sudo apt-get install rethinkdb -y
+before_script:
+  - rethinkdb --daemon
   - psql -c 'create database ger_test;' -U postgres
 language: node_js
 node_js:
