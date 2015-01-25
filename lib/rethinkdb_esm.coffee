@@ -113,10 +113,11 @@ class EventStoreMapper
     @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
   _event_selection: (person, action, thing) ->
-    shasum = crypto.createHash("sha256")
-    shasum.update(person.toString() + action + thing)
-    id = shasum.digest("hex")
-    q = @_r.table("#{@schema}_events").get(id)
+    q = @_r.table("#{@schema}_events")
+    q = q.orderBy(r.desc('created_at'))
+    q = q.filter((row) => row('person').eq(person)) if person
+    q = q.filter((row) => row('action').eq(action)) if action
+    q = q.filter((row) => row('thing').eq(thing)) if thing
     return q
 
   find_events: (person, action, thing, options = {}) ->
@@ -124,10 +125,22 @@ class EventStoreMapper
     size = options.size
     page = options.page
 
-    # RethinkDB adapter doesn't store event duplicates, therefore this will always return one record if existing
-    @_event_selection(person, action, thing)
-    #.slice(page*size, size*(page + 1))
-    .run()
+    if person and action and thing
+      #Fast single look up
+      shasum = crypto.createHash("sha256")
+      shasum.update(person.toString() + action + thing)
+      id = shasum.digest("hex")
+      @_r.table("#{@schema}_events").get(id)
+      .run()
+      .then( (e) -> 
+        return [] if !e
+        [e] # have to put it into a list
+      ) 
+    else
+      #slower multi-event lookup
+      @_event_selection(person, action, thing)
+      .slice(page*size, size*(page + 1))
+      .run()
   
   delete_events: (person, action, thing) ->
     @_event_selection(person, action, thing)
