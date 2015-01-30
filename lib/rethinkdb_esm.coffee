@@ -9,13 +9,10 @@ _ = require 'underscore'
 
 class EventStoreMapper
 
-  invalidate_action_cache: ->
-    @action_cache = null
 
   #INSTANCE ACTIONS
   constructor: (@schema, orms) ->
     @_r = orms.r
-    @action_cache = null
 
   try_create_table: (table, table_list) ->
     if table in table_list
@@ -153,7 +150,6 @@ class EventStoreMapper
     @upsert("#{@schema}_events", insert_attr, identity_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
-    @invalidate_action_cache()
     now = new Date()
     insert_attr =  {action: action, weight: +weight, created_at: now, updated_at: now}
     identity_attr = action
@@ -164,7 +160,6 @@ class EventStoreMapper
     .default([]).distinct().count().run()
 
   get_actions: ->
-    return bb.try( => @action_cache) if @action_cache
     @_r.table("#{@schema}_actions")
     .map((row) ->
       return {
@@ -175,7 +170,6 @@ class EventStoreMapper
     .run()
     .then( (rows) =>
       rows = _.sortBy(rows, (a) -> - a.weight)
-      @action_cache = rows
       rows
     )
 

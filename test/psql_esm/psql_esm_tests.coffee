@@ -45,31 +45,6 @@ describe '#get_jaccard_distances_between_people', ->
 describe "#bootstrap", ->
   it 'should not exhaust the pg connections'
 
-describe "action cache", ->
-  it 'should cache the action and invalidate when action changes', ->
-    init_esm(PsqlESM)
-    .then (esm) ->
-      esm.set_action_weight('view', 1)
-      .then( ->
-        (esm.action_cache == null).should.equal true
-        esm.get_actions()
-      )
-      .then( (actions) ->
-        esm.action_cache.should.equal actions
-        actions[0].key.should.equal 'view'
-        actions[0].weight.should.equal 1
-      )
-      .then( ->
-        esm.get_actions()
-      )
-      .then( (actions) ->
-        esm.action_cache.should.equal actions
-        esm.set_action_weight('view', 2)
-      )
-      .then( (exists) ->
-        (esm.action_cache == null).should.equal true
-      )
-
 describe "find_similar_people", ->
   it 'should order by persons activity DATE (NOT DATETIME) then by COUNT', ->
     init_esm(PsqlESM)

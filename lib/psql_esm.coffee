@@ -56,13 +56,9 @@ init_tables = (knex, schema = 'public') ->
 
 class PSQLEventStoreManager
   
-  invalidate_action_cache: ->
-    @action_cache = null
-
   #INSTANCE ACTIONS
   constructor: (@_schema = 'public', options = {}) ->
     @_knex = options.knex
-    @action_cache = null
 
   destroy: ->
     drop_tables(@_knex,@_schema)
@@ -173,7 +169,6 @@ class PSQLEventStoreManager
     @upsert("#{@_schema}.events", insert_attr, identity_attr, update_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
-    @invalidate_action_cache()
     now = new Date().toISOString()
     insert_attr =  {action: action, weight: weight, created_at: now, updated_at: now}
 
@@ -194,12 +189,10 @@ class PSQLEventStoreManager
     )
 
   get_actions: ->
-    return bb.try( => @action_cache) if @action_cache
     @_knex("#{@_schema}.actions")
     .select('action as key', 'weight')
     .orderBy('weight', 'desc')
     .then( (rows) =>
-      @action_cache = rows
       rows
     )
 
