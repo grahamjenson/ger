@@ -63,6 +63,7 @@ class EventStoreMapper
         promises = promises.concat([@_r.table("#{@namespace}_events").indexCreate("created_at").run(),
           @_r.table("#{@namespace}_events").indexCreate("expires_at").run(),
           @_r.table("#{@namespace}_events").indexCreate("person").run(),
+          @_r.table("#{@namespace}_events").indexCreate("person_thing",[@_r.row("person"),@_r.row("thing")]).run(),
           @_r.table("#{@namespace}_events").indexCreate("action_thing",[@_r.row("action"),@_r.row("thing")]).run(),
           @_r.table("#{@namespace}_events").indexCreate("person_action",[@_r.row("person"),@_r.row("action")]).run(),
           @_r.table("#{@namespace}_events").indexCreate("person_action_created_at",[@_r.row("person"),@_r.row("action"),@_r.row("created_at")]).run(),
@@ -113,11 +114,31 @@ class EventStoreMapper
     @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
   _event_selection: (person, action, thing) ->
+    single_selection = false
+    index = null
+    index_fields = null
+    if person and action and thing
+      index = "id"
+      single_selection = true
+    else
+      if person and action
+        index = "person_action"
+        index_fields = [person,action]
+      else if person and thing
+        index = "person_thing"
+        index_fields = [person,thing]
+      else if action and thing
+        index = "action_thing"
+        index_fields = [action, thing]
     q = @_r.table("#{@namespace}_events")
-    q = q.orderBy(r.desc('created_at'))
-    q = q.filter((row) => row('person').eq(person)) if person
-    q = q.filter((row) => row('action').eq(action)) if action
-    q = q.filter((row) => row('thing').eq(thing)) if thing
+    if single_selection
+      shasum = crypto.createHash("sha256")
+      shasum.update(person.toString() + action + thing)
+      id = shasum.digest("hex")
+      q = q.get(id)
+    else
+      q = q.getAll(index_fields,{index: index})
+      q = q.orderBy(r.desc('created_at'))
     return q
 
   find_events: (person, action, thing, options = {}) ->
@@ -127,10 +148,7 @@ class EventStoreMapper
 
     if person and action and thing
       #Fast single look up
-      shasum = crypto.createHash("sha256")
-      shasum.update(person.toString() + action + thing)
-      id = shasum.digest("hex")
-      @_r.table("#{@namespace}_events").get(id)
+      @_event_selection(person, action, thing)
       .run()
       .then( (e) -> 
         return [] if !e
