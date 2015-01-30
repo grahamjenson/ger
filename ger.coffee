@@ -234,6 +234,12 @@ class GER
   set_namespace: (namespace) ->
     @esm.set_namespace(namespace)
 
+  initialize_namespace: ->
+    @esm.initialize()
+
+  destroy_namespace: ->
+    @esm.destroy()
+
   get_action:(action) ->
     @esm.get_action_weight(action)
     .then( (weight) -> 
