@@ -22,6 +22,9 @@ class BasicInMemoryESM
     actions_store[@_namespace] ||= {}
     bb.try(-> )
 
+  set_namespace: (namespace) ->
+    @namespace = namespace
+
   destroy: ->
     delete event_store[@_namespace]
     delete person_action_store[@_namespace]
