@@ -11,6 +11,16 @@ esm_tests = (ESM) ->
         .then( -> esm.exists())
         .then( (exist) -> exist.should.equal true)    
 
+      it 'should sucessfully initialize namespace with default', ->
+        #based on an error where default is a reserved name in postgres
+        esm = new ESM("default", {knex: knex, r: r})
+        esm.destroy()
+        .then( -> esm.exists())
+        .then( (exist) -> exist.should.equal false)
+        .then( -> esm.initialize())
+        .then( -> esm.exists())
+        .then( (exist) -> exist.should.equal true)
+
       it 'should start with no actions or events', ->
         esm = new ESM("namespace", {knex: knex, r: r})
         esm.destroy()

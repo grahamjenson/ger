@@ -24,8 +24,8 @@ init_events_table = (knex, schema) ->
     table.timestamp('expires_at')
 
   ).then( ->
-    i1 = knex.raw("create index idx_person_created_at_#{schema}_events on #{schema}.events (person, action, created_at DESC)")
-    i2 = knex.raw("create index idx_thing_created_at_#{schema}_events on #{schema}.events (thing, action, created_at DESC)")
+    i1 = knex.raw("create index idx_person_created_at_#{schema}_events on \"#{schema}\".events (person, action, created_at DESC)")
+    i2 = knex.raw("create index idx_thing_created_at_#{schema}_events on \"#{schema}\".events (thing, action, created_at DESC)")
     bb.all([i1,i2])
   )
   
@@ -45,10 +45,10 @@ drop_tables = (knex, schema = 'public') ->
     knex.schema.dropTableIfExists("#{schema}.events"),
     knex.schema.dropTableIfExists("#{schema}.actions")
   ])
-  .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS #{schema}"))
+  .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS \"#{schema}\""))
   
 init_tables = (knex, schema = 'public') ->
-  knex.schema.raw("CREATE SCHEMA IF NOT EXISTS #{schema}")
+  knex.schema.raw("CREATE SCHEMA IF NOT EXISTS \"#{schema}\"")
   .then( => bb.all([init_events_table(knex, schema), init_action_table(knex, schema)]))
 
 
