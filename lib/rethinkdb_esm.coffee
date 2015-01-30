@@ -118,7 +118,6 @@ class EventStoreMapper
     index = null
     index_fields = null
     if person and action and thing
-      index = "id"
       single_selection = true
     else
       if person and action
@@ -136,7 +135,7 @@ class EventStoreMapper
       shasum.update(person.toString() + action + thing)
       id = shasum.digest("hex")
       q = q.get(id)
-    else
+    else if index
       q = q.getAll(index_fields,{index: index})
       q = q.orderBy(r.desc('created_at'))
     return q
