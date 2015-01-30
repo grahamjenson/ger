@@ -169,7 +169,7 @@ class PSQLEventStoreManager
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
     identity_attr = {person: person, action: action, thing: thing}
     update_attr = {created_at: created_at, expires_at: expires_at}
-    @upsert("#{@_namespace}.events", insert_attr, identity_attr, update_attr)
+    @upsert("\"#{@_namespace}\".events", insert_attr, identity_attr, update_attr)
 
   set_action_weight: (action, weight, overwrite = true) ->
     now = new Date().toISOString()
@@ -178,7 +178,7 @@ class PSQLEventStoreManager
     identity_attr = {action: action}
     update_attr = {action: action, updated_at: now}
     update_attr["weight"] = weight if overwrite
-    @upsert("#{@_namespace}.actions", insert_attr, identity_attr, update_attr)
+    @upsert("\"#{@_namespace}\".actions", insert_attr, identity_attr, update_attr)
     
 
 
@@ -279,7 +279,7 @@ class PSQLEventStoreManager
 
     ql = []
     for p in people
-      ql.push "(select person, thing, MAX(created_at) as max_ca from #{@_namespace}.events
+      ql.push "(select person, thing, MAX(created_at) as max_ca from \"#{@_namespace}\".events
           where action = $1 and person = #{person_bindings[p]} group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
@@ -412,7 +412,7 @@ class PSQLEventStoreManager
     @_knex.client.acquireConnection()
     .then( (connection) =>
       deferred = bb.defer()
-      pg_stream = connection.query(copyFrom("COPY #{@_namespace}.events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
+      pg_stream = connection.query(copyFrom("COPY \"#{@_namespace}\".events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
       counter = new CounterStream()
       stream.pipe(counter).pipe(pg_stream)
       .on('end', -> deferred.resolve(counter.count))
@@ -442,17 +442,17 @@ class PSQLEventStoreManager
     # TODO I would suggest doing it for active people. THIS IS WAY TOO SLOW!!!
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
     bindings = [person]
-    query = "DELETE FROM #{@_namespace}.events e1 
-    USING #{@_namespace}.events e2 
+    query = "DELETE FROM \"#{@_namespace}\".events e1 
+    USING \"#{@_namespace}\".events e2 
     WHERE e1.person = $1 AND e1.expires_at is NULL AND e1.id <> e2.id AND e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
     (e1.created_at < e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id) )" #LEXICOGRAPHIC ORDERING for created at then id
     @_knex.raw(query, bindings)
 
   vacuum_analyze: ->
-    @_knex.raw("VACUUM ANALYZE #{@_namespace}.events")
+    @_knex.raw("VACUUM ANALYZE \"#{@_namespace}\".events")
 
   analyze: ->
-    @_knex.raw("ANALYZE #{@_namespace}.events")
+    @_knex.raw("ANALYZE \"#{@_namespace}\".events")
 
 
   get_active_things: ->
@@ -515,9 +515,9 @@ class PSQLEventStoreManager
   truncate_thing_actions: (thing, trunc_size, action) ->
     bindings = [thing, action]
 
-    q = "delete from #{@_namespace}.events as e 
+    q = "delete from \"#{@_namespace}\".events as e 
          where e.id in 
-         (select id from #{@_namespace}.events where action = $2 and thing = $1
+         (select id from \"#{@_namespace}\".events where action = $2 and thing = $1
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
 
@@ -537,9 +537,9 @@ class PSQLEventStoreManager
     
   truncate_person_actions: (person, trunc_size, action) ->
     bindings = [person, action]
-    q = "delete from #{@_namespace}.events as e 
+    q = "delete from \"#{@_namespace}\".events as e 
          where e.id in 
-         (select id from #{@_namespace}.events where action = $2 and person = $1
+         (select id from \"#{@_namespace}\".events where action = $2 and person = $1
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
     
