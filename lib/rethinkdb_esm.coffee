@@ -63,6 +63,7 @@ class EventStoreMapper
         promises = promises.concat([@_r.table("#{@namespace}_events").indexCreate("created_at").run(),
           @_r.table("#{@namespace}_events").indexCreate("expires_at").run(),
           @_r.table("#{@namespace}_events").indexCreate("person").run(),
+          @_r.table("#{@namespace}_events").indexCreate("person_thing",[@_r.row("person"),@_r.row("thing")]).run(),
           @_r.table("#{@namespace}_events").indexCreate("action_thing",[@_r.row("action"),@_r.row("thing")]).run(),
           @_r.table("#{@namespace}_events").indexCreate("person_action",[@_r.row("person"),@_r.row("action")]).run(),
           @_r.table("#{@namespace}_events").indexCreate("person_action_created_at",[@_r.row("person"),@_r.row("action"),@_r.row("created_at")]).run(),
@@ -113,11 +114,38 @@ class EventStoreMapper
     @_r.table(table).insert(insert_attr, {conflict: conflict_method, durability: "soft"}).run()
 
   _event_selection: (person, action, thing) ->
+    single_selection = false
+    index = null
+    index_fields = null
+    if person and action and thing
+      single_selection = true
+    else if person and action
+      index = "person_action"
+      index_fields = [person,action]
+    else if person and thing
+      index = "person_thing"
+      index_fields = [person,thing]
+    else if action and thing
+      index = "action_thing"
+      index_fields = [action, thing]
+    else if person and !action and !thing
+      index = "person"
+      index_fields = person
+    else if action and !person and !thing
+      index = "action"
+      index_fields = action
+    else if thing and !action and !person
+      index = "thing"
+      index_fields = thing
     q = @_r.table("#{@namespace}_events")
-    q = q.orderBy(r.desc('created_at'))
-    q = q.filter((row) => row('person').eq(person)) if person
-    q = q.filter((row) => row('action').eq(action)) if action
-    q = q.filter((row) => row('thing').eq(thing)) if thing
+    if single_selection
+      shasum = crypto.createHash("sha256")
+      shasum.update(person.toString() + action + thing)
+      id = shasum.digest("hex")
+      q = q.get(id)
+    else if index
+      q = q.getAll(index_fields,{index: index})
+      q = q.orderBy(r.desc('created_at'))
     return q
 
   find_events: (person, action, thing, options = {}) ->
@@ -127,11 +155,8 @@ class EventStoreMapper
 
     if person and action and thing
       #Fast single look up
-      shasum = crypto.createHash("sha256")
-      shasum.update(person.toString() + action + thing)
-      id = shasum.digest("hex")
-      @_r.table("#{@namespace}_events").get(id)
-      .run()
+      @_event_selection(person, action, thing)
+      .run({useOutdated: true})
       .then( (e) -> 
         return [] if !e
         [e] # have to put it into a list
@@ -140,12 +165,12 @@ class EventStoreMapper
       #slower multi-event lookup
       @_event_selection(person, action, thing)
       .slice(page*size, size*(page + 1))
-      .run()
+      .run({useOutdated: true})
   
   delete_events: (person, action, thing) ->
     @_event_selection(person, action, thing)
     .delete()
-    .run()
+    .run({useOutdated: true,durability: "soft"})
 
   add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
@@ -160,7 +185,7 @@ class EventStoreMapper
 
   person_history_count: (person) ->
     @_r.table("#{@namespace}_events").getAll(person,{index: "person"})("thing")
-    .default([]).distinct().count().run()
+    .default([]).distinct().count().run({useOutdated: true})
 
   get_actions: ->
     @_r.table("#{@namespace}_actions")
@@ -170,7 +195,7 @@ class EventStoreMapper
         weight: row("weight")
       }
     )
-    .run()
+    .run({useOutdated: true})
     .then( (rows) =>
       rows = _.sortBy(rows, (a) -> - a.weight)
       rows
@@ -180,7 +205,7 @@ class EventStoreMapper
     shasum = crypto.createHash("sha256")
     shasum.update(action.toString())
     id = shasum.digest("hex")
-    @_r.table("#{@namespace}_actions").get(id)('weight').default(null).run()
+    @_r.table("#{@namespace}_actions").get(id)('weight').default(null).run({useOutdated: true})
 
   find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
@@ -211,7 +236,7 @@ class EventStoreMapper
     )
     .orderBy(r.desc('count'))
     .limit(limit)("person")
-    .run()
+    .run({useOutdated: true})
 
 
   filter_things_by_previous_actions: (person, things, actions) ->
@@ -219,7 +244,7 @@ class EventStoreMapper
     indexes = []
     indexes.push([person, action]) for action in actions
     @_r.expr(things).setDifference(@_r.table("#{@namespace}_events").getAll(@_r.args(indexes),{index: "person_action"})
-    .coerceTo("ARRAY")("thing")).run()
+    .coerceTo("ARRAY")("thing")).run({useOutdated: true})
 
   recently_actioned_things_by_people: (action, people, limit = 50) ->
     return bb.try(->[]) if people.length == 0
@@ -247,7 +272,7 @@ class EventStoreMapper
       a.merge(b)
     )
     .default({})
-    .run()
+    .run({useOutdated: true})
 
   get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
@@ -319,7 +344,7 @@ class EventStoreMapper
           a.merge(b)
       )
     )
-    .run()
+    .run({useOutdated: true})
 
   calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
     @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
@@ -328,22 +353,22 @@ class EventStoreMapper
     shasum = crypto.createHash("sha256")
     shasum.update(person.toString() + action + thing)
     id = shasum.digest("hex")
-    @_r.table("#{@namespace}_events").get(id).ne(null).run()
+    @_r.table("#{@namespace}_events").get(id).ne(null).run({useOutdated: true})
 
   has_action: (action) ->
     shasum = crypto.createHash("sha256")
     shasum.update(action.toString())
     id = shasum.digest("hex")
-    @_r.table("#{@namespace}_actions").get(id).ne(null).run()
+    @_r.table("#{@namespace}_actions").get(id).ne(null).run({useOutdated: true})
 
   count_events: ->
-    @_r.table("#{@namespace}_events").count().run()
+    @_r.table("#{@namespace}_events").count().run({useOutdated: true})
 
   estimate_event_count: ->
-    @_r.table("#{@namespace}_events").count().run()
+    @_r.table("#{@namespace}_events").count().run({useOutdated: true})
 
   count_actions: ->
-    @_r.table("#{@namespace}_actions").count().run()
+    @_r.table("#{@namespace}_actions").count().run({useOutdated: true})
 
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
@@ -386,7 +411,7 @@ class EventStoreMapper
 
   expire_events: ->
     #removes the events passed their expiry date
-    @_r.table("#{@namespace}_events").between(null,@_r.now(),{index: "expires_at",rightBound: "closed"}).delete().run()
+    @_r.table("#{@namespace}_events").between(null,@_r.now(),{index: "expires_at",rightBound: "closed"}).delete().run({useOutdated: true,durability: "soft"})
 
   pre_compact: ->
     bb.try -> true
@@ -407,7 +432,7 @@ class EventStoreMapper
     .count()
     .ungroup()
     .orderBy(r.desc('reduction'))
-    .limit(100)('group').run()
+    .limit(100)('group').run({useOutdated: true})
 
   get_active_people: ->
     #Select 10K events, count frequencies order them and return
@@ -416,7 +441,7 @@ class EventStoreMapper
     .count()
     .ungroup()
     .orderBy(r.desc('reduction'))
-    .limit(100)('group').run()
+    .limit(100)('group').run({useOutdated: true})
 
   compact_people : (compact_database_person_action_limit) ->
     @get_active_people()
@@ -442,7 +467,7 @@ class EventStoreMapper
       promises = []
       for thing in things
         for action in actions
-          promises.push @_r.table("#{@namespace}_events").getAll([action,thing], {index: "action_thing"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run()
+          promises.push @_r.table("#{@namespace}_events").getAll([action,thing], {index: "action_thing"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true, durability: "soft"})
 
       bb.all(promises)
     )
@@ -457,7 +482,7 @@ class EventStoreMapper
       promises = []
       for person in people
         for action in actions
-          promises.push @_r.table("#{@namespace}_events").getAll([person, action],{index: "person_action"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run()
+          promises.push @_r.table("#{@namespace}_events").getAll([person, action],{index: "person_action"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true,durability: "soft"})
       #cut each action down to size
       bb.all(promises)
     )
@@ -466,7 +491,7 @@ class EventStoreMapper
     #TODO move too offset method
     #removes old events till there is only number_of_events left
     @_r.table("#{@namespace}_events").orderBy({index: @_r.desc("created_at")})
-    .skip(number_of_events).delete().run()
+    .skip(number_of_events).delete().run({useOutdated: true,durability: "soft"})
 
 
 module.exports = EventStoreMapper;
