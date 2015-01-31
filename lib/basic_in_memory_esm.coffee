@@ -23,7 +23,7 @@ class BasicInMemoryESM
     bb.try(-> )
 
   set_namespace: (namespace) ->
-    @namespace = namespace
+    @_namespace = namespace
 
   destroy: ->
     delete event_store[@_namespace]

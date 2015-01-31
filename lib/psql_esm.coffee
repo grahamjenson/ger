@@ -71,7 +71,7 @@ class PSQLEventStoreManager
     )
 
   set_namespace: (namespace) ->
-    @namespace = namespace
+    @_namespace = namespace
 
   exists: ->
     @_knex.raw("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{@_namespace}'")

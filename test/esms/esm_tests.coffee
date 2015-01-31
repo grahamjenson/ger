@@ -1,6 +1,24 @@
 esm_tests = (ESM) ->
-  describe 'construction', ->
+  describe 'namespace', ->
+    it 'should switch namespace', ->
+      esm = new ESM("namespace", {knex: knex, r: r})
+      esm.destroy()
+      .then( -> esm.exists())
+      .then( (exist) -> exist.should.equal false)
+      .then( -> esm.initialize())
+      .then( -> esm.exists())
+      .then( (exist) -> 
+        exist.should.equal true
+        esm.set_namespace('new_namespace')
+        esm.destroy()
+      )
+      .then( -> esm.exists())
+      .then( (exist) -> exist.should.equal false)
+      .then( -> esm.initialize())
+      .then( -> esm.exists())
+      .then( (exist) -> exist.should.equal true) 
 
+  describe 'construction', ->
     describe '#initialize #exists #destroy', ->
       it 'should initialize namespace', ->
         esm = new ESM("namespace", {knex: knex, r: r})
