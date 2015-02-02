@@ -1,7 +1,7 @@
 esm_tests = (ESM) ->
   describe 'namespace', ->
     it 'should switch namespace', ->
-      esm = new ESM("namespace", {knex: knex, r: r})
+      esm = new ESM("namespace", {knex: _knex, r: _r})
       esm.destroy()
       .then( -> esm.exists())
       .then( (exist) -> exist.should.equal false)
@@ -21,7 +21,7 @@ esm_tests = (ESM) ->
   describe 'construction', ->
     describe '#initialize #exists #destroy', ->
       it 'should initialize namespace', ->
-        esm = new ESM("namespace", {knex: knex, r: r})
+        esm = new ESM("namespace", {knex: _knex, r: _r})
         esm.destroy()
         .then( -> esm.exists())
         .then( (exist) -> exist.should.equal false)
@@ -31,7 +31,7 @@ esm_tests = (ESM) ->
 
       it 'should sucessfully initialize namespace with default', ->
         #based on an error where default is a reserved name in postgres
-        esm = new ESM("default", {knex: knex, r: r})
+        esm = new ESM("default", {knex: _knex, r: _r})
         esm.destroy()
         .then( -> esm.exists())
         .then( (exist) -> exist.should.equal false)
@@ -40,7 +40,7 @@ esm_tests = (ESM) ->
         .then( (exist) -> exist.should.equal true)
 
       it 'should start with no actions or events', ->
-        esm = new ESM("namespace", {knex: knex, r: r})
+        esm = new ESM("namespace", {knex: _knex, r: _r})
         esm.destroy()
         .then( -> esm.initialize())
         .then( -> bb.all([esm.count_events(), esm.get_actions()]))
@@ -50,7 +50,7 @@ esm_tests = (ESM) ->
         )
         
       it 'should not error out or remove events if re-initialized', ->
-        esm = new ESM("namespace", {knex: knex, r: r})
+        esm = new ESM("namespace", {knex: _knex, r: _r})
         esm.destroy()
         .then( -> esm.initialize())
         .then( -> esm.add_event('p','a','t'))
@@ -61,8 +61,8 @@ esm_tests = (ESM) ->
         .then( (count) -> count.should.equal 1)
 
       it 'should create resources for ESM namespace', ->
-        esm1 = new ESM("namespace1", {knex: knex, r: r}) #pass knex as it might be needed
-        esm2 = new ESM("namespace2", {knex: knex, r: r}) #pass knex as it might be needed
+        esm1 = new ESM("namespace1", {knex: _knex, r: _r}) #pass knex as it might be needed
+        esm2 = new ESM("namespace2", {knex: _knex, r: _r}) #pass knex as it might be needed
         bb.all([esm1.destroy(), esm2.destroy()])
         .then( -> bb.all([esm1.initialize(), esm2.initialize()]) )
         .then( ->
@@ -82,7 +82,7 @@ esm_tests = (ESM) ->
         )
 
       it 'should destroy should not break if resource does not exist', ->
-        esm = new ESM("namespace", {knex: knex, r: r})
+        esm = new ESM("namespace", {knex: _knex, r: _r})
         esm.destroy()
         .then( -> esm.destroy())
 

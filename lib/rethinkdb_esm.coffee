@@ -145,7 +145,7 @@ class EventStoreMapper
       q = q.get(id)
     else if index
       q = q.getAll(index_fields,{index: index})
-      q = q.orderBy(r.desc('created_at'))
+      q = q.orderBy(@_r.desc('created_at'))
     return q
 
   find_events: (person, action, thing, options = {}) ->
@@ -248,7 +248,7 @@ class EventStoreMapper
 
   recently_actioned_things_by_people: (action, people, limit = 50) ->
     return bb.try(->[]) if people.length == 0
-
+    r = @_r
     people_actions = []
     for p in people
       people_actions.push [p,action]
@@ -440,7 +440,7 @@ class EventStoreMapper
     .group('person')
     .count()
     .ungroup()
-    .orderBy(r.desc('reduction'))
+    .orderBy(@_r.desc('reduction'))
     .limit(100)('group').run({useOutdated: true})
 
   compact_people : (compact_database_person_action_limit) ->
