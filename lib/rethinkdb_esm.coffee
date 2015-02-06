@@ -431,7 +431,7 @@ class EventStoreMapper
     .group('thing')
     .count()
     .ungroup()
-    .orderBy(r.desc('reduction'))
+    .orderBy(@_r.desc('reduction'))
     .limit(100)('group').run({useOutdated: true})
 
   get_active_people: ->
