@@ -307,23 +307,23 @@ class EventStoreMapper
         a.merge(b)
     ).do((rows) ->
       r(actions).concatMap((a) ->
-        _a = r.expr(a).coerceTo("string")
-        person_histories = rows(r(person).coerceTo("string"))(_a).default(null)
-        person_history = r.branch(person_histories.ne(null), person_histories("history"),[])
-        person_recent_history = r.branch(person_histories.ne(null), person_histories("recent_history"),[])
-        r(people).map((p) ->
-          r(p).coerceTo("string").do (_p) ->
-            rows(_p)(_a).default(null).do (p_histories) ->
-              r.branch(p_histories.ne(null),p_histories("history"),[]).coerceTo("array").do (p_history) ->
-                r.branch(p_histories.ne(null),p_histories("recent_history"),[]).coerceTo("array").do (p_recent_history) ->
-                  r.object(_p,r.object(_a,r(p_history).setIntersection(person_history).count().div(r([r(p_history).setUnion(person_history).count(),1]).max()))).do (limit_distance) ->
-                    r.object(_p,r.object(_a,r(p_recent_history).setIntersection(person_recent_history).count().div(r([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max()))).do (recent_distance) ->
-                      {
-                          limit_distance: limit_distance,
-                          recent_distance: recent_distance
-                      }
+        r(a).coerceTo("string").do (_a) ->
+          rows(r(person).coerceTo("string"))(_a).default(null).do (person_histories) ->
+            r.branch(person_histories.ne(null), person_histories("history"),[]).coerceTo("array").do (person_history) ->
+              r.branch(person_histories.ne(null), person_histories("recent_history"),[]).coerceTo("array").do (person_recent_history) ->
+                r(people).map((p) ->
+                  r(p).coerceTo("string").do (_p) ->
+                    rows(_p)(_a).default(null).do (p_histories) ->
+                      r.branch(p_histories.ne(null),p_histories("history"),[]).coerceTo("array").do (p_history) ->
+                        r.branch(p_histories.ne(null),p_histories("recent_history"),[]).coerceTo("array").do (p_recent_history) ->
+                          r.object(_p,r.object(_a,r(p_history).setIntersection(person_history).count().div(r([r(p_history).setUnion(person_history).count(),1]).max()))).do (limit_distance) ->
+                            r.object(_p,r.object(_a,r(p_recent_history).setIntersection(person_recent_history).count().div(r([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max()))).do (recent_distance) ->
+                              {
+                                  limit_distance: limit_distance,
+                                  recent_distance: recent_distance
+                              }
+                )
         )
-      )
       .reduce((a,b) ->
         {
           limit_distance: a("limit_distance").merge(b("limit_distance")),
