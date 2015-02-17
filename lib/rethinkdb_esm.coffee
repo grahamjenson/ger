@@ -243,7 +243,7 @@ class EventStoreMapper
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
     indexes = []
     indexes.push([person, action]) for action in actions
-    @_r.expr(things).setDifference(@_r.table("#{@namespace}_events").getAll(@_r.args(indexes),{index: "person_action"})
+    @_r(things).setDifference(@_r.table("#{@namespace}_events").getAll(@_r.args(indexes),{index: "person_action"})
     .coerceTo("ARRAY")("thing")).run({useOutdated: true})
 
   recently_actioned_things_by_people: (action, people, limit = 50) ->
@@ -306,22 +306,22 @@ class EventStoreMapper
     ).reduce((a,b) ->
         a.merge(b)
     ).do((rows) ->
-      r.expr(actions).concatMap((a) ->
+      r(actions).concatMap((a) ->
         _a = r.expr(a).coerceTo("string")
-        person_histories = rows(r.expr(person).coerceTo("string"))(_a).default(null)
+        person_histories = rows(r(person).coerceTo("string"))(_a).default(null)
         person_history = r.branch(person_histories.ne(null), person_histories("history"),[])
         person_recent_history = r.branch(person_histories.ne(null), person_histories("recent_history"),[])
-        r.expr(people).map((p) ->
-          _p = r.expr(p).coerceTo("string")
-          p_histories = rows(_p)(_a).default(null)
-          p_history = r.branch(p_histories.ne(null),p_histories("history"),[])
-          p_recent_history = r.branch(p_histories.ne(null),p_histories("recent_history"),[])
-          limit_distance = r.object(_p,r.object(_a,r.expr(p_history).setIntersection(person_history).count().div(r.expr([r.expr(p_history).setUnion(person_history).count(),1]).max())))
-          recent_distance = r.object(_p,r.object(_a,r.expr(p_recent_history).setIntersection(person_recent_history).count().div(r.expr([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max())))
-          {
-              limit_distance: limit_distance,
-              recent_distance: recent_distance
-          }
+        r(people).map((p) ->
+          r(p).coerceTo("string").do (_p) ->
+            rows(_p)(_a).default(null).do (p_histories) ->
+              r.branch(p_histories.ne(null),p_histories("history"),[]).coerceTo("array").do (p_history) ->
+                r.branch(p_histories.ne(null),p_histories("recent_history"),[]).coerceTo("array").do (p_recent_history) ->
+                  r.object(_p,r.object(_a,r(p_history).setIntersection(person_history).count().div(r([r(p_history).setUnion(person_history).count(),1]).max()))).do (limit_distance) ->
+                    r.object(_p,r.object(_a,r(p_recent_history).setIntersection(person_recent_history).count().div(r([r.expr(p_recent_history).setUnion(person_recent_history).count(),1]).max()))).do (recent_distance) ->
+                      {
+                          limit_distance: limit_distance,
+                          recent_distance: recent_distance
+                      }
         )
       )
       .reduce((a,b) ->
@@ -332,14 +332,14 @@ class EventStoreMapper
       )
     )
     .do((data) ->
-      r.expr(people).concatMap((p) ->
-        _p = r.expr(p).coerceTo("string")
-        r.expr(actions).map((a) ->
-          _a = r.expr(a).coerceTo("string")
-          recent_weight = r.branch(data("recent_distance")(_p).ne(null).and(data("recent_distance")(_p)(_a).ne(null)),data("recent_distance")(_p)(_a), 0)
-          event_weight = r.branch(data("limit_distance")(_p).ne(null).and(data("limit_distance")(_p)(_a).ne(null)),data("limit_distance")(_p)(_a), 0)
-          r.object(_p,r.object(_a, recent_weight.mul(4).add(event_weight.mul(1)).div(5)))
-        )
+      r(people).concatMap((p) ->
+        r(p).coerceTo("string").do (_p) ->
+          r(actions).map((a) ->
+            r(a).coerceTo("string").do (_a) ->
+              r.branch(data("recent_distance")(_p).ne(null).and(data("recent_distance")(_p)(_a).ne(null)),data("recent_distance")(_p)(_a), 0).do (recent_weight) ->
+                r.branch(data("limit_distance")(_p).ne(null).and(data("limit_distance")(_p)(_a).ne(null)),data("limit_distance")(_p)(_a), 0).do (event_weight) ->
+                  r.object(_p,r.object(_a, recent_weight.mul(4).add(event_weight.mul(1)).div(5)))
+          )
       ).reduce((a,b) ->
           a.merge(b)
       )
