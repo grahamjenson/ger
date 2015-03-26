@@ -51,7 +51,7 @@ describe 'crowd_weight', ->
         recs[1].thing.should.equal 'x'
       )
 
-describe "minimum_history_limit", ->
+describe "minimum_history_required", ->
   it "should not generate recommendations for events ", ->
     init_ger(default_esm, 'public')
     .then (ger) ->
@@ -61,10 +61,10 @@ describe "minimum_history_limit", ->
         ger.event('p2','view','a'),
         ger.event('p2','view','b'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'view', minimum_history_limit: 2))
+      .then(-> ger.recommendations_for_person('p1', 'view', minimum_history_required: 2))
       .then((recs) ->
         recs.recommendations.length.should.equal 0
-        ger.recommendations_for_person('p2', 'view', minimum_history_limit: 2)
+        ger.recommendations_for_person('p2', 'view', minimum_history_required: 2)
       ).then((recs) ->
         recs.recommendations.length.should.equal 2
       )
@@ -90,8 +90,8 @@ describe "joining multiple gers", ->
         ger2.event('p2','buy','b'),
       ])
       .then( -> bb.all([
-          ger1.recommendations_for_person('p1', 'buy', {similar_people_limit: 2, person_history_limit: 4}),
-          ger2.recommendations_for_person('p1', 'buy', {similar_people_limit: 4, person_history_limit: 8})
+          ger1.recommendations_for_person('p1', 'buy', {similar_people_limit: 2, history_search_size: 4}),
+          ger2.recommendations_for_person('p1', 'buy', {similar_people_limit: 4, history_search_size: 8})
         ])
       )
       .spread((recs1, recs2) ->

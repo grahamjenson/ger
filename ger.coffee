@@ -10,8 +10,8 @@ class GER
 
   ####################### Weighted people  #################################
 
-  calculate_similarities_from_person : (person, people, actions, person_history_limit, recent_event_days) ->
-    @esm.calculate_similarities_from_person(person, people, Object.keys(actions), person_history_limit, recent_event_days)
+  calculate_similarities_from_person : (person, people, actions, history_search_size, recent_event_days) ->
+    @esm.calculate_similarities_from_person(person, people, Object.keys(actions), history_search_size, recent_event_days)
     .then( (people_weights) =>
       temp = {}
       for p, weights of people_weights
@@ -45,8 +45,8 @@ class GER
     [ltmean, gtmean]
     
   
-  filter_recommendations: (person, recommendations, previous_actions_filter) ->
-    @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), previous_actions_filter)
+  filter_recommendations: (person, recommendations, filter_previous_actions) ->
+    @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), filter_previous_actions)
     .then( (filter_things) ->
       filtered_recs = []
       for thing, recommendation_info of recommendations
@@ -82,15 +82,15 @@ class GER
     tc
 
 
-  find_similar_people: (person, action, actions, similar_people_limit, person_history_limit) ->
+  find_similar_people: (person, action, actions, similar_people_limit, history_search_size) ->
     #Split the actions into two separate groups (actions below mean and actions above mean)
     #This is a useful heuristic to  
     action_list = Object.keys(actions)
     [actions_below_mean, actions_above_mean] = @half_array_by_mean(action_list, actions)
 
     bb.all([
-      @esm.find_similar_people(person, actions_below_mean, action, similar_people_limit, person_history_limit), 
-      @esm.find_similar_people(person, actions_above_mean, action, similar_people_limit, person_history_limit)])
+      @esm.find_similar_people(person, actions_below_mean, action, similar_people_limit, history_search_size), 
+      @esm.find_similar_people(person, actions_above_mean, action, similar_people_limit, history_search_size)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
     )
@@ -105,10 +105,10 @@ class GER
 
   generate_recommendations_for_person: (person, action, actions, person_history_count, configuration) ->
 
-    @find_similar_people(person, action, actions, configuration.similar_people_limit, configuration.person_history_limit)
+    @find_similar_people(person, action, actions, configuration.similar_people_limit, configuration.history_search_size)
     .then( (people) =>
       bb.all([
-        @calculate_similarities_from_person(person, people, actions, configuration.person_history_limit, configuration.recent_event_days)
+        @calculate_similarities_from_person(person, people, actions, configuration.history_search_size, configuration.recent_event_days)
         @recently_actioned_things_by_people(action, people.concat(person), configuration.related_things_limit)
       ])
     )
@@ -133,7 +133,7 @@ class GER
         ri.weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
 
       # CALCULATE CONFIDENCES
-      bb.all([@filter_recommendations(person, things_weight, configuration.previous_actions_filter), similar_people] )
+      bb.all([@filter_recommendations(person, things_weight, configuration.filter_previous_actions), similar_people] )
     )
     .spread( (recommendations, similar_people) =>
 
@@ -162,20 +162,20 @@ class GER
 
   recommendations_for_person: (person, action, configuration = {}) ->
     configuration = _.defaults(configuration,
-      minimum_history_limit: 1,
+      minimum_history_required: 1,
+      history_search_size: 500
+      crowd_weight: 0
       similar_people_limit: 25,
       related_things_limit: 10
       recommendations_limit: 20,
       recent_event_days: 14,
-      previous_actions_filter: []
-      person_history_limit: 500
-      crowd_weight: 0
+      filter_previous_actions: []
     )
 
     #first a check or two
     bb.all([@esm.person_history_count(person), @esm.get_actions()])
     .spread( (count, action_weights) =>
-      if count < configuration.minimum_history_limit
+      if count < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}
       else
         total_action_weight = 0

@@ -102,7 +102,7 @@ describe 'recommendations_for_person', ->
         ger.action('buy'),
         ger.event('p1','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
+      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
@@ -118,7 +118,7 @@ describe 'recommendations_for_person', ->
         ger.event('p2','buy','b'),
         ger.event('p2','buy','c'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
+      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
@@ -134,7 +134,7 @@ describe 'recommendations_for_person', ->
         ger.event('p1','buy','a'),
         ger.event('p2','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
+      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
@@ -150,7 +150,7 @@ describe 'recommendations_for_person', ->
         ger.event('p2','view','a'),
         ger.event('p2','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
+      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
