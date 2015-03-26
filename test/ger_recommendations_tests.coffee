@@ -3,7 +3,6 @@ describe 'crowd_weight', ->
     init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
-        ger.action('view',1),
         ger.event('p1','view','a'),
 
         ger.event('p2','view','a'),
@@ -18,7 +17,7 @@ describe 'crowd_weight', ->
         ger.event('p4','view','c')
         ger.event('p4','buy','y'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {view: 1}))
       .then((recs) ->
         recs = recs.recommendations
         recs[0].thing.should.equal 'x'
@@ -29,7 +28,6 @@ describe 'crowd_weight', ->
     init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
-        ger.action('view',1),
         ger.event('p1','view','a'),
 
         ger.event('p2','view','a'),
@@ -44,7 +42,7 @@ describe 'crowd_weight', ->
         ger.event('p4','view','c')
         ger.event('p4','buy','y'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', crowd_weight: 1))
+      .then(-> ger.recommendations_for_person('p1', 'buy', crowd_weight: 1, actions: {view: 1}))
       .then((recs) ->
         recs = recs.recommendations
         recs[0].thing.should.equal 'y'
@@ -56,15 +54,14 @@ describe "minimum_history_required", ->
     init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
-        ger.action('view',1),
         ger.event('p1','view','a'),
         ger.event('p2','view','a'),
         ger.event('p2','view','b'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'view', minimum_history_required: 2))
+      .then(-> ger.recommendations_for_person('p1', 'view', minimum_history_required: 2, actions: {view: 1}))
       .then((recs) ->
         recs.recommendations.length.should.equal 0
-        ger.recommendations_for_person('p2', 'view', minimum_history_required: 2)
+        ger.recommendations_for_person('p2', 'view', minimum_history_required: 2, actions: {view: 1})
       ).then((recs) ->
         recs.recommendations.length.should.equal 2
       )
@@ -78,8 +75,6 @@ describe "joining multiple gers", ->
     ])
     .spread (ger1, ger2) ->
       bb.all([
-        ger1.action('view', 1),
-        ger2.action('view', 1),
 
         ger1.event('p1','view','a'),
         ger1.event('p2','view','a'),
@@ -90,8 +85,8 @@ describe "joining multiple gers", ->
         ger2.event('p2','buy','b'),
       ])
       .then( -> bb.all([
-          ger1.recommendations_for_person('p1', 'buy', {similar_people_limit: 2, history_search_size: 4}),
-          ger2.recommendations_for_person('p1', 'buy', {similar_people_limit: 4, history_search_size: 8})
+          ger1.recommendations_for_person('p1', 'buy', {similar_people_limit: 2, history_search_size: 4, actions: {view: 1}}),
+          ger2.recommendations_for_person('p1', 'buy', {similar_people_limit: 4, history_search_size: 8, actions: {view: 1}})
         ])
       )
       .spread((recs1, recs2) ->
@@ -105,11 +100,10 @@ describe "confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('action1',1),
         ger.event('p1','action1','a'),
         ger.event('p2','action1','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'action1'))
+      .then(-> ger.recommendations_for_person('p1', 'action1', actions: {action1: 1}))
       .then((similar_people) ->
         similar_people.confidence.should.exist
       )
@@ -118,10 +112,9 @@ describe "confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('action1',1),
         ger.event('p1','action1','a')
       ])
-      .then(-> ger.recommendations_for_person('p1', 'action1'))
+      .then(-> ger.recommendations_for_person('p1', 'action1', actions: {action1: 1}))
       .then((similar_people) ->
         similar_people.confidence.should.equal 0
       )
@@ -130,7 +123,6 @@ describe "confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view', 1),
         ger.event('p1','view','a'),
         ger.event('p1','view','b'),
         ger.event('p2','view','a'),
@@ -144,8 +136,8 @@ describe "confidence", ->
       ])
       .then(->
         bb.all([
-          ger.recommendations_for_person('p1', 'view')
-          ger.recommendations_for_person('p3', 'view')
+          ger.recommendations_for_person('p1', 'view', actions: {view: 1})
+          ger.recommendations_for_person('p3', 'view', actions: {view: 1})
         ])
       )
       .spread((recs1, recs2) ->
@@ -156,7 +148,6 @@ describe "confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view', 1),
         ger.event('p1','view','a'),
         ger.event('p2','view','a'),
 
@@ -166,8 +157,8 @@ describe "confidence", ->
       ])
       .then(->
         bb.all([
-          ger.recommendations_for_person('p1', 'view')
-          ger.recommendations_for_person('p3', 'view')
+          ger.recommendations_for_person('p1', 'view', actions: {view: 1})
+          ger.recommendations_for_person('p3', 'view', actions: {view: 1})
         ])
       )
       .spread((recs1, recs2) ->
@@ -179,7 +170,6 @@ describe "confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view', 1),
         ger.event('p1','view','a'),
         ger.event('p2','view','a'),
 
@@ -190,8 +180,8 @@ describe "confidence", ->
       ])
       .then(->
         bb.all([
-          ger.recommendations_for_person('p1', 'view')
-          ger.recommendations_for_person('p3', 'view')
+          ger.recommendations_for_person('p1', 'view', actions: {view: 1})
+          ger.recommendations_for_person('p3', 'view', actions: {view: 1})
         ])
       )
       .spread((recs1, recs2) ->
@@ -203,10 +193,9 @@ describe "confidence", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view', 1),
         ger.event('p1','view','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {view: 1}))
       .then((recs) ->
         recs.confidence.should.equal 0
       )
@@ -216,8 +205,6 @@ describe "weights", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view', 1),
-        ger.action('buy', 5),
         ger.event('p1','view','a'),
         ger.event('p1','buy','b'),
 
@@ -234,7 +221,7 @@ describe "weights", ->
         ger.event('p4','buy','y'),
         ger.event('p5','buy','y')
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {view: 1, buy: 5}))
       .then((recs) ->
         item_weights = recs.recommendations
         #p1 is similar by 1 view to p2 p3 p4 p5
@@ -243,9 +230,9 @@ describe "weights", ->
         item_weights[0].thing.should.equal 'b'
         item_weights[1].thing.should.equal 'y'
         item_weights[2].thing.should.equal 'x'
-        ger.action('buy', 10)
+
       )
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {view: 1, buy: 10}))
       .then((recs) ->
         item_weights = recs.recommendations
         item_weights[0].thing.should.equal 'b'
@@ -257,8 +244,6 @@ describe "weights", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('action1'),
-        ger.action('neg_action', 0),
         ger.event('p1','action1','a'),
         ger.event('p2','action1','a'),
         ger.event('p2','buy','x'),
@@ -268,7 +253,7 @@ describe "weights", ->
         ger.event('p3','buy','y'),
 
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {action1: 1, neg_action: 0}))
       .then((recs) ->
         item_weights = recs.recommendations
         item_weights.length.should.equal 1
@@ -280,8 +265,6 @@ describe "person exploits,", ->
     init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
-        ger.action('view', 1),
-        ger.action('buy', 5),
         ger.event('p1','view','a'),
         ger.event('p1','view','b'),
         #p2 is closer to p1, but theie recommendation was 2 days ago. It should still be included
@@ -294,7 +277,7 @@ describe "person exploits,", ->
         ger.event('p3','buy','m', created_at: moment().subtract(2, 'hours')),
         ger.event('p3','buy','n', created_at: moment().subtract(1, 'hours'))
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', related_things_limit: 1))
+      .then(-> ger.recommendations_for_person('p1', 'buy', related_things_limit: 1, actions: {buy: 5, view: 1}))
       .then((recs) ->
         item_weights = recs.recommendations
         item_weights.length.should.equal 2
@@ -315,8 +298,6 @@ describe "person exploits,", ->
       ger.bootstrap(rs)
       .then( ->
         bb.all([
-          ger.action('buy'),
-          ger.action('view'),
           ger.event('real_person', 'view', 't2')
           ger.event('real_person', 'buy', 't2')
           ger.event('person', 'view', 't1')
@@ -324,7 +305,7 @@ describe "person exploits,", ->
         ])
       )
       .then( ->
-        ger.recommendations_for_person('person', 'buy')
+        ger.recommendations_for_person('person', 'buy', actions: {buy:1, view:1})
       )
       .then((recs) ->
         item_weights = recs.recommendations

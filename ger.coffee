@@ -160,7 +160,7 @@ class GER
 
     )
 
-  recommendations_for_person: (person, action, configuration = {}) ->
+  recommendations_for_person: (person, rec_action, configuration = {}) ->
     configuration = _.defaults(configuration,
       minimum_history_required: 1,
       history_search_size: 500
@@ -170,22 +170,27 @@ class GER
       recommendations_limit: 20,
       recent_event_days: 14,
       filter_previous_actions: []
+      actions: {}
     )
 
     #first a check or two
-    bb.all([@esm.person_history_count(person), @esm.get_actions()])
-    .spread( (count, action_weights) =>
+    @esm.person_history_count(person)
+    .then( (count) =>
       if count < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}
       else
         total_action_weight = 0
-        for aw in action_weights
-          total_action_weight += aw.weight
+        for action, weight of configuration.actions
+          continue if weight <= 0
+          total_action_weight += weight
+
         #filter and normalize actions with 0 weight from actions
         actions = {}
-        (actions[aw.key] = (aw.weight / total_action_weight) for aw in action_weights when aw.weight > 0)
-
-        return @generate_recommendations_for_person(person, action, actions, count, configuration)
+        for action, weight of configuration.actions
+          continue if weight <= 0
+          actions[action] = weight/total_action_weight
+         
+        return @generate_recommendations_for_person(person, rec_action, actions, count, configuration)
     )
 
   ##Wrappers of the ESM
