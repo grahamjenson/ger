@@ -96,20 +96,20 @@ describe 'recommendations_for_person', ->
       )
 
   it 'should filter previously actioned things based on filter events option', ->
-    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('buy'),
         ger.event('p1','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
       )
 
   it 'should filter actioned things from other people', ->
-    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('buy'),
@@ -118,7 +118,7 @@ describe 'recommendations_for_person', ->
         ger.event('p2','buy','b'),
         ger.event('p2','buy','c'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
@@ -126,7 +126,7 @@ describe 'recommendations_for_person', ->
       ) 
 
   it 'should filter previously actioned by someone else', ->
-    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('view'),
@@ -134,14 +134,14 @@ describe 'recommendations_for_person', ->
         ger.event('p1','buy','a'),
         ger.event('p2','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
       )
 
   it 'should not filter non actioned things', ->
-    init_ger(default_esm, 'public', previous_actions_filter: ['buy'])
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('view'),
@@ -150,7 +150,7 @@ describe 'recommendations_for_person', ->
         ger.event('p2','view','a'),
         ger.event('p2','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', previous_actions_filter: ['buy']))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
@@ -215,7 +215,7 @@ describe 'recommendations_for_person', ->
       )
 
   it 'should return only similar people who contributed to recommendations', ->
-    init_ger(default_esm, 'public', {recommendations_limit: 1})
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('view'),
@@ -229,7 +229,7 @@ describe 'recommendations_for_person', ->
         ger.event('p3','view','a'),
         ger.event('p3','view','d'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', {explain: true}))
+      .then(-> ger.recommendations_for_person('p1', 'buy', {recommendations_limit: 1}))
       .then((recommendations) ->
         recommendations.recommendations.length.should.equal 1
 
@@ -279,7 +279,7 @@ describe 'find_similar_people', ->
 describe 'calculate_similarities_from_person', ->
 
   it "should weight recent events more than past events", ->
-    init_ger(default_esm, 'public', recent_event_days: 1)
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('view', 1),
@@ -287,7 +287,7 @@ describe 'calculate_similarities_from_person', ->
         ger.event('p2','view','a', created_at: moment().subtract(50, 'mins')),
         ger.event('p3','view','a', created_at: moment().subtract(2, 'days')),
       ])
-      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'view': 1}))
+      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'view': 1}, 500, 1) )
       .then((similar_people) ->
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p2'].should.equal 1

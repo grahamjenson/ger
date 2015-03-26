@@ -37,8 +37,8 @@ global.init_esm = (ESM = global.default_esm, namespace = 'default') ->
   .then( -> esm.initialize())
   .then( -> esm)
 
-global.init_ger = (ESM = global.default_esm, namespace = 'default', options = {}) ->
-  init_esm(ESM, namespace).then( (esm) -> new GER(esm, options))
+global.init_ger = (ESM = global.default_esm, namespace = 'default') ->
+  init_esm(ESM, namespace).then( (esm) -> new GER(esm))
 
 global.compare_floats = (f1,f2) ->
   Math.abs(f1 - f2) < 0.00001

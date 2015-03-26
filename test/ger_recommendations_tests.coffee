@@ -26,7 +26,7 @@ describe 'crowd_weight', ->
       )
 
   it 'should encourage recommendations with more people recommending it', ->
-    init_ger(default_esm, 'public', crowd_weight: 1)
+    init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
         ger.action('view',1),
@@ -44,7 +44,7 @@ describe 'crowd_weight', ->
         ger.event('p4','view','c')
         ger.event('p4','buy','y'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', crowd_weight: 1))
       .then((recs) ->
         recs = recs.recommendations
         recs[0].thing.should.equal 'y'
@@ -53,7 +53,7 @@ describe 'crowd_weight', ->
 
 describe "minimum_history_limit", ->
   it "should not generate recommendations for events ", ->
-    init_ger(default_esm, 'public', minimum_history_limit: 2)
+    init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
         ger.action('view',1),
@@ -61,10 +61,10 @@ describe "minimum_history_limit", ->
         ger.event('p2','view','a'),
         ger.event('p2','view','b'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'view'))
+      .then(-> ger.recommendations_for_person('p1', 'view', minimum_history_limit: 2))
       .then((recs) ->
         recs.recommendations.length.should.equal 0
-        ger.recommendations_for_person('p2', 'view')
+        ger.recommendations_for_person('p2', 'view', minimum_history_limit: 2)
       ).then((recs) ->
         recs.recommendations.length.should.equal 2
       )
@@ -73,8 +73,8 @@ describe "minimum_history_limit", ->
 describe "joining multiple gers", ->
   it "similar recommendations should return same confidence", ->
     bb.all([
-      init_ger(default_esm, 'p1', {similar_people_limit: 2, person_history_limit: 4}, 'ger_1'),
-      init_ger(default_esm, 'p2', {similar_people_limit: 4, person_history_limit: 8}, 'ger_2')
+      init_ger(default_esm, 'p1', {}, 'ger_1'),
+      init_ger(default_esm, 'p2', {}, 'ger_2')
     ])
     .spread (ger1, ger2) ->
       bb.all([
@@ -90,8 +90,8 @@ describe "joining multiple gers", ->
         ger2.event('p2','buy','b'),
       ])
       .then( -> bb.all([
-          ger1.recommendations_for_person('p1', 'buy'),
-          ger2.recommendations_for_person('p1', 'buy')
+          ger1.recommendations_for_person('p1', 'buy', {similar_people_limit: 2, person_history_limit: 4}),
+          ger2.recommendations_for_person('p1', 'buy', {similar_people_limit: 4, person_history_limit: 8})
         ])
       )
       .spread((recs1, recs2) ->
@@ -277,7 +277,7 @@ describe "weights", ->
 
 describe "person exploits,", ->
   it 'related_things_limit should stop one persons recommendations eliminating the other recommendations', ->
-    init_ger(default_esm, 'public', related_things_limit: 1)
+    init_ger(default_esm, 'public')
     .then (ger) ->
       bb.all([
         ger.action('view', 1),
@@ -294,7 +294,7 @@ describe "person exploits,", ->
         ger.event('p3','buy','m', created_at: moment().subtract(2, 'hours')),
         ger.event('p3','buy','n', created_at: moment().subtract(1, 'hours'))
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy'))
+      .then(-> ger.recommendations_for_person('p1', 'buy', related_things_limit: 1))
       .then((recs) ->
         item_weights = recs.recommendations
         item_weights.length.should.equal 2

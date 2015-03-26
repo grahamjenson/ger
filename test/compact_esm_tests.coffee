@@ -1,6 +1,6 @@
 describe "compact_database_thing_action_limit", ->
   it 'should truncate events on a thing to the set limit', ->
-    init_ger(default_esm, 'public', compact_database_thing_action_limit: 2)
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('view')
@@ -18,10 +18,10 @@ describe "compact_database_thing_action_limit", ->
         count.should.equal 5
       )
       .then( ->
-        ger.compact_database()
+        ger.compact_database(compact_database_thing_action_limit: 2)
       )
       .then( ->
-        ger.compact_database()
+        ger.compact_database(compact_database_thing_action_limit: 2)
       )
       .then( ->
         ger.count_events()
@@ -32,7 +32,7 @@ describe "compact_database_thing_action_limit", ->
 
 describe "compact_database_person_action_limit", ->
   it 'should truncate events by a person to the set limit', ->
-    init_ger(default_esm, 'public', compact_database_person_action_limit: 2)
+    init_ger()
     .then (ger) ->
       bb.all([
         ger.action('view', 1)
@@ -52,10 +52,10 @@ describe "compact_database_person_action_limit", ->
         count.should.equal 7
       )
       .then( ->
-        ger.compact_database()
+        ger.compact_database(compact_database_person_action_limit: 2)
       )
       .then( ->
-        ger.compact_database()
+        ger.compact_database(compact_database_person_action_limit: 2)
       )
       .then( ->
         ger.count_events()
