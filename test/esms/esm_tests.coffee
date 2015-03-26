@@ -39,14 +39,13 @@ esm_tests = (ESM) ->
         .then( -> esm.exists())
         .then( (exist) -> exist.should.equal true)
 
-      it 'should start with no actions or events', ->
+      it 'should start with no events', ->
         esm = new ESM("namespace", {knex: _knex, r: _r})
         esm.destroy()
         .then( -> esm.initialize())
-        .then( -> bb.all([esm.count_events(), esm.get_actions()]))
-        .spread( (count, actions) -> 
+        .then( -> esm.count_events())
+        .then( (count) -> 
           count.should.equal 0
-          actions.length.should.equal 0
         )
         
       it 'should not error out or remove events if re-initialized', ->
@@ -87,29 +86,12 @@ esm_tests = (ESM) ->
         .then( -> esm.destroy())
 
   describe 'recommendation methods', ->
-    describe '#get_actions', ->
-      it 'should returns all the assigned actions with weights in descending order', ->
-        init_esm(ESM)
-        .then (esm) ->
-          bb.all([
-            esm.set_action_weight('a2',1),
-            esm.set_action_weight('a',10)
-          ])
-          .then( -> esm.get_actions())
-          .then( (action_weights) ->
-            action_weights[0].key.should.equal 'a'
-            action_weights[0].weight.should.equal 10
-            action_weights[1].key.should.equal 'a2'
-            action_weights[1].weight.should.equal 1
-          )
 
     describe '#find_similar_people' , ->
       it 'should return a list of similar people', ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
             esm.add_event('p2','buy','t1')
@@ -126,8 +108,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
           ])
@@ -143,7 +123,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
             esm.add_event('p1','view','t1')
           ])
           .then( ->
@@ -158,8 +137,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
             esm.add_event('p2','buy','t1')
@@ -283,7 +260,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight("v'i\new", 1)
             esm.add_event("'p\n,1};","v'i\new","'a\n;"),
             esm.add_event("'p\n2};","v'i\new","'a\n;")
           ])
@@ -356,8 +332,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
           ])
           .then( ->
@@ -372,8 +346,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p1','buy','t2')
           ])
@@ -389,8 +361,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p1','buy','t2')
           ])
@@ -651,29 +621,6 @@ esm_tests = (ESM) ->
             events[0].thing.should.equal 't3'
           )
 
-    describe '#set_action_weight #get_action_weight', ->
-      it 'should assign an actions weight', ->
-        init_esm(ESM)
-        .then (esm) ->
-          esm.set_action_weight('a', 2)
-          .then( -> esm.get_action_weight('a'))
-          .then( (weight) ->
-            weight.should.equal 2
-          )
-
-      it 'should not overwrite if set to false', ->
-        init_esm(ESM)
-        .then (esm) ->
-          esm.set_action_weight('a', 2)
-          .then( -> esm.get_action_weight('a'))
-          .then( (weight) ->
-            weight.should.equal 2
-            esm.set_action_weight('a', 10, false)
-          )
-          .then(-> esm.get_action_weight('a'))
-          .then( (weight) ->
-            weight.should.equal 2
-          )
 
     describe '#bootstrap', ->
       it 'should add a stream of events (person,action,thing,created_at,expires_at)', ->
@@ -704,7 +651,7 @@ esm_tests = (ESM) ->
             esm.pre_compact()
           )
           .then( ->
-            esm.compact_people()
+            esm.compact_people(1, ['action'])
           )
           .then( -> esm.count_events())
           .then( (count) ->

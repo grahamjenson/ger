@@ -50,8 +50,6 @@ describe "find_similar_people", ->
     init_esm(PsqlESM)
     .then (esm) ->
       bb.all([
-        esm.set_action_weight('view', 1)
-        esm.set_action_weight('buy', 1)
 
         esm.add_event('p1','view','t1', {created_at: new Date(2014, 6, 6, 13, 1)})
         esm.add_event('p1','view','t4', {created_at: new Date(2014, 6, 6, 13, 1)})
@@ -145,8 +143,8 @@ describe '#compact method', ->
     .then (esm) ->
       bb.all([])
       .then( ->
-        esm.truncate_people_per_action([], 1)
+        esm.truncate_people_per_action([], 1, [])
       )
       .then( ->
-        esm.truncate_people_per_action(['p1'], 1)
+        esm.truncate_people_per_action(['p1'], 1, [])
       )

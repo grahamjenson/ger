@@ -24,23 +24,16 @@ esm_tests = (ESM) ->
       @timeout(360000)
       init_ger(ESM)
       .then((ger) ->
-        bb.all([
-          ger.action("buy" , 5),
-          ger.action("like" , 3),
-          ger.action("view" , 2),
-        ])
-        .then( ->
-          st = new Date().getTime()
-          promises = []
-          for x in [1..nevents]
-            promises.push ger.event(sample(people), sample(actions) , sample(things))
-          bb.all(promises)
-          .then(->
-            et = new Date().getTime()
-            time = et-st
-            pe = time/nevents
-            console.log "#{pe}ms per event"
-          )
+        st = new Date().getTime()
+        promises = []
+        for x in [1..nevents]
+          promises.push ger.event(sample(people), sample(actions) , sample(things))
+        bb.all(promises)
+        .then(->
+          et = new Date().getTime()
+          time = et-st
+          pe = time/nevents
+          console.log "#{pe}ms per event"
         )
         .then( ->
           st = new Date().getTime()
@@ -62,7 +55,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..ncompact]
-            promises.push ger.compact_database()
+            promises.push ger.compact_database(actions: actions)
 
           bb.all(promises)
           .then(->
@@ -107,7 +100,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..nrecommendations]
-            promises.push ger.recommendations_for_person(sample(people), sample(actions))
+            promises.push ger.recommendations_for_person(sample(people), sample(actions), actions: {buy:5, like:3, view:1})
           bb.all(promises)
           .then(->
             et = new Date().getTime()

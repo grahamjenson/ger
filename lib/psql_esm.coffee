@@ -28,28 +28,15 @@ init_events_table = (knex, schema) ->
     i2 = knex.raw("create index idx_thing_created_at_#{schema}_events on \"#{schema}\".events (thing, action, created_at DESC)")
     bb.all([i1,i2])
   )
-  
-
-init_action_table = (knex, schema) ->
-  knex.schema.createTable("#{schema}.actions",(table) ->
-    table.increments();
-    table.string('action').unique().index().notNullable()
-    table.integer('weight').notNullable()
-    table.timestamp('created_at').notNullable()
-    table.timestamp('updated_at').notNullable()
-  )
 
 #CLASS ACTIONS
 drop_tables = (knex, schema = 'public') ->
-  bb.all( [
-    knex.schema.dropTableIfExists("#{schema}.events"),
-    knex.schema.dropTableIfExists("#{schema}.actions")
-  ])
+  knex.schema.dropTableIfExists("#{schema}.events")
   .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS \"#{schema}\""))
   
 init_tables = (knex, schema = 'public') ->
   knex.schema.raw("CREATE SCHEMA IF NOT EXISTS \"#{schema}\"")
-  .then( => bb.all([init_events_table(knex, schema), init_action_table(knex, schema)]))
+  .then( => init_events_table(knex, schema))
 
 
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
@@ -171,16 +158,6 @@ class PSQLEventStoreManager
     update_attr = {created_at: created_at, expires_at: expires_at}
     @upsert("\"#{@_namespace}\".events", insert_attr, identity_attr, update_attr)
 
-  set_action_weight: (action, weight, overwrite = true) ->
-    now = new Date().toISOString()
-    insert_attr =  {action: action, weight: weight, created_at: now, updated_at: now}
-
-    identity_attr = {action: action}
-    update_attr = {action: action, updated_at: now}
-    update_attr["weight"] = weight if overwrite
-    @upsert("\"#{@_namespace}\".actions", insert_attr, identity_attr, update_attr)
-    
-
 
   person_history_count: (person) ->
     @_knex("#{@_namespace}.events")
@@ -190,24 +167,6 @@ class PSQLEventStoreManager
     .then( (counts) ->
       counts.length
     )
-
-  get_actions: ->
-    @_knex("#{@_namespace}.actions")
-    .select('action as key', 'weight')
-    .orderBy('weight', 'desc')
-    .then( (rows) =>
-      rows
-    )
-
-  get_action_weight: (action) ->
-    @_knex("#{@_namespace}.actions").select('weight').where(action: action)
-    .then((rows)->
-      if rows.length > 0
-        return parseInt(rows[0].weight)
-      else
-        return null
-    )
-
 
   last_events: (person, limit) ->
     @_knex("#{@_namespace}.events")
@@ -386,7 +345,6 @@ class PSQLEventStoreManager
       temp
     )
 
-
   count_events: ->
     @_knex("#{@_namespace}.events").count()
     .then (count) -> parseInt(count[0].count)
@@ -401,10 +359,6 @@ class PSQLEventStoreManager
       return 0 if rows.rows.length == 0
       return parseInt(rows.rows[0].estimate)
     )
-
-  count_actions: ->
-    @_knex("#{@_namespace}.actions").count()
-    .then (count) -> parseInt(count[0].count)
 
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
@@ -482,35 +436,32 @@ class PSQLEventStoreManager
     )
 
 
-  compact_people : (compact_database_person_action_limit) ->
+  compact_people : (compact_database_person_action_limit, actions) ->
     @get_active_people()
     .then( (people) =>
       @remove_non_unique_events_for_people(people)
       .then( =>
         #remove events per (active) person action that exceed some number
-        @truncate_people_per_action(people, compact_database_person_action_limit)
+        @truncate_people_per_action(people, compact_database_person_action_limit, actions)
       )
     )
 
-  compact_things :  (compact_database_thing_action_limit) ->
+  compact_things :  (compact_database_thing_action_limit, actions) ->
     @get_active_things()
     .then( (things) =>
-      @truncate_things_per_action(things, compact_database_thing_action_limit)
+      @truncate_things_per_action(things, compact_database_thing_action_limit, actions)
     )
 
-  truncate_things_per_action: (things, trunc_size) ->
+  truncate_things_per_action: (things, trunc_size, actions) ->
 
     #TODO do the same thing for things
     return bb.try( -> []) if things.length == 0  
-    @get_actions()
-    .then((action_weights) =>
-      return [] if action_weights.length == 0
-      actions = (aw.key for aw in action_weights)
-      #cut each action down to size
-      promises = (@truncate_thing_actions(thing, trunc_size, action) for thing in things for action in actions)
-      promises = _.flatten(promises)
-      bb.all(promises)
-    )
+
+    #cut each action down to size
+    promises = (@truncate_thing_actions(thing, trunc_size, action) for thing in things for action in actions)
+    promises = _.flatten(promises)
+    bb.all(promises)
+    
 
   truncate_thing_actions: (thing, trunc_size, action) ->
     bindings = [thing, action]
@@ -522,18 +473,15 @@ class PSQLEventStoreManager
     @_knex.raw(q ,bindings)
 
 
-  truncate_people_per_action: (people, trunc_size) ->
+  truncate_people_per_action: (people, trunc_size, actions) ->
     #TODO do the same thing for things
     return bb.try( -> []) if people.length == 0  
-    @get_actions()
-    .then((action_weights) =>
-      return [] if action_weights.length == 0
-      actions = (aw.key for aw in action_weights)
-      #cut each action down to size
-      promises = (@truncate_person_actions(person, trunc_size, action) for person in people for action in actions)
-      promises = _.flatten(promises)
-      bb.all(promises)
-    )
+
+    #cut each action down to size
+    promises = (@truncate_person_actions(person, trunc_size, action) for person in people for action in actions)
+    promises = _.flatten(promises)
+    bb.all(promises)
+    
     
   truncate_person_actions: (person, trunc_size, action) ->
     bindings = [person, action]

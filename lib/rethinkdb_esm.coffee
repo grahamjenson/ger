@@ -38,13 +38,13 @@ class EventStoreMapper
     @_r.tableList().run().then( (list) =>
       bb.all([
         @try_delete_table("#{@namespace}_events", list),
-        @try_drop_table("#{@namespace}_actions", list) #only drop actions because it costs so much to recreate events indexes
+        @try_drop_table("#{@namespace}_schema", list) #table is only a marker
       ])
     )
 
   exists: ->
     @_r.tableList().run().then( (list) =>
-      "#{@namespace}_events" in list and "#{@namespace}_actions" in list
+      "#{@namespace}_events" in list and "#{@namespace}_schema" in list
     )
 
   set_namespace: (namespace)->
@@ -54,10 +54,10 @@ class EventStoreMapper
     @_r.tableList().run().then( (list) =>
       bb.all([
         @try_create_table("#{@namespace}_events", list)
-        @try_create_table("#{@namespace}_actions", list)
+        @try_create_table("#{@namespace}_schema", list)
       ])
     )
-    .spread( (events_created, actions_created) =>
+    .spread( (events_created, schema_created) =>
       promises = []
       if events_created
         promises = promises.concat([@_r.table("#{@namespace}_events").indexCreate("created_at").run(),
@@ -177,35 +177,10 @@ class EventStoreMapper
     identity_attr = person.toString() + action + thing
     @upsert("#{@namespace}_events", insert_attr, identity_attr)
 
-  set_action_weight: (action, weight, overwrite = true) ->
-    now = new Date()
-    insert_attr =  {action: action, weight: +weight, created_at: now, updated_at: now}
-    identity_attr = action
-    @upsert("#{@namespace}_actions", insert_attr, identity_attr,overwrite)
-
   person_history_count: (person) ->
     @_r.table("#{@namespace}_events").getAll(person,{index: "person"})("thing")
     .default([]).distinct().count().run({useOutdated: true})
 
-  get_actions: ->
-    @_r.table("#{@namespace}_actions")
-    .map((row) ->
-      return {
-        key: row("action"),
-        weight: row("weight")
-      }
-    )
-    .run({useOutdated: true})
-    .then( (rows) =>
-      rows = _.sortBy(rows, (a) -> - a.weight)
-      rows
-    )
-
-  get_action_weight: (action) ->
-    shasum = crypto.createHash("sha256")
-    shasum.update(action.toString())
-    id = shasum.digest("hex")
-    @_r.table("#{@namespace}_actions").get(id)('weight').default(null).run({useOutdated: true})
 
   find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
@@ -355,20 +330,11 @@ class EventStoreMapper
     id = shasum.digest("hex")
     @_r.table("#{@namespace}_events").get(id).ne(null).run({useOutdated: true})
 
-  has_action: (action) ->
-    shasum = crypto.createHash("sha256")
-    shasum.update(action.toString())
-    id = shasum.digest("hex")
-    @_r.table("#{@namespace}_actions").get(id).ne(null).run({useOutdated: true})
-
   count_events: ->
     @_r.table("#{@namespace}_events").count().run({useOutdated: true})
 
   estimate_event_count: ->
     @_r.table("#{@namespace}_events").count().run({useOutdated: true})
-
-  count_actions: ->
-    @_r.table("#{@namespace}_actions").count().run({useOutdated: true})
 
   bootstrap: (stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
@@ -443,49 +409,40 @@ class EventStoreMapper
     .orderBy(@_r.desc('reduction'))
     .limit(100)('group').run({useOutdated: true})
 
-  compact_people : (compact_database_person_action_limit) ->
+  compact_people : (compact_database_person_action_limit, actions) ->
     @get_active_people()
     .then( (people) =>
-      @truncate_people_per_action(people, compact_database_person_action_limit)
+      @truncate_people_per_action(people, compact_database_person_action_limit, actions)
     )
 
-  compact_things :  (compact_database_thing_action_limit) ->
+  compact_things :  (compact_database_thing_action_limit, actions) ->
     @get_active_things()
     .then( (things) =>
-      @truncate_things_per_action(things, compact_database_thing_action_limit)
+      @truncate_things_per_action(things, compact_database_thing_action_limit, actions)
     )
 
-  truncate_things_per_action: (things, trunc_size) ->
+  truncate_things_per_action: (things, trunc_size, actions) ->
 
     #TODO do the same thing for things
     return bb.try( -> []) if things.length == 0
-    @get_actions()
-    .then((action_weights) =>
-      return [] if action_weights.length == 0
-      actions = (aw.key for aw in action_weights)
-      #cut each action down to size
-      promises = []
-      for thing in things
-        for action in actions
-          promises.push @_r.table("#{@namespace}_events").getAll([action,thing], {index: "action_thing"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true, durability: "soft"})
+    #cut each action down to size
+    promises = []
+    for thing in things
+      for action in actions
+        promises.push @_r.table("#{@namespace}_events").getAll([action,thing], {index: "action_thing"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true, durability: "soft"})
 
-      bb.all(promises)
-    )
+    bb.all(promises)
+    
 
-  truncate_people_per_action: (people, trunc_size) ->
+  truncate_people_per_action: (people, trunc_size, actions) ->
     #TODO do the same thing for things
     return bb.try( -> []) if people.length == 0
-    @get_actions()
-    .then((action_weights) =>
-      return bb.try(-> []) if action_weights.length == 0
-      actions = (aw.key for aw in action_weights)
-      promises = []
-      for person in people
-        for action in actions
-          promises.push @_r.table("#{@namespace}_events").getAll([person, action],{index: "person_action"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true,durability: "soft"})
-      #cut each action down to size
-      bb.all(promises)
-    )
+    promises = []
+    for person in people
+      for action in actions
+        promises.push @_r.table("#{@namespace}_events").getAll([person, action],{index: "person_action"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true,durability: "soft"})
+    #cut each action down to size
+    bb.all(promises)
 
   remove_events_till_size: (number_of_events) ->
     #TODO move too offset method

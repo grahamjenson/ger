@@ -8,8 +8,6 @@ event_store = {}
 person_action_store = {}
 thing_action_store = {}
 
-actions_store = {}
-
 #This is a simple implementation of an ESM to demonstrate the API and NOT FOR PRODUCTION PURPOSES
 class BasicInMemoryESM
 
@@ -19,7 +17,6 @@ class BasicInMemoryESM
     event_store[@_namespace] ||= []
     person_action_store[@_namespace] ||= {}
     thing_action_store[@_namespace] ||= {}
-    actions_store[@_namespace] ||= {}
     bb.try(-> )
 
   set_namespace: (namespace) ->
@@ -29,16 +26,11 @@ class BasicInMemoryESM
     delete event_store[@_namespace]
     delete person_action_store[@_namespace]
     delete thing_action_store[@_namespace]
-    delete actions_store[@_namespace]
     bb.try(-> )
 
   exists: ->
     bb.try(=> !!event_store[@_namespace])
 
-  get_actions: ->
-    action_weights = ({key: action, weight: weight} for action, weight of actions_store[@_namespace])
-    action_weights = _.sortBy(action_weights, (x) -> - x.weight)
-    return bb.try(-> action_weights)
 
   _person_history_for_action: (person, action) ->
     return [] if person_action_store[@_namespace][person] == undefined or person_action_store[@_namespace][person][action] == undefined
@@ -186,13 +178,6 @@ class BasicInMemoryESM
     events = events[size*page ... size*(page+1)]
     return bb.try(=> events)
 
-  set_action_weight: (action, weight, overwrite = false) ->
-    return bb.try(-> true) if !overwrite && actions_store[@_namespace][action]
-    actions_store[@_namespace][action] = weight
-    bb.try(-> true)
-
-  get_action_weight: (action) ->
-    bb.try(=> actions_store[@_namespace][action])
 
 
   bootstrap: (stream) ->
@@ -225,11 +210,11 @@ class BasicInMemoryESM
     bb.try(=> {deleted: events.length})
 
   
-  compact_people: (limit) ->
+  compact_people: (limit, actions) ->
     #remove all 
     marked_for_deletion = []
     for person, action_store of person_action_store[@_namespace]
-      for action, weight of actions_store[@_namespace]
+      for action in actions
         events = @_person_history_for_action(person, action)
         if events.length > limit
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
@@ -238,10 +223,10 @@ class BasicInMemoryESM
     bb.try(-> true)
 
 
-  compact_things: (limit) ->
+  compact_things: (limit, actions) ->
     marked_for_deletion = []
     for thing, action_store of thing_action_store[@_namespace]
-      for action, weight of actions_store[@_namespace]
+      for action in actions
         events = @_thing_history_for_action(thing, action)
         if events.length > limit
           

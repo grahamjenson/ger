@@ -5,7 +5,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p1','view','t2')
             esm.add_event('p1','view','t3')
@@ -18,7 +17,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 3
-            esm.compact_people(2)
+            esm.compact_people(2, ['view'])
           )
           .then( -> 
             esm.count_events()
@@ -32,8 +31,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
-            esm.set_action_weight('buy', 10)
 
             esm.add_event('p1','view','t2', created_at: new Date(4000))
             esm.add_event('p1','view','t3', created_at: new Date(3000))
@@ -46,7 +43,7 @@ esm_tests = (ESM) ->
             esm.pre_compact()
           )
           .then( ->
-            esm.compact_people(1)
+            esm.compact_people(1, ['view', 'buy'])
           )
           .then( ->
             esm.post_compact()
@@ -70,7 +67,7 @@ esm_tests = (ESM) ->
 
           ger.bootstrap(rs)
           .then( ->
-            ger.compact_database()
+            ger.compact_database(actions: ['action'])
           )
           .then( ->
             ger.count_events()
@@ -84,7 +81,6 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.set_action_weight('view', 1)
             esm.add_event('p1','view','t1')
             esm.add_event('p2','view','t1')
             esm.add_event('p3','view','t1')
@@ -97,7 +93,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 3
-            esm.compact_things(2)
+            esm.compact_things(2, ['view'])
           )
           .then( -> 
             esm.count_events()

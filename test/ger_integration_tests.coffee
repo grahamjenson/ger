@@ -3,7 +3,6 @@ describe '#event', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('buy'),
         ger.event('p1','buy','c'),
         ger.event('p1','buy','c'),
       ])
@@ -150,7 +149,6 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action("v'i\new"),
         ger.event("'p\n,1};","v'i\new","'a\n;"),
         ger.event("'p\n2};","v'i\new","'a\n;"),
       ])

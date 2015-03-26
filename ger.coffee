@@ -205,10 +205,6 @@ class GER
     @esm.add_event(person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
 
-  action: (action, weight=1, override = true) ->
-    @esm.set_action_weight(action, weight, override)
-    .then( -> {action: action, weight: weight}) 
-
   find_events: (person, action, thing, options) ->
     @esm.find_events(person, action, thing, options)
 
@@ -227,13 +223,6 @@ class GER
   destroy_namespace: ->
     @esm.destroy()
 
-  get_action:(action) ->
-    @esm.get_action_weight(action)
-    .then( (weight) -> 
-      return null if weight == null || weight == undefined
-      {action: action, weight: weight}
-    )
-
   bootstrap: (stream) ->
     #filename should be person, action, thing, created_at, expires_at
     #this will require manually adding the actions
@@ -245,14 +234,15 @@ class GER
     options = _.defaults(options,
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500
+      actions: []
     )
 
     @esm.pre_compact()
     .then( =>
       promises = []
       promises.push @esm.expire_events()
-      promises.push @esm.compact_people(options.compact_database_person_action_limit)
-      promises.push @esm.compact_things(options.compact_database_thing_action_limit)
+      promises.push @esm.compact_people(options.compact_database_person_action_limit, options.actions)
+      promises.push @esm.compact_things(options.compact_database_thing_action_limit, options.actions)
       bb.all(promises)
     )
     .then( =>

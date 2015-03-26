@@ -3,7 +3,6 @@ describe "compact_database_thing_action_limit", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view')
         ger.event('p1','view','t1')
         ger.event('p2','view','t1')
         ger.event('p3','view','t1')
@@ -18,10 +17,10 @@ describe "compact_database_thing_action_limit", ->
         count.should.equal 5
       )
       .then( ->
-        ger.compact_database(compact_database_thing_action_limit: 2)
+        ger.compact_database(compact_database_thing_action_limit: 2, actions: ['view'])
       )
       .then( ->
-        ger.compact_database(compact_database_thing_action_limit: 2)
+        ger.compact_database(compact_database_thing_action_limit: 2, actions: ['view'])
       )
       .then( ->
         ger.count_events()
@@ -35,7 +34,6 @@ describe "compact_database_person_action_limit", ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.action('view', 1)
         ger.event('p1','view','t1')
         ger.event('p1','view','t2')
         ger.event('p1','view','t3')
@@ -52,10 +50,10 @@ describe "compact_database_person_action_limit", ->
         count.should.equal 7
       )
       .then( ->
-        ger.compact_database(compact_database_person_action_limit: 2)
+        ger.compact_database(compact_database_person_action_limit: 2, actions: ['view'])
       )
       .then( ->
-        ger.compact_database(compact_database_person_action_limit: 2)
+        ger.compact_database(compact_database_person_action_limit: 2, actions: ['view'])
       )
       .then( ->
         ger.count_events()
