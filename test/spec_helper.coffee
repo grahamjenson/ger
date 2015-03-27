@@ -29,7 +29,9 @@ global.default_esm = PsqlESM
 
 global.esms = [{esm: RethinkDBESM, name: 'RethinkDBESM'} ,{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
 
-global.init_esm = (ESM = global.default_esm, namespace = 'default') ->
+global.default_namespace = 'default'
+
+global.init_esm = (ESM = global.default_esm, namespace = global.default_namespace) ->
   #in
   esm = new ESM({knex: _knex, r: _r})
   #drop the current tables, reinit the tables, return the esm
@@ -37,7 +39,7 @@ global.init_esm = (ESM = global.default_esm, namespace = 'default') ->
   .then( -> esm.initialize(namespace))
   .then( -> esm)
 
-global.init_ger = (ESM = global.default_esm, namespace = 'default') ->
+global.init_ger = (ESM = global.default_esm, namespace = global.default_namespace) ->
   init_esm(ESM, namespace).then( (esm) -> new GER(esm))
 
 global.compare_floats = (f1,f2) ->
