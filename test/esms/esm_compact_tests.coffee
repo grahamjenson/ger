@@ -60,7 +60,7 @@ esm_tests = (ESM) ->
           )
 
       it 'should have no duplicate events after', ->
-        init_ger(ESM)
+        init_ger(ESM, ns)
         .then (ger) ->
           rs = new Readable();
           rs.push('person,action,thing,2014-01-01,\n');

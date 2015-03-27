@@ -224,7 +224,7 @@ class BasicInMemoryESM
     marked_for_deletion = []
     for thing, action_store of thing_action_store[namespace]
       for action in actions
-        events = @_thing_history_for_action(thing, action)
+        events = @_thing_history_for_action(namespace, thing, action)
         if events.length > limit
           
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
