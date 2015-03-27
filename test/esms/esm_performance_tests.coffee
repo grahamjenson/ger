@@ -4,6 +4,8 @@ things = [1..100]
 
 esm_tests = (ESM) ->
   describe 'performance tests', ->
+    ns = 'default'
+
     naction = 50
     nevents = 5000
     nbevents = 10000
@@ -22,12 +24,12 @@ esm_tests = (ESM) ->
       console.log ""
       console.log ""
       @timeout(360000)
-      init_ger(ESM)
+      init_ger(ESM, ns)
       .then((ger) ->
         st = new Date().getTime()
         promises = []
         for x in [1..nevents]
-          promises.push ger.event(sample(people), sample(actions) , sample(things))
+          promises.push ger.event(ns, sample(people), sample(actions) , sample(things))
         bb.all(promises)
         .then(->
           et = new Date().getTime()
@@ -43,7 +45,7 @@ esm_tests = (ESM) ->
             rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,\n")
           rs.push(null);
 
-          ger.bootstrap(rs)
+          ger.bootstrap(ns, rs)
           .then(->
             et = new Date().getTime()
             time = et-st
@@ -55,7 +57,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..ncompact]
-            promises.push ger.compact_database(actions: actions)
+            promises.push ger.compact_database(ns, actions: actions)
 
           bb.all(promises)
           .then(->
@@ -70,7 +72,7 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..nfindpeople]
-            promises.push ger.esm.find_similar_people(sample(people), actions, sample(actions))
+            promises.push ger.esm.find_similar_people(ns, sample(people), actions, sample(actions))
           bb.all(promises)
 
           .then(->
@@ -86,7 +88,7 @@ esm_tests = (ESM) ->
           promises = []
           for x in [1..ncalcpeople]
             peeps = _.unique((sample(people) for i in [0..10]))
-            promises.push ger.esm.calculate_similarities_from_person(peeps[0], peeps[1..-1] , actions, 500, 5)
+            promises.push ger.esm.calculate_similarities_from_person(ns, peeps[0], peeps[1..-1] , actions, 500, 5)
           bb.all(promises)
 
           .then(->
@@ -100,7 +102,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..nrecommendations]
-            promises.push ger.recommendations_for_person(sample(people), sample(actions), actions: {buy:5, like:3, view:1})
+            promises.push ger.recommendations_for_person(ns, sample(people), sample(actions), actions: {buy:5, like:3, view:1})
           bb.all(promises)
           .then(->
             et = new Date().getTime()

@@ -1,26 +1,28 @@
 esm_tests = (ESM) ->
+  ns = "default"
+
   describe 'ESM compacting database', ->
     describe '#compact_people', ->
       it 'should truncate the events of peoples history', ->
-        init_esm(ESM)
+        init_esm(ESM,ns)
         .then (esm) ->
           bb.all([
-            esm.add_event('p1','view','t1')
-            esm.add_event('p1','view','t2')
-            esm.add_event('p1','view','t3')
+            esm.add_event(ns, 'p1','view','t1')
+            esm.add_event(ns, 'p1','view','t2')
+            esm.add_event(ns, 'p1','view','t3')
           ])
           .then( -> 
-            esm.pre_compact()
+            esm.pre_compact(ns)
           )
           .then( ->
-            esm.count_events()
+            esm.count_events(ns)
           )
           .then( (count) ->
             count.should.equal 3
-            esm.compact_people(2, ['view'])
+            esm.compact_people(ns, 2, ['view'])
           )
           .then( -> 
-            esm.count_events()
+            esm.count_events(ns)
           )
           .then( (count) ->
             count.should.equal 2
@@ -32,24 +34,24 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
 
-            esm.add_event('p1','view','t2', created_at: new Date(4000))
-            esm.add_event('p1','view','t3', created_at: new Date(3000))
-            esm.add_event('p1','buy','t3', created_at: new Date(1000))
+            esm.add_event(ns, 'p1','view','t2', created_at: new Date(4000))
+            esm.add_event(ns, 'p1','view','t3', created_at: new Date(3000))
+            esm.add_event(ns, 'p1','buy','t3', created_at: new Date(1000))
 
-            esm.add_event('p1','view','t1', created_at: new Date(5000))
-            esm.add_event('p1','buy','t1', created_at: new Date(6000))
+            esm.add_event(ns, 'p1','view','t1', created_at: new Date(5000))
+            esm.add_event(ns, 'p1','buy','t1', created_at: new Date(6000))
           ])
           .then( ->
-            esm.pre_compact()
+            esm.pre_compact(ns)
           )
           .then( ->
-            esm.compact_people(1, ['view', 'buy'])
+            esm.compact_people(ns, 1, ['view', 'buy'])
           )
           .then( ->
-            esm.post_compact()
+            esm.post_compact(ns)
           )
           .then( ->
-            bb.all([esm.count_events(), esm.find_events('p1','view','t1'), esm.find_events('p1','buy','t1')])
+            bb.all([esm.count_events(ns), esm.find_events(ns, 'p1','view','t1'), esm.find_events(ns, 'p1','buy','t1')])
           )
           .spread( (count, es1, es2) ->
             count.should.equal 2
@@ -65,12 +67,12 @@ esm_tests = (ESM) ->
           rs.push('person,action,thing,2014-01-01,\n');
           rs.push(null);
 
-          ger.bootstrap(rs)
+          ger.bootstrap(ns, rs)
           .then( ->
-            ger.compact_database(actions: ['action'])
+            ger.compact_database(ns, actions: ['action'])
           )
           .then( ->
-            ger.count_events()
+            ger.count_events(ns)
           )
           .then( (count) ->
             count.should.equal 1
@@ -81,22 +83,22 @@ esm_tests = (ESM) ->
         init_esm(ESM)
         .then (esm) ->
           bb.all([
-            esm.add_event('p1','view','t1')
-            esm.add_event('p2','view','t1')
-            esm.add_event('p3','view','t1')
+            esm.add_event(ns, 'p1','view','t1')
+            esm.add_event(ns, 'p2','view','t1')
+            esm.add_event(ns, 'p3','view','t1')
           ])
           .then( -> 
-            esm.pre_compact()
+            esm.pre_compact(ns)
           )
           .then( ->
-            esm.count_events()
+            esm.count_events(ns)
           )
           .then( (count) ->
             count.should.equal 3
-            esm.compact_things(2, ['view'])
+            esm.compact_things(ns, 2, ['view'])
           )
           .then( -> 
-            esm.count_events()
+            esm.count_events(ns)
           )
           .then( (count) ->
             count.should.equal 2
@@ -106,32 +108,32 @@ esm_tests = (ESM) ->
       it 'should remove events that have expired', ->
         init_esm(ESM)
         .then (esm) ->
-          esm.add_event('p','a','t', {expires_at: new Date(0).toISOString()} )
+          esm.add_event(ns, 'p','a','t', {expires_at: new Date(0).toISOString()} )
           .then( ->
-            esm.count_events()
+            esm.count_events(ns)
           )
           .then( (count) ->
             count.should.equal 1
-            esm.expire_events()
+            esm.expire_events(ns)
           )
-          .then( -> esm.count_events())
+          .then( -> esm.count_events(ns))
           .then( (count) -> count.should.equal 0 )
 
     it "does not remove events that have no expiry date or future date", ->
       init_esm(ESM)
       .then (esm) ->
-        bb.all([esm.add_event('p1','a','t'),  esm.add_event('p2','a','t', {expires_at:new Date(2050,10,10)}), esm.add_event('p3','a','t', {expires_at: new Date(0).toISOString()})])
+        bb.all([esm.add_event(ns, 'p1','a','t'),  esm.add_event(ns, 'p2','a','t', {expires_at:new Date(2050,10,10)}), esm.add_event(ns, 'p3','a','t', {expires_at: new Date(0).toISOString()})])
         .then( ->
-          esm.count_events()
+          esm.count_events(ns)
         )
         .then( (count) ->
           count.should.equal 3
-          esm.expire_events()
+          esm.expire_events(ns)
         )
-        .then( -> esm.count_events())
+        .then( -> esm.count_events(ns))
         .then( (count) ->
           count.should.equal 2
-          esm.find_events('p2','a','t')
+          esm.find_events(ns, 'p2','a','t')
         )
         .then( (events) ->
           event = events[0]
