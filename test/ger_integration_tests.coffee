@@ -180,7 +180,7 @@ describe 'recommendations_for_person', ->
 
         item_weights[0].thing.should.equal "a"
         item_weights[1].thing.should.equal "b"
-        (+item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime()
+        (item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime().toString()
       )
 
   it 'should people that contributed to recommendation', ->

@@ -44,32 +44,29 @@ init_tables = (knex, schema = 'public') ->
 class PSQLEventStoreManager
   
   #INSTANCE ACTIONS
-  constructor: (@_namespace = 'public', options = {}) ->
+  constructor: (options = {}) ->
     @_knex = options.knex
 
-  destroy: ->
-    drop_tables(@_knex,@_namespace)
+  destroy: (namespace) ->
+    drop_tables(@_knex, namespace)
 
-  initialize: ->
-    @exists()
+  initialize: (namespace) ->
+    @exists(namespace)
     .then( (exists) =>
       if !exists
-        init_tables(@_knex,@_namespace)
+        init_tables(@_knex, namespace)
     )
 
-  set_namespace: (namespace) ->
-    @_namespace = namespace
-
-  exists: ->
-    @_knex.raw("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{@_namespace}'")
+  exists: (namespace) ->
+    @_knex.raw("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{namespace}'")
     .then((result) =>
       result.rows.length >= 1
     )
 
-  add_event: (person, action, thing, dates = {}) ->
+  add_event: (namespace, person, action, thing, dates = {}) ->
     expires_at = dates.expires_at
     created_at = dates.created_at || new Date().toISOString()
-    @add_event_to_db(person, action, thing, created_at, expires_at)
+    @add_event_to_db(namespace, person, action, thing, created_at, expires_at)
 
   questions_marks_to_dollar: (query) ->
     counter = 1
@@ -121,8 +118,8 @@ class PSQLEventStoreManager
       deferred.promise.finally( => @_knex.client.releaseConnection(connection))
     )
 
-  _event_selection: (person, action, thing) ->
-    q = @_knex("#{@_namespace}.events")
+  _event_selection: (namespace, person, action, thing) ->
+    q = @_knex("#{namespace}.events")
     .select("person", "action", "thing", "created_at", "expires_at")
     .orderBy('created_at', 'desc')
 
@@ -132,35 +129,35 @@ class PSQLEventStoreManager
 
     return q
 
-  find_events: (person, action, thing, options = {}) ->
+  find_events: (namespace, person, action, thing, options = {}) ->
     options = _.defaults(options, {size: 50, page: 0})
     size = options.size
     page = options.page
     
-    @_event_selection(person, action, thing)
+    @_event_selection(namespace, person, action, thing)
     .limit(size)
     .offset(size*page)
     .then((rows)->
       rows
     )
 
-  delete_events: (person, action, thing) ->
-    @_event_selection(person, action, thing)
+  delete_events: (namespace, person, action, thing) ->
+    @_event_selection(namespace, person, action, thing)
     .del()
     .then((delete_count)->
       {deleted: delete_count}
     )
 
 
-  add_event_to_db: (person, action, thing, created_at, expires_at = null) ->
+  add_event_to_db: (namespace, person, action, thing, created_at, expires_at = null) ->
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
     identity_attr = {person: person, action: action, thing: thing}
     update_attr = {created_at: created_at, expires_at: expires_at}
-    @upsert("\"#{@_namespace}\".events", insert_attr, identity_attr, update_attr)
+    @upsert("\"#{namespace}\".events", insert_attr, identity_attr, update_attr)
 
 
-  person_history_count: (person) ->
-    @_knex("#{@_namespace}.events")
+  person_history_count: (namespace, person) ->
+    @_knex("#{namespace}.events")
     .groupBy('thing')
     .where({person: person})
     .count()
@@ -168,25 +165,25 @@ class PSQLEventStoreManager
       counts.length
     )
 
-  last_events: (person, limit) ->
-    @_knex("#{@_namespace}.events")
+  last_events: (namespace, person, limit) ->
+    @_knex("#{namespace}.events")
     .select("person", "action", "thing", "created_at")
     .where(person: person)
     .orderByRaw('created_at DESC')
     .limit(limit)
 
-  find_similar_people: (person, actions, action, limit = 100, search_limit = 500) ->
+  find_similar_people: (namespace, person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
-    one_degree_similar_people = @_knex(@last_events(person, search_limit ).as('e'))
-    .innerJoin("#{@_namespace}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
+    one_degree_similar_people = @_knex(@last_events(namespace, person, search_limit ).as('e'))
+    .innerJoin("#{namespace}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
     .whereIn('f.action', actions)
     .select(@_knex.raw("f.person, date_trunc('day', max(e.created_at)) as created_at_day, count(f.person) as count"))
     .groupBy('f.person')
     .orderByRaw("created_at_day DESC, count(f.person) DESC")
 
-    filter_people = @_knex("#{@_namespace}.events")
+    filter_people = @_knex("#{namespace}.events")
     .select("person")
     .where(action: action)
     .whereRaw("person = x.person")
@@ -200,7 +197,7 @@ class PSQLEventStoreManager
       (r.person for r in rows)
     )
 
-  filter_things_by_previous_actions: (person, things, actions) ->
+  filter_things_by_previous_actions: (namespace, person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
 
     bindings = []
@@ -211,7 +208,7 @@ class PSQLEventStoreManager
 
     things_rows = "(VALUES #{values.join(", ")} ) AS t (tthing)"
 
-    filter_things_sql = @_knex("#{@_namespace}.events")
+    filter_things_sql = @_knex("#{namespace}.events")
     .select("thing")
     .where(person: person)
     .whereIn('action', actions)
@@ -227,7 +224,7 @@ class PSQLEventStoreManager
       (r.tthing for r in rows.rows)
     )
 
-  recently_actioned_things_by_people: (action, people, limit = 50) ->
+  recently_actioned_things_by_people: (namespace, action, people, limit = 50) ->
     return bb.try(->[]) if people.length == 0
 
     bindings = [action]
@@ -238,7 +235,7 @@ class PSQLEventStoreManager
 
     ql = []
     for p in people
-      ql.push "(select person, thing, MAX(created_at) as max_ca from \"#{@_namespace}\".events
+      ql.push "(select person, thing, MAX(created_at) as max_ca from \"#{namespace}\".events
           where action = $1 and person = #{person_bindings[p]} group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
@@ -255,8 +252,8 @@ class PSQLEventStoreManager
     )
 
 
-  person_history: (person) ->
-    @_knex("#{@_namespace}.events")
+  person_history: (namespace, person) ->
+    @_knex("#{namespace}.events")
     .select('thing').max('created_at as created_at')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
@@ -271,17 +268,17 @@ class PSQLEventStoreManager
     # dont put the name of the action in the sql stopping sql injection
     "(#{intersection} / #{union})"
 
-  jaccard_distance_for_limit: (person, limit) ->
-    s1q = @person_history(person).toString()
-    s2q = @person_history('t.cperson').toString()
+  jaccard_distance_for_limit: (namespace, person, limit) ->
+    s1q = @person_history(namespace, person).toString()
+    s2q = @person_history(namespace, 't.cperson').toString()
     s1 = "select x.thing from (#{s1q}) as x limit #{limit}"
     s2 = "select x.thing from (#{s2q}) as x limit #{limit}"
     
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
-  jaccard_distance_for_recent: (person, limit, days_ago) ->
-    s1q = @person_history(person).toString()
-    s2q = @person_history('t.cperson').toString()
+  jaccard_distance_for_recent: (namespace, person, limit, days_ago) ->
+    s1q = @person_history(namespace, person).toString()
+    s2q = @person_history(namespace, 't.cperson').toString()
 
     s1 = "select x.thing from (#{s1q}) as x where 
           x.created_at > NOW() - '#{days_ago} day'::INTERVAL 
@@ -292,7 +289,7 @@ class PSQLEventStoreManager
 
     "#{@jaccard_query(s1, s2)} as recent_distance"
   
-  get_jaccard_distances_between_people: (person, people, actions, limit = 500, days_ago=14) ->
+  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
     #TODO allow for arbitrary distance measurements here
 
@@ -307,8 +304,8 @@ class PSQLEventStoreManager
       bindings.push(p)
       person_bindings[p] = "$#{bindings.length}"
 
-    limit_distance_query = @jaccard_distance_for_limit('$1', limit)
-    recent_distance_query = @jaccard_distance_for_recent('$1', limit, days_ago)
+    limit_distance_query = @jaccard_distance_for_limit(namespace, '$1', limit)
+    recent_distance_query = @jaccard_distance_for_recent(namespace, '$1', limit, days_ago)
 
     v_actions = ("(#{person_bindings[p]}, #{action_bindings[a]})" for a in actions for p in people).join(', ')
 
@@ -329,11 +326,11 @@ class PSQLEventStoreManager
     )
 
 
-  calculate_similarities_from_person: (person, people, actions, person_history_limit, recent_event_days) ->
+  calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit, recent_event_days) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
 
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @get_jaccard_distances_between_people(person, people, actions, person_history_limit, recent_event_days)
+    @get_jaccard_distances_between_people(namespace, person, people, actions, person_history_limit, recent_event_days)
     .spread( (event_weights, recent_event_weights) =>
       temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
@@ -345,28 +342,28 @@ class PSQLEventStoreManager
       temp
     )
 
-  count_events: ->
-    @_knex("#{@_namespace}.events").count()
+  count_events: (namespace) ->
+    @_knex("#{namespace}.events").count()
     .then (count) -> parseInt(count[0].count)
 
-  estimate_event_count: ->
+  estimate_event_count: (namespace) ->
     @_knex.raw("SELECT reltuples::bigint 
       AS estimate 
       FROM pg_class 
       WHERE  oid = $1::regclass;"
-      ,["#{@_namespace}.events"])
+      ,["#{namespace}.events"])
     .then( (rows) ->
       return 0 if rows.rows.length == 0
       return parseInt(rows.rows[0].estimate)
     )
 
-  bootstrap: (stream) ->
+  bootstrap: (namespace, stream) ->
     #stream of  person, action, thing, created_at, expires_at CSV
     #this will require manually adding the actions
     @_knex.client.acquireConnection()
     .then( (connection) =>
       deferred = bb.defer()
-      pg_stream = connection.query(copyFrom("COPY \"#{@_namespace}\".events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
+      pg_stream = connection.query(copyFrom("COPY \"#{namespace}\".events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
       counter = new CounterStream()
       stream.pipe(counter).pipe(pg_stream)
       .on('end', -> deferred.resolve(counter.count))
@@ -376,43 +373,43 @@ class PSQLEventStoreManager
     
   # DATABASE CLEANING METHODS
 
-  expire_events: ->
+  expire_events: (namespace) ->
     #removes the events passed their expiry date
-    @_knex("#{@_namespace}.events").whereRaw('expires_at < NOW()').del()
+    @_knex("#{namespace}.events").whereRaw('expires_at < NOW()').del()
 
-  pre_compact: ->
-    @analyze()
+  pre_compact: (namespace) ->
+    @analyze(namespace)
 
-  post_compact: ->
-    @analyze()
+  post_compact: (namespace) ->
+    @analyze(namespace)
 
 
-  remove_non_unique_events_for_people: (people) ->
+  remove_non_unique_events_for_people: (namespace, people) ->
     return bb.try( -> []) if people.length == 0
-    promises = (@remove_non_unique_events_for_person(person) for person in people)
+    promises = (@remove_non_unique_events_for_person(namespace, person) for person in people)
     bb.all(promises)
 
-  remove_non_unique_events_for_person: (person) ->
+  remove_non_unique_events_for_person: (namespace, person) ->
     # TODO I would suggest doing it for active people. THIS IS WAY TOO SLOW!!!
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
     bindings = [person]
-    query = "DELETE FROM \"#{@_namespace}\".events e1 
-    USING \"#{@_namespace}\".events e2 
+    query = "DELETE FROM \"#{namespace}\".events e1 
+    USING \"#{namespace}\".events e2 
     WHERE e1.person = $1 AND e1.expires_at is NULL AND e1.id <> e2.id AND e1.person = e2.person AND e1.action = e2.action AND e1.thing = e2.thing AND 
     (e1.created_at < e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id) )" #LEXICOGRAPHIC ORDERING for created at then id
     @_knex.raw(query, bindings)
 
-  vacuum_analyze: ->
-    @_knex.raw("VACUUM ANALYZE \"#{@_namespace}\".events")
+  vacuum_analyze: (namespace) ->
+    @_knex.raw("VACUUM ANALYZE \"#{namespace}\".events")
 
-  analyze: ->
-    @_knex.raw("ANALYZE \"#{@_namespace}\".events")
+  analyze: (namespace) ->
+    @_knex.raw("ANALYZE \"#{namespace}\".events")
 
 
-  get_active_things: ->
+  get_active_things: (namespace) ->
     #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'thing';
-    @_knex('pg_stats').select('most_common_vals').where(attname: 'thing', tablename: 'events', schemaname: @_namespace)
+    @_knex('pg_stats').select('most_common_vals').where(attname: 'thing', tablename: 'events', schemaname: namespace)
     .then((rows) ->
       return [] if not rows[0]
       common_str = rows[0].most_common_vals
@@ -422,10 +419,10 @@ class PSQLEventStoreManager
       things
     )
 
-  get_active_people: ->
+  get_active_people: (namespace) ->
     #TODO WILL NOT WORK IF COMMA IN NAME
     #select most_common_vals from pg_stats where attname = 'person';
-    @_knex('pg_stats').select('most_common_vals').where(attname: 'person', tablename: 'events', schemaname: @_namespace)
+    @_knex('pg_stats').select('most_common_vals').where(attname: 'person', tablename: 'events', schemaname: namespace)
     .then((rows) ->
       return [] if not rows[0]
       common_str = rows[0].most_common_vals
@@ -436,65 +433,65 @@ class PSQLEventStoreManager
     )
 
 
-  compact_people : (compact_database_person_action_limit, actions) ->
-    @get_active_people()
+  compact_people : (namespace, compact_database_person_action_limit, actions) ->
+    @get_active_people(namespace)
     .then( (people) =>
-      @remove_non_unique_events_for_people(people)
+      @remove_non_unique_events_for_people(namespace, people)
       .then( =>
         #remove events per (active) person action that exceed some number
-        @truncate_people_per_action(people, compact_database_person_action_limit, actions)
+        @truncate_people_per_action(namespace, people, compact_database_person_action_limit, actions)
       )
     )
 
-  compact_things :  (compact_database_thing_action_limit, actions) ->
-    @get_active_things()
+  compact_things :  (namespace, compact_database_thing_action_limit, actions) ->
+    @get_active_things(namespace)
     .then( (things) =>
-      @truncate_things_per_action(things, compact_database_thing_action_limit, actions)
+      @truncate_things_per_action(namespace, things, compact_database_thing_action_limit, actions)
     )
 
-  truncate_things_per_action: (things, trunc_size, actions) ->
+  truncate_things_per_action: (namespace, things, trunc_size, actions) ->
 
     #TODO do the same thing for things
     return bb.try( -> []) if things.length == 0  
 
     #cut each action down to size
-    promises = (@truncate_thing_actions(thing, trunc_size, action) for thing in things for action in actions)
+    promises = (@truncate_thing_actions(namespace, thing, trunc_size, action) for thing in things for action in actions)
     promises = _.flatten(promises)
     bb.all(promises)
     
 
-  truncate_thing_actions: (thing, trunc_size, action) ->
+  truncate_thing_actions: (namespace, thing, trunc_size, action) ->
     bindings = [thing, action]
 
-    q = "delete from \"#{@_namespace}\".events as e 
+    q = "delete from \"#{namespace}\".events as e 
          where e.id in 
-         (select id from \"#{@_namespace}\".events where action = $2 and thing = $1
+         (select id from \"#{namespace}\".events where action = $2 and thing = $1
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
 
 
-  truncate_people_per_action: (people, trunc_size, actions) ->
+  truncate_people_per_action: (namespace, people, trunc_size, actions) ->
     #TODO do the same thing for things
     return bb.try( -> []) if people.length == 0  
 
     #cut each action down to size
-    promises = (@truncate_person_actions(person, trunc_size, action) for person in people for action in actions)
+    promises = (@truncate_person_actions(namespace, person, trunc_size, action) for person in people for action in actions)
     promises = _.flatten(promises)
     bb.all(promises)
     
     
-  truncate_person_actions: (person, trunc_size, action) ->
+  truncate_person_actions: (namespace, person, trunc_size, action) ->
     bindings = [person, action]
-    q = "delete from \"#{@_namespace}\".events as e 
+    q = "delete from \"#{namespace}\".events as e 
          where e.id in 
-         (select id from \"#{@_namespace}\".events where action = $2 and person = $1
+         (select id from \"#{namespace}\".events where action = $2 and person = $1
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
     
-  remove_events_till_size: (number_of_events) ->
+  remove_events_till_size: (namespace, number_of_events) ->
     #TODO move too offset method
     #removes old events till there is only number_of_events left
-    query = "delete from #{@_namespace}.events where id not in (select id from #{@_namespace}.events order by created_at desc limit #{number_of_events})"
+    query = "delete from #{namespace}.events where id not in (select id from #{namespace}.events order by created_at desc limit #{number_of_events})"
     @_knex.raw(query)
 
 #AMD

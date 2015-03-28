@@ -400,7 +400,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','view','t3')
           ])
           .then( ->
-            esm.pre_compact()
+            esm.pre_compact(ns)
           )
           .then( ->
             esm.estimate_event_count(ns)
