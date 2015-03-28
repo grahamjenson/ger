@@ -1,12 +1,14 @@
+ns = global.default_namespace
+
 describe '#event', ->
   it 'should upsert same events', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','c'),
-        ger.event('p1','buy','c'),
+        ger.event(ns,'p1','buy','c'),
+        ger.event(ns,'p1','buy','c'),
       ])
-      .then(-> ger.count_events())
+      .then(-> ger.count_events(ns))
       .then((count) ->
         count.should.equal 1
       )
@@ -16,10 +18,10 @@ describe '#count_events', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','c'),
-        ger.event('p1','view','c'),
+        ger.event(ns,'p1','buy','c'),
+        ger.event(ns,'p1','view','c'),
       ])
-      .then(-> ger.count_events())
+      .then(-> ger.count_events(ns))
       .then((count) ->
         count.should.equal 2
       )
@@ -30,12 +32,12 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','a'),
-        ger.event('p1','view','a'),
+        ger.event(ns,'p1','buy','a'),
+        ger.event(ns,'p1','view','a'),
 
-        ger.event('p2','view','a'),
+        ger.event(ns,'p2','view','a'),
       ])
-      .then(-> ger.recommendations_for_person('p2', 'buy', actions: {view:1, buy:1}))
+      .then(-> ger.recommendations_for_person(ns, 'p2', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal 'a'
@@ -46,17 +48,17 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','a'),
-        ger.event('p1','view','a'),
+        ger.event(ns,'p1','buy','a'),
+        ger.event(ns,'p1','view','a'),
 
-        ger.event('p2','view','a'),
-        ger.event('p2','buy','c'),
-        ger.event('p2','buy','d'),
+        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p2','buy','c'),
+        ger.event(ns,'p2','buy','d'),
 
-        ger.event('p3','view','a'),
-        ger.event('p3','buy','c')
+        ger.event(ns,'p3','view','a'),
+        ger.event(ns,'p3','buy','c')
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {view:1, buy:1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         #p1 is similar to (p1 by 1), p2 by .5, and (p3 by .5)
@@ -71,16 +73,16 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
 
-        ger.event('p1','view','a'),
+        ger.event(ns,'p1','view','a'),
 
-        ger.event('p2','view','a'),
-        ger.event('p2','view','c'),
-        ger.event('p2','view','d'),
+        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p2','view','c'),
+        ger.event(ns,'p2','view','d'),
 
-        ger.event('p3','view','a'),
-        ger.event('p3','view','c')
+        ger.event(ns,'p3','view','a'),
+        ger.event(ns,'p3','view','c')
       ])
-      .then(-> ger.recommendations_for_person('p1', 'view', actions: {view: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'view', actions: {view: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal 'a'
@@ -93,9 +95,9 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','a'),
+        ger.event(ns,'p1','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
@@ -105,12 +107,12 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','a'),
-        ger.event('p1','buy','b'),
-        ger.event('p2','buy','b'),
-        ger.event('p2','buy','c'),
+        ger.event(ns,'p1','buy','a'),
+        ger.event(ns,'p1','buy','b'),
+        ger.event(ns,'p2','buy','b'),
+        ger.event(ns,'p2','buy','c'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
@@ -121,10 +123,10 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','buy','a'),
-        ger.event('p2','buy','a'),
+        ger.event(ns,'p1','buy','a'),
+        ger.event(ns,'p2','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1, view: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1, view: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 0
@@ -134,11 +136,11 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','view','a'),
-        ger.event('p2','view','a'),
-        ger.event('p2','buy','a'),
+        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p2','buy','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1, view: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1, view: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 1
@@ -149,10 +151,10 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event("'p\n,1};","v'i\new","'a\n;"),
-        ger.event("'p\n2};","v'i\new","'a\n;"),
+        ger.event(ns,"'p\n,1};","v'i\new","'a\n;"),
+        ger.event(ns,"'p\n2};","v'i\new","'a\n;"),
       ])
-      .then(-> ger.recommendations_for_person("'p\n,1};","v'i\new", actions: {"v'i\new": 1}))
+      .then(-> ger.recommendations_for_person(ns, "'p\n,1};","v'i\new", actions: {"v'i\new": 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal "'a\n;"
@@ -165,32 +167,32 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','view','a'),
-        ger.event('p2','view','a'),
-        ger.event('p3','view','a'),
-        ger.event('p2','view','b', created_at: date1),
-        ger.event('p3','view','b', created_at: date2),
+        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p3','view','a'),
+        ger.event(ns,'p2','view','b', created_at: date1),
+        ger.event(ns,'p3','view','b', created_at: date2),
       ])
-      .then(-> ger.recommendations_for_person("p1","view", actions : {view: 1}))
+      .then(-> ger.recommendations_for_person(ns, "p1","view", actions : {view: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 2
 
         item_weights[0].thing.should.equal "a"
         item_weights[1].thing.should.equal "b"
-        (+item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime()
+        (item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime().toString()
       )
 
   it 'should people that contributed to recommendation', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p2','buy','a'),
-        ger.event('p2','view','a'),
+        ger.event(ns,'p2','buy','a'),
+        ger.event(ns,'p2','view','a'),
 
-        ger.event('p1','view','a'),
+        ger.event(ns,'p1','view','a'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', actions: {view:1, buy:1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights[0].thing.should.equal 'a'
@@ -203,16 +205,16 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
 
-        ger.event('p1','view','a'),
+        ger.event(ns,'p1','view','a'),
 
-        ger.event('p2','buy','a'),
-        ger.event('p2','view','a'),
+        ger.event(ns,'p2','buy','a'),
+        ger.event(ns,'p2','view','a'),
 
-        ger.event('p3','buy','b'),
-        ger.event('p3','view','a'),
-        ger.event('p3','view','d'),
+        ger.event(ns,'p3','buy','b'),
+        ger.event(ns,'p3','view','a'),
+        ger.event(ns,'p3','view','d'),
       ])
-      .then(-> ger.recommendations_for_person('p1', 'buy', {recommendations_limit: 1, actions: {view:1, buy:1}}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', {recommendations_limit: 1, actions: {view:1, buy:1}}))
       .then((recommendations) ->
         recommendations.recommendations.length.should.equal 1
 
@@ -225,16 +227,16 @@ describe 'find_similar_people', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','action1','a'),
-        ger.event('p2','action1','a'),
-        ger.event('p3','action1','a'),
+        ger.event(ns,'p1','action1','a'),
+        ger.event(ns,'p2','action1','a'),
+        ger.event(ns,'p3','action1','a'),
 
-        ger.event('p1','action1','b'),
-        ger.event('p3','action1','b'),
+        ger.event(ns,'p1','action1','b'),
+        ger.event(ns,'p3','action1','b'),
 
-        ger.event('p4','action1','d')
+        ger.event(ns,'p4','action1','d')
       ])
-      .then(-> ger.find_similar_people('p1', 'action1', {'action1': 1}))
+      .then(-> ger.find_similar_people(ns, 'p1', 'action1', {'action1': 1}))
       .then((similar_people) ->
         similar_people.should.include 'p2'
         similar_people.should.include 'p3'
@@ -244,17 +246,17 @@ describe 'find_similar_people', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','action1','not')
-        ger.event('p1','action1','a'),
-        ger.event('p2','action1','a'),
-        ger.event('p3','action1','a'),
+        ger.event(ns,'p1','action1','not')
+        ger.event(ns,'p1','action1','a'),
+        ger.event(ns,'p2','action1','a'),
+        ger.event(ns,'p3','action1','a'),
 
-        ger.event('p1','action1','b'),
-        ger.event('p3','action1','b'),
+        ger.event(ns,'p1','action1','b'),
+        ger.event(ns,'p3','action1','b'),
 
-        ger.event('p4','action1','d')
+        ger.event(ns,'p4','action1','d')
       ])
-      .then(-> ger.find_similar_people('p1', 'action1', {'action1': 1}))
+      .then(-> ger.find_similar_people(ns, 'p1', 'action1', {'action1': 1}))
       .then((similar_people) ->
         similar_people.length.should.equal 2
       )
@@ -265,11 +267,11 @@ describe 'calculate_similarities_from_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','view','a'),
-        ger.event('p2','view','a', created_at: moment().subtract(50, 'mins')),
-        ger.event('p3','view','a', created_at: moment().subtract(2, 'days')),
+        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p2','view','a', created_at: moment().subtract(50, 'mins').toDate()),
+        ger.event(ns,'p3','view','a', created_at: moment().subtract(2, 'days').toDate()),
       ])
-      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'view': 1}, 500, 1) )
+      .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': 1}, 500, 1) )
       .then((similar_people) ->
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p2'].should.equal 1
@@ -280,16 +282,16 @@ describe 'calculate_similarities_from_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','view','a'),
-        ger.event('p2','view','a'),
-        ger.event('p3','view','a'),
+        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p3','view','a'),
 
-        ger.event('p1','buy','b'),
-        ger.event('p3','buy','b'),
+        ger.event(ns,'p1','buy','b'),
+        ger.event(ns,'p3','buy','b'),
 
-        ger.event('p2','buy','x')
+        ger.event(ns,'p2','buy','x')
       ])
-      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'view': .01, 'buy': .99}))
+      .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': .01, 'buy': .99}))
       .then((similar_people) ->
         similar_people.people_weights['p3'].should.equal 1
         similar_people.people_weights['p1'].should.equal 1
@@ -301,16 +303,16 @@ describe 'calculate_similarities_from_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','action1','a'),
-        ger.event('p2','action1','a'),
-        ger.event('p3','action1','a'),
+        ger.event(ns,'p1','action1','a'),
+        ger.event(ns,'p2','action1','a'),
+        ger.event(ns,'p3','action1','a'),
 
-        ger.event('p1','action1','b'),
-        ger.event('p3','action1','b'),
+        ger.event(ns,'p1','action1','b'),
+        ger.event(ns,'p3','action1','b'),
 
-        ger.event('p4','action1','d')
+        ger.event(ns,'p4','action1','d')
       ])
-      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'action1': 1}))
+      .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p3'].should.equal 1
@@ -322,15 +324,15 @@ describe 'calculate_similarities_from_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event('p1','action1','not')
-        ger.event('p1','action1','a'),
-        ger.event('p2','action1','a'),
-        ger.event('p3','action1','a'),
+        ger.event(ns,'p1','action1','not')
+        ger.event(ns,'p1','action1','a'),
+        ger.event(ns,'p2','action1','a'),
+        ger.event(ns,'p3','action1','a'),
 
-        ger.event('p1','action1','b'),
-        ger.event('p3','action1','b')
+        ger.event(ns,'p1','action1','b'),
+        ger.event(ns,'p3','action1','b')
       ])
-      .then(-> ger.calculate_similarities_from_person('p1', ['p2','p3'], {'action1': 1}))
+      .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
         people_weights = similar_people.people_weights
         compare_floats( people_weights['p3'], 2/3).should.equal true

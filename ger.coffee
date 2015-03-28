@@ -10,8 +10,8 @@ class GER
 
   ####################### Weighted people  #################################
 
-  calculate_similarities_from_person : (person, people, actions, history_search_size, recent_event_days) ->
-    @esm.calculate_similarities_from_person(person, people, Object.keys(actions), history_search_size, recent_event_days)
+  calculate_similarities_from_person : (namespace, person, people, actions, history_search_size, recent_event_days) ->
+    @esm.calculate_similarities_from_person(namespace, person, people, Object.keys(actions), history_search_size, recent_event_days)
     .then( (people_weights) =>
       temp = {}
       for p, weights of people_weights
@@ -45,8 +45,8 @@ class GER
     [ltmean, gtmean]
     
   
-  filter_recommendations: (person, recommendations, filter_previous_actions) ->
-    @esm.filter_things_by_previous_actions(person, Object.keys(recommendations), filter_previous_actions)
+  filter_recommendations: (namespace, person, recommendations, filter_previous_actions) ->
+    @esm.filter_things_by_previous_actions(namespace, person, Object.keys(recommendations), filter_previous_actions)
     .then( (filter_things) ->
       filtered_recs = []
       for thing, recommendation_info of recommendations
@@ -82,34 +82,34 @@ class GER
     tc
 
 
-  find_similar_people: (person, action, actions, similar_people_limit, history_search_size) ->
+  find_similar_people: (namespace, person, action, actions, similar_people_limit, history_search_size) ->
     #Split the actions into two separate groups (actions below mean and actions above mean)
     #This is a useful heuristic to  
     action_list = Object.keys(actions)
     [actions_below_mean, actions_above_mean] = @half_array_by_mean(action_list, actions)
 
     bb.all([
-      @esm.find_similar_people(person, actions_below_mean, action, similar_people_limit, history_search_size), 
-      @esm.find_similar_people(person, actions_above_mean, action, similar_people_limit, history_search_size)])
+      @esm.find_similar_people(namespace, person, actions_below_mean, action, similar_people_limit, history_search_size), 
+      @esm.find_similar_people(namespace, person, actions_above_mean, action, similar_people_limit, history_search_size)])
     .spread( (ltpeople, gtpeople) ->
       _.unique(ltpeople.concat gtpeople)
     )
 
-  recently_actioned_things_by_people: (action, people, related_things_limit) ->
-    @esm.recently_actioned_things_by_people(action, people, related_things_limit)
+  recently_actioned_things_by_people: (namespace, action, people, related_things_limit) ->
+    @esm.recently_actioned_things_by_people(namespace, action, people, related_things_limit)
 
   crowd_weight_confidence: (weight, n_people, crowd_weight) ->
     crowd_size = Math.pow(n_people, crowd_weight)
     cwc = 1.0 - Math.pow(Math.E,( (- crowd_size) / 4 ))
     cwc * weight
 
-  generate_recommendations_for_person: (person, action, actions, person_history_count, configuration) ->
+  generate_recommendations_for_person: (namespace, person, action, actions, person_history_count, configuration) ->
 
-    @find_similar_people(person, action, actions, configuration.similar_people_limit, configuration.history_search_size)
+    @find_similar_people(namespace, person, action, actions, configuration.similar_people_limit, configuration.history_search_size)
     .then( (people) =>
       bb.all([
-        @calculate_similarities_from_person(person, people, actions, configuration.history_search_size, configuration.recent_event_days)
-        @recently_actioned_things_by_people(action, people.concat(person), configuration.related_things_limit)
+        @calculate_similarities_from_person(namespace, person, people, actions, configuration.history_search_size, configuration.recent_event_days)
+        @recently_actioned_things_by_people(namespace, action, people.concat(person), configuration.related_things_limit)
       ])
     )
     .spread( ( similar_people, people_things ) =>
@@ -133,7 +133,7 @@ class GER
         ri.weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
 
       # CALCULATE CONFIDENCES
-      bb.all([@filter_recommendations(person, things_weight, configuration.filter_previous_actions), similar_people] )
+      bb.all([@filter_recommendations(namespace, person, things_weight, configuration.filter_previous_actions), similar_people] )
     )
     .spread( (recommendations, similar_people) =>
 
@@ -160,7 +160,7 @@ class GER
 
     )
 
-  recommendations_for_person: (person, rec_action, configuration = {}) ->
+  recommendations_for_person: (namespace, person, rec_action, configuration = {}) ->
     configuration = _.defaults(configuration,
       minimum_history_required: 1,
       history_search_size: 500
@@ -174,7 +174,7 @@ class GER
     )
 
     #first a check or two
-    @esm.person_history_count(person)
+    @esm.person_history_count(namespace, person)
     .then( (count) =>
       if count < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}
@@ -190,46 +190,43 @@ class GER
           continue if weight <= 0
           actions[action] = weight/total_action_weight
          
-        return @generate_recommendations_for_person(person, rec_action, actions, count, configuration)
+        return @generate_recommendations_for_person(namespace, person, rec_action, actions, count, configuration)
     )
 
   ##Wrappers of the ESM
 
-  count_events: ->
-    @esm.count_events()
+  count_events: (namespace) ->
+    @esm.count_events(namespace)
 
-  estimate_event_count: ->
-    @esm.estimate_event_count()
+  estimate_event_count: (namespace) ->
+    @esm.estimate_event_count(namespace)
 
-  event: (person, action, thing, dates = {}) ->
-    @esm.add_event(person,action, thing, dates)
+  event: (namespace, person, action, thing, dates = {}) ->
+    @esm.add_event(namespace, person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
 
-  find_events: (person, action, thing, options) ->
-    @esm.find_events(person, action, thing, options)
+  find_events: (namespace, person, action, thing, options) ->
+    @esm.find_events(namespace, person, action, thing, options)
 
-  delete_events: (person, action, thing) ->
-    @esm.delete_events(person, action, thing)
+  delete_events: (namespace, person, action, thing) ->
+    @esm.delete_events(namespace, person, action, thing)
 
-  namespace_exists: ->
-    @esm.exists()
+  namespace_exists: (namespace) ->
+    @esm.exists(namespace)
 
-  set_namespace: (namespace) ->
-    @esm.set_namespace(namespace)
+  initialize_namespace: (namespace) ->
+    @esm.initialize(namespace)
 
-  initialize_namespace: ->
-    @esm.initialize()
+  destroy_namespace: (namespace) ->
+    @esm.destroy(namespace)
 
-  destroy_namespace: ->
-    @esm.destroy()
-
-  bootstrap: (stream) ->
+  bootstrap: (namespace, stream) ->
     #filename should be person, action, thing, created_at, expires_at
     #this will require manually adding the actions
-    @esm.bootstrap(stream)
+    @esm.bootstrap(namespace, stream)
     
   #  DATABASE CLEANING #
-  compact_database: ( options = {}) ->
+  compact_database: ( namespace, options = {}) ->
     
     options = _.defaults(options,
       compact_database_person_action_limit: 1500
@@ -237,22 +234,22 @@ class GER
       actions: []
     )
 
-    @esm.pre_compact()
+    @esm.pre_compact(namespace)
     .then( =>
       promises = []
-      promises.push @esm.expire_events()
-      promises.push @esm.compact_people(options.compact_database_person_action_limit, options.actions)
-      promises.push @esm.compact_things(options.compact_database_thing_action_limit, options.actions)
+      promises.push @esm.expire_events(namespace)
+      promises.push @esm.compact_people(namespace, options.compact_database_person_action_limit, options.actions)
+      promises.push @esm.compact_things(namespace, options.compact_database_thing_action_limit, options.actions)
       bb.all(promises)
     )
     .then( =>
-      @esm.post_compact()
+      @esm.post_compact(namespace)
     )
 
-  compact_database_to_size: (number_of_events) ->
+  compact_database_to_size: (namespace, number_of_events) ->
     # Smartly Cut (lossy) the tail of the database (based on created_at) to a defined size
     #STEP 1
-    @esm.remove_events_till_size(number_of_events)
+    @esm.remove_events_till_size(namespace, number_of_events)
 
 
 RET = {}
