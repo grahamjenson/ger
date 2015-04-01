@@ -111,6 +111,19 @@ esm_tests = (ESM) ->
             console.log "#{pe}ms per recommendations_for_person"
           )
         )
+        .then( ->
+          st = new Date().getTime()
+          promises = []
+          for x in [1..nrecommendations]
+            promises.push ger.recommendations_for_thing(ns, sample(things), sample(actions), actions: {buy:5, like:3, view:1})
+          bb.all(promises)
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/nrecommendations
+            console.log "#{pe}ms per recommendations_for_thing"
+          )
+        )
       )
       .then( ->
         console.log ""

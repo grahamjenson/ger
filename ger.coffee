@@ -103,6 +103,24 @@ class GER
     cwc = 1.0 - Math.pow(Math.E,( (- crowd_size) / 4 ))
     cwc * weight
 
+
+  calculate_recommendations_weights: (people_weights, people_things) ->
+    things_weight = {}
+    for p, things of people_things
+      for thing_date in things
+        thing = thing_date.thing
+        last_actioned_at = thing_date.last_actioned_at
+
+        things_weight[thing] = {thing: thing, weight: 0} if things_weight[thing] == undefined
+        recommendation_info = things_weight[thing]
+        recommendation_info.weight += people_weights[p]
+        recommendation_info.people = [] if recommendation_info.people == undefined
+        recommendation_info.people.push p
+        if recommendation_info.last_actioned_at == undefined or recommendation_info.last_actioned_at < last_actioned_at
+          recommendation_info.last_actioned_at = last_actioned_at
+
+    things_weight
+
   generate_recommendations_for_person: (namespace, person, action, actions, person_history_count, configuration) ->
 
     @find_similar_people(namespace, person, action, actions, configuration.similar_people_limit, configuration.history_search_size)
@@ -114,28 +132,15 @@ class GER
     )
     .spread( ( similar_people, people_things ) =>
       people_weights = similar_people.people_weights
-      things_weight = {}
-      for p, things of people_things
-        for thing_date in things
-          thing = thing_date.thing
-          last_actioned_at = thing_date.last_actioned_at
-
-          things_weight[thing] = {thing: thing, weight: 0} if things_weight[thing] == undefined
-          recommendation_info = things_weight[thing]
-          recommendation_info.weight += people_weights[p]
-          recommendation_info.people = [] if recommendation_info.people == undefined
-          recommendation_info.people.push p
-          if recommendation_info.last_actioned_at == undefined or recommendation_info.last_actioned_at < last_actioned_at
-            recommendation_info.last_actioned_at = last_actioned_at
-            
-            
-      for thing, ri of things_weight
-        ri.weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
-
+      things_weight = @calculate_recommendations_weights(people_weights, people_things)
+ 
       # CALCULATE CONFIDENCES
       bb.all([@filter_recommendations(namespace, person, things_weight, configuration.filter_previous_actions), similar_people] )
     )
     .spread( (recommendations, similar_people) =>
+      #recommendations in the format {thing: weight: people: last_actioned_at:}
+      for thing, ri of recommendations
+        ri.weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
 
       recommendations_object = {}
 
@@ -160,8 +165,70 @@ class GER
 
     )
 
-  recommendations_for_person: (namespace, person, rec_action, configuration = {}) ->
-    configuration = _.defaults(configuration,
+  generate_recommendations_for_thing: (namespace, thing, action, actions, thing_history_count, configuration) ->
+    #find people that have actioned things
+    promises = []
+    for a,w of actions
+      promises.push(bb.all([a, @esm.find_events(namespace, null, action, thing, size: 100)]))
+
+    bb.all(promises)
+    .then( (action_things) =>
+      similar_people = {people_weights: {}, n_people: 0}
+      people = []
+      for action_thing in action_things
+        a = action_thing[0]
+        for e in action_thing[1]
+
+          p = e.person
+          if not similar_people.people_weights[p]
+            similar_people.people_weights[p] = 0 
+            similar_people.n_people += 1
+            people.push p
+
+          similar_people.people_weights[p] += actions[a]
+
+
+      bb.all([similar_people, @recently_actioned_things_by_people(namespace, action, people, configuration.related_things_limit)])
+    )
+    .spread( ( similar_people, people_things ) =>
+      people_weights = similar_people.people_weights
+      recommendations = @calculate_recommendations_weights(people_weights, people_things)
+      delete recommendations[thing] #removing the original object
+      recommendations = _.values(recommendations)
+
+      sorted_things = recommendations
+      for thing, ri of sorted_things
+        weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
+
+
+      recommendations_object = {}
+
+      # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
+      sorted_things = sorted_things.sort((x, y) -> y.weight - x.weight)
+      recommendations_object.recommendations = sorted_things[0...configuration.recommendations_limit]
+      
+
+      people_confidence = @people_confidence(similar_people.n_people)
+      history_confidence = @history_confidence(thing_history_count)
+      things_confidence = @things_confidence(sorted_things)
+
+      recommendations_object.confidence = people_confidence * history_confidence * things_confidence
+
+
+      recommendations_object.similar_people = {}
+      for rec in recommendations_object.recommendations
+        for p in rec.people
+          recommendations_object.similar_people[p] = similar_people.people_weights[p]
+
+      recommendations_object
+      
+    )
+    # weight people by the action weight
+    # find things that those 
+    # @recently_actioned_things_by_people(namespace, action, people.concat(person), configuration.related_things_limit)
+
+  default_configuration: (configuration) ->
+    _.defaults(configuration,
       minimum_history_required: 1,
       history_search_size: 500
       crowd_weight: 0
@@ -173,22 +240,38 @@ class GER
       actions: {}
     )
 
+  normalize_actions: (in_actions) ->
+    total_action_weight = 0
+    for action, weight of in_actions
+      continue if weight <= 0
+      total_action_weight += weight
+
+    #filter and normalize actions with 0 weight from actions
+    actions = {}
+    for action, weight of in_actions
+      continue if weight <= 0
+      actions[action] = weight/total_action_weight
+    actions
+
+  recommendations_for_thing: (namespace, thing, rec_action, configuration = {}) ->
+    configuration = @default_configuration(configuration)
+
+    #first a check or two
+    #TODO minimum thing history count
+    actions = @normalize_actions(configuration.actions)    
+    return @generate_recommendations_for_thing(namespace, thing, rec_action, actions, 0, configuration)
+
+
+  recommendations_for_person: (namespace, person, rec_action, configuration = {}) ->
+    configuration = @default_configuration(configuration)
+
     #first a check or two
     @esm.person_history_count(namespace, person)
     .then( (count) =>
       if count < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}
       else
-        total_action_weight = 0
-        for action, weight of configuration.actions
-          continue if weight <= 0
-          total_action_weight += weight
-
-        #filter and normalize actions with 0 weight from actions
-        actions = {}
-        for action, weight of configuration.actions
-          continue if weight <= 0
-          actions[action] = weight/total_action_weight
+        actions = @normalize_actions(configuration.actions)
          
         return @generate_recommendations_for_person(namespace, person, rec_action, actions, count, configuration)
     )
