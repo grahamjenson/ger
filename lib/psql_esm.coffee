@@ -4,6 +4,8 @@ pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
 _ = require 'underscore'
 
+Errors = require './errors'
+
 Transform = require('stream').Transform;
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
@@ -67,6 +69,10 @@ class PSQLEventStoreManager
     expires_at = dates.expires_at
     created_at = dates.created_at || new Date().toISOString()
     @add_event_to_db(namespace, person, action, thing, created_at, expires_at)
+    .catch( (error) ->
+      if error.message.indexOf("schema") > -1 and error.message.indexOf("does not exist") > -1
+        throw new Errors.NamespaceDoestNotExist()
+    )
 
   questions_marks_to_dollar: (query) ->
     counter = 1

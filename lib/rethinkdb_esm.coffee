@@ -7,6 +7,8 @@ split = require 'split'
 _ = require 'underscore'
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
+Errors = require './errors'
+
 class EventStoreMapper
 
 
@@ -173,6 +175,10 @@ class EventStoreMapper
     insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
     identity_attr = person.toString() + action + thing
     @upsert("#{namespace}_events", insert_attr, identity_attr)
+    .catch( (error) ->
+      if error.message.indexOf("Table") > -1 and error.message.indexOf("does not exist") > -1
+        throw new Errors.NamespaceDoestNotExist()
+    )
 
   person_history_count: (namespace, person) ->
     @_r.table("#{namespace}_events").getAll(person,{index: "person"})("thing")

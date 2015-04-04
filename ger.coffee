@@ -348,12 +348,10 @@ RET.PsqlESM = require('./lib/psql_esm')
 RET.MemESM = require('./lib/basic_in_memory_esm')
 RET.RethinkDBESM = require('./lib/rethinkdb_esm')
 
+Errors = require './lib/errors'
 
-#AMD
-if (typeof define != 'undefined' && define.amd)
-  define([], -> return RET)
-#Node
-else if (typeof module != 'undefined' && module.exports)
-    module.exports = RET;
+GER.NamespaceDoestNotExist = Errors.NamespaceDoestNotExist
+
+module.exports = RET;
 
 

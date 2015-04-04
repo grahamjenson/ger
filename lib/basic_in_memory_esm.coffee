@@ -8,6 +8,8 @@ event_store = {}
 person_action_store = {}
 thing_action_store = {}
 
+Errors = require './errors'
+
 #This is a simple implementation of an ESM to demonstrate the API and NOT FOR PRODUCTION PURPOSES
 class BasicInMemoryESM
 
@@ -120,6 +122,9 @@ class BasicInMemoryESM
     return bb.try(-> filtered_things)
 
   add_event: (namespace, person, action, thing, dates = {}) ->
+    if !event_store[namespace]
+      return bb.try( -> throw new Errors.NamespaceDoestNotExist())
+
     created_at = dates.created_at || new Date()
     expires_at = if dates.expires_at then new Date(dates.expires_at) else null
     found_event = @_find_event(namespace, person, action, thing)
