@@ -1,16 +1,30 @@
 ns = global.default_namespace
 
 describe '#event', ->
-  it 'should upsert same events', ->
+  it 'should add events', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','buy','c'),
-        ger.event(ns,'p1','buy','c'),
+        ger.event(ns,'p1','buy','c')
       ])
       .then(-> ger.count_events(ns))
       .then((count) ->
         count.should.equal 1
+      )
+
+describe '#events', ->
+  it 'should work same events', ->
+    exp_date = new Date().toISOString()
+    init_ger()
+    .then (ger) ->
+      ger.events([
+        {namespace: ns, person: 'p1', action: 'a', thing: 't1'}
+        {namespace: ns, person: 'p1', action: 'a', thing: 't2', created_at: new Date().toISOString()}
+        {namespace: ns, person: 'p1', action: 'a', thing: 't3', expires_at: exp_date}
+      ])
+      .then(-> ger.count_events(ns))
+      .then((count) ->
+        count.should.equal 3
       )
 
 describe '#count_events', ->

@@ -73,20 +73,13 @@ class PSQLEventStoreManager
       namespaces[e.namespace].push e
       delete e.namespace
 
-
     promises = []
     for namespace, es of namespaces
       promises.push @add_events_to_namespace(namespace, es)
 
     bb.all(promises)
-    .catch( (error) ->
-      if error.message.indexOf("schema") > -1 and error.message.indexOf("does not exist") > -1
-        throw new Errors.NamespaceDoestNotExist()
-    )
-    
-  add_events_to_namespace: (namespace, events) ->
-    @_knex("#{namespace}.events").insert(events)
 
+    
   add_event: (namespace, person, action, thing, dates = {}) ->
     @add_events([{
       namespace: namespace
@@ -96,6 +89,14 @@ class PSQLEventStoreManager
       created_at: dates.created_at
       expires_at: dates.expires_at
     }])
+
+  add_events_to_namespace: (namespace, events) ->
+    @_knex("#{namespace}.events").insert(events)
+    .catch( (error) ->
+      console.log error.message
+      if error.message.indexOf("relation") > -1 and error.message.indexOf(namespace) > -1 and error.message.indexOf("does not exist") > -1
+        throw new Errors.NamespaceDoestNotExist()
+    )
 
   questions_marks_to_dollar: (query) ->
     counter = 1

@@ -31,7 +31,7 @@
         "test": "mocha"
     },
     "main": "ger.coffee",
-    "version": "0.0.72",
+    "version": "0.0.73",
     "license": "MIT",
     "repository": {
         "type": "git",

@@ -121,6 +121,12 @@ class BasicInMemoryESM
       filtered_things = _.intersection(filtered_things, @_filter_things_by_previous_action(namespace, person, things, action))
     return bb.try(-> filtered_things)
 
+  add_events: (events) ->
+    promises = []
+    for e in events
+      promises.push @add_event(e.namespace, e.person, e.action, e.thing, {created_at: e.created_at, expires_at: e.expires_at})
+    bb.all(promises)
+
   add_event: (namespace, person, action, thing, dates = {}) ->
     if !event_store[namespace]
       return bb.try( -> throw new Errors.NamespaceDoestNotExist())
