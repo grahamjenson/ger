@@ -284,6 +284,10 @@ class GER
   estimate_event_count: (namespace) ->
     @esm.estimate_event_count(namespace)
 
+  events: (events) ->
+    @esm.add_events(events)
+    .then( -> events)
+    
   event: (namespace, person, action, thing, dates = {}) ->
     @esm.add_event(namespace, person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})

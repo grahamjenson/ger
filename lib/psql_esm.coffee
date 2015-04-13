@@ -65,6 +65,12 @@ class PSQLEventStoreManager
       result.rows.length >= 1
     )
 
+  add_events: (events) ->
+    promises = []
+    for e in events
+      promises.push @add_event(e.namespace, e.person, e.action, e.thing, {created_at: e.created_at, expires_at: e.expires_at})
+    bb.all(promises)
+      
   add_event: (namespace, person, action, thing, dates = {}) ->
     expires_at = dates.expires_at
     created_at = dates.created_at || new Date().toISOString()

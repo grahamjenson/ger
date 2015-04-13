@@ -361,6 +361,46 @@ esm_tests = (ESM) ->
           )
 
   describe 'inserting data', ->
+    describe '#add_events', ->
+      it 'should add an events to the ESM', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          esm.add_events([{namespace: ns, person: 'p', action: 'a', thing: 't'}])
+          .then( ->
+            esm.count_events(ns)
+          )
+          .then( (count) ->
+            count.should.equal 1
+            esm.find_events(ns, 'p','a', 't')
+          )
+          .then( (events) ->
+            event = events[0]
+            event.should.not.equal null
+          )
+
+      it 'should add multiple events to the ESM', ->
+        exp_date = (new Date()).toISOString()
+        init_esm(ESM, ns)
+        .then (esm) ->
+          esm.add_events([
+            {namespace: ns, person: 'p1', action: 'a', thing: 't1'}
+            {namespace: ns, person: 'p1', action: 'a', thing: 't2', created_at: new Date().toISOString()}
+            {namespace: ns, person: 'p1', action: 'a', thing: 't3', expires_at: exp_date}
+          ])
+          .then( ->
+            esm.count_events(ns)
+          )
+          .then( (count) ->
+            count.should.equal 3
+            esm.find_events(ns, 'p1','a', 't3')
+          )
+          .then( (events) ->
+            event = events[0]
+            event.should.not.equal null
+            event.expires_at.toISOString().should.equal exp_date
+          )
+
+
     describe '#add_event', ->
       it 'should add an event to the ESM', ->
         init_esm(ESM, ns)
