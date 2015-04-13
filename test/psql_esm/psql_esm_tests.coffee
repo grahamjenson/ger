@@ -28,22 +28,6 @@ describe '#get_jaccard_distances_between_people', ->
         jaccards['p2']['a'].should.equal 1/2
       )
 
-  it 'should not be effected by multiple events of the same type', ->
-    init_esm(PsqlESM)
-    .then (esm) ->
-      rs = new Readable();
-      rs.push('p1,a,t1,2013-01-01,\n');
-      rs.push('p1,a,t2,2013-01-01,\n');
-      rs.push('p2,a,t2,2013-01-01,\n');
-      rs.push('p2,a,t2,2013-01-01,\n');
-      rs.push('p2,a,t2,2013-01-01,\n');
-      rs.push(null);
-      esm.bootstrap(ns, rs)
-      .then( -> esm.get_jaccard_distances_between_people(ns, 'p1',['p2'],['a']))
-      .spread( (jaccards) ->
-        jaccards['p2']['a'].should.equal 1/2
-      )
-
 describe "#bootstrap", ->
   it 'should not exhaust the pg connections'
 

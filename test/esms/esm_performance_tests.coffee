@@ -7,14 +7,15 @@ esm_tests = (ESM) ->
     ns = 'default'
 
     naction = 50
-    nevents = 5000
+    nevents = 2000
+    nevents_diff = 25
     nbevents = 10000
     nfindpeople = 100
     ncalcpeople = 100
     ncompact = 3
     nrecommendations = 100
 
-    it 'adding 1000 events takes so much time', ->
+    it "adding #{nevents} events takes so much time", ->
       self = @
       console.log ""
       console.log ""
@@ -36,6 +37,22 @@ esm_tests = (ESM) ->
           time = et-st
           pe = time/nevents
           console.log "#{pe}ms per event"
+        )
+        .then( ->
+          st = new Date().getTime()
+          promises = []
+          for x in [1..nevents/nevents_diff]
+            events = []
+            for y in [1..nevents_diff]
+              events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things)}
+            promises.push ger.events(events)
+          bb.all(promises)
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/nevents
+            console.log "#{pe}ms adding events in #{nevents_diff} per set"
+          )
         )
         .then( ->
           st = new Date().getTime()
