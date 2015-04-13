@@ -109,44 +109,6 @@ class PSQLEventStoreManager
       nquery += char
     nquery
 
-  upsert: (table, insert_attr, identity_attr, update_attr) ->
-    bindings = []
-
-    update = "update #{table} set "
-    update += ("\"#{k}\" = ?" for k,v of update_attr).join(', ')
-    bindings = bindings.concat((v for k, v of update_attr))
-
-    update += " where "
-    update += ("\"#{k}\" = ?" for k,v of identity_attr).join(' and ')
-    bindings = bindings.concat((v for k, v of identity_attr))
-
-    
-    insert  = "insert into #{table} ("
-    insert += ("\"#{k}\"" for k,v of insert_attr).join(', ')
-    insert += ") select "
-    insert  += ("?" for k,v of insert_attr).join(', ')
-    bindings = bindings.concat((v for k, v of insert_attr))
-
-    query = "WITH upsert AS (#{update} RETURNING *) #{insert} WHERE NOT EXISTS (SELECT * FROM upsert);"
-
-    #defined here http://www.the-art-of-web.com/sql/upsert/
-
-    #replace the ? with $1 variables
-    query = @questions_marks_to_dollar(query)
-
-    @_knex.client.acquireConnection()
-    .then( (connection) =>
-      deferred = bb.defer()
-      connection.query("BEGIN; LOCK TABLE #{table} IN SHARE ROW EXCLUSIVE MODE;", (err) -> deferred.reject(err) if err);
-      connection.query(query, bindings, (err) -> deferred.reject(err) if err);
-      connection.query('COMMIT;', (err) ->
-        if err
-          deferred.reject(err)
-        else
-          deferred.resolve()
-      )
-      deferred.promise.finally( => @_knex.client.releaseConnection(connection))
-    )
 
   _event_selection: (namespace, person, action, thing) ->
     q = @_knex("#{namespace}.events")
@@ -179,11 +141,6 @@ class PSQLEventStoreManager
     )
 
 
-  add_event_to_db: (namespace, person, action, thing, created_at, expires_at = null) ->
-    insert_attr = {person: person, action: action, thing: thing, created_at: created_at, expires_at: expires_at}
-    identity_attr = {person: person, action: action, thing: thing}
-    update_attr = {created_at: created_at, expires_at: expires_at}
-    @upsert("\"#{namespace}\".events", insert_attr, identity_attr, update_attr)
 
 
   person_history_count: (namespace, person) ->
