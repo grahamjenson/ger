@@ -15,7 +15,7 @@
         "bluebird": "2.3.4",
         "knex": "0.7.0",
         "pg": "3.5.0",
-        "rethinkdbdash": "neumino/rethinkdbdash#next",
+        "rethinkdbdash": "neumino/rethinkdbdash#master",
         "pg-copy-streams": "0.3.0",
         "underscore": "1.7.0",
         "moment": "2.8.3",
