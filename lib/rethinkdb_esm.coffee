@@ -386,7 +386,7 @@ class EventStoreMapper
 
   expire_events: (namespace) ->
     #removes the events passed their expiry date
-    @_r.table("#{namespace}_events").between(null,@_r.now(),{index: "expires_at",rightBound: "closed"}).delete().run({useOutdated: true,durability: "soft"})
+    @_r.table("#{namespace}_events").between(@_r.minval,@_r.now(),{index: "expires_at",rightBound: "closed"}).delete().run({useOutdated: true,durability: "soft"})
 
   pre_compact: ->
     bb.try -> true
