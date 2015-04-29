@@ -672,8 +672,8 @@ esm_tests = (ESM) ->
         init_esm(ESM, ns)
         .then (esm) ->
           rs = new Readable();
-          rs.push('person,action,thing,2013-01-01,\n');
-          rs.push('person,action,thing,2014-01-01,\n');
+          rs.push('person,action,thing,2013-01-02,\n');
+          rs.push('person,action,thing,2014-01-02,\n');
           rs.push(null);
           esm.bootstrap(ns, rs)
           .then( ->
