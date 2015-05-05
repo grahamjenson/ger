@@ -94,13 +94,15 @@ class BasicInMemoryESM
 
     return bb.try(-> similarities)
 
-  recently_actioned_things_by_people: (namespace, action, people, related_things_limit) ->
+  recently_actioned_things_by_people: (namespace, action, people, related_things_limit, expires_after = new Date().toISOString()) ->
     return bb.try(->[]) if people.length == 0
     things = {}
     for person in people
       history = @_person_history_for_action(namespace, person, action)[...related_things_limit]
-      things[person] = ({thing: event.thing, last_actioned_at: event.created_at.getTime()} for event in history)
-
+      person_things = ({thing: event.thing, last_actioned_at: event.created_at.getTime()} for event in history when (event.expires_at == null or moment(event.expires_at).isAfter(expires_after)))
+      if person_things.length > 0
+        things[person] = person_things
+        
     bb.try(-> things)
 
   person_history_count: (namespace, person) ->

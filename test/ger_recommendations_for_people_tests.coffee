@@ -1,5 +1,33 @@
 ns = global.default_namespace
 
+describe 'time_until_expiry', ->
+  it 'should not return recommendations that will expire within time_until_expiry seconds', ->
+    one_hour = 60*60
+    one_day = 24*one_hour
+    a1day = moment().add(1, 'days').format()
+    a2days = moment().add(2, 'days').format()
+    a3days = moment().add(3, 'days').format() 
+
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.event(ns, 'p1','view','a'),
+
+        ger.event(ns, 'p2','view','a'),
+        ger.event(ns, 'p2','buy','x', expires_at: a1day),
+        ger.event(ns, 'p2','buy','y', expires_at: a2days),
+        ger.event(ns, 'p2','buy','z', expires_at: a3days)
+      ])
+      .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', time_until_expiry: (one_day + one_hour), actions: {view: 1}))
+      .then((recs) ->
+        recs = recs.recommendations
+        recs.length.should.equal 2
+        sorted_recs = [recs[0].thing, recs[1].thing]
+        sorted_recs[0].should.equal 'y'
+        sorted_recs[1].should.equal 'z'
+      )
+
+
 describe 'crowd_weight', ->
   it 'should default do nothing', ->
     init_ger()

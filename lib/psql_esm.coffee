@@ -67,8 +67,9 @@ class PSQLEventStoreManager
 
   add_events: (events) ->
     namespaces = {}
+    now = new Date().toISOString()
     for e in events
-      e.created_at = e.created_at || new Date().toISOString()
+      e.created_at = e.created_at || now
       namespaces[e.namespace] = [] if not namespaces[e.namespace]
       namespaces[e.namespace].push e
       delete e.namespace
@@ -211,7 +212,7 @@ class PSQLEventStoreManager
       (r.tthing for r in rows.rows)
     )
 
-  recently_actioned_things_by_people: (namespace, action, people, limit = 50) ->
+  recently_actioned_things_by_people: (namespace, action, people, limit = 50, expires_after = new Date().toISOString()) ->
     return bb.try(->[]) if people.length == 0
 
     bindings = [action]
@@ -223,7 +224,7 @@ class PSQLEventStoreManager
     ql = []
     for p in people
       ql.push "(select person, thing, MAX(created_at) as max_ca from \"#{namespace}\".events
-          where action = $1 and person = #{person_bindings[p]} group by person, thing order by max_ca DESC limit #{limit})"
+          where action = $1 and person = #{person_bindings[p]} and (expires_at is null or expires_at > '#{expires_after}') group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
 

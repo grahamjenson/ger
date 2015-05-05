@@ -295,6 +295,41 @@ esm_tests = (ESM) ->
             people_things['p1'].length.should.equal 1
             people_things['p2'].length.should.equal 1
           )
+      
+      it 'should not return expired things', ->
+        yesterday = moment().subtract(1, 'days').format()
+        tomorrow = moment().add(1, 'days').format()
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', expires_at: tomorrow),
+            esm.add_event(ns,'p2','a','t2', expires_at: yesterday)
+          ])
+          .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2']))
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 1
+            (people_things['p2'] == undefined).should.equal true
+          )
+
+      describe 'expires_after', ->
+
+        it 'should not return things that expire before the date passed', ->
+          
+          a1day = moment().add(1, 'days').format()
+          a2days = moment().add(2, 'days').format()
+          a3days = moment().add(3, 'days').format()
+
+          init_esm(ESM, ns)
+          .then (esm) ->
+            bb.all([
+              esm.add_event(ns,'p1','a','t1', expires_at: a3days),
+              esm.add_event(ns,'p2','a','t2', expires_at: a1day)
+            ])
+            .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2'], 50, a2days))
+            .then( (people_things) ->
+              people_things['p1'].length.should.equal 1
+              (people_things['p2'] == undefined).should.equal true
+            )
 
     describe '#person_history_count', ->
       it 'should return the number of things a person has actioned in their history', ->

@@ -95,8 +95,10 @@ class GER
       _.unique(ltpeople.concat gtpeople)
     )
 
-  recently_actioned_things_by_people: (namespace, action, people, related_things_limit) ->
-    @esm.recently_actioned_things_by_people(namespace, action, people, related_things_limit)
+  recently_actioned_things_by_people: (namespace, action, people, related_things_limit, time_until_expiry) ->
+    expires_after = moment().add(time_until_expiry, 'seconds').format()
+
+    @esm.recently_actioned_things_by_people(namespace, action, people, related_things_limit, expires_after)
 
   crowd_weight_confidence: (weight, n_people, crowd_weight) ->
     crowd_size = Math.pow(n_people, crowd_weight)
@@ -127,7 +129,7 @@ class GER
     .then( (people) =>
       bb.all([
         @calculate_similarities_from_person(namespace, person, people, actions, configuration.history_search_size, configuration.recent_event_days)
-        @recently_actioned_things_by_people(namespace, action, people.concat(person), configuration.related_things_limit)
+        @recently_actioned_things_by_people(namespace, action, people.concat(person), configuration.related_things_limit, configuration.time_until_expiry)
       ])
     )
     .spread( ( similar_people, people_things ) =>
@@ -188,7 +190,7 @@ class GER
           similar_people.people_weights[p] += actions[a]
 
 
-      bb.all([similar_people, @recently_actioned_things_by_people(namespace, action, people, configuration.related_things_limit)])
+      bb.all([similar_people, @recently_actioned_things_by_people(namespace, action, people, configuration.related_things_limit, configuration.time_until_expiry)])
     )
     .spread( ( similar_people, people_things ) =>
       people_weights = similar_people.people_weights
@@ -236,7 +238,8 @@ class GER
       related_things_limit: 10
       recommendations_limit: 20,
       recent_event_days: 14,
-      filter_previous_actions: []
+      filter_previous_actions: [],
+      time_until_expiry: 0
       actions: {}
     )
 

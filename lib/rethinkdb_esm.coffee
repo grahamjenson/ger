@@ -230,7 +230,7 @@ class EventStoreMapper
     @_r(things).setDifference(@_r.table("#{namespace}_events").getAll(@_r.args(indexes),{index: "person_action"})
     .coerceTo("ARRAY")("thing")).run({useOutdated: true})
 
-  recently_actioned_things_by_people: (namespace, action, people, limit = 50) ->
+  recently_actioned_things_by_people: (namespace, action, people, limit = 50, expires_after = new Date().toISOString()) ->
     return bb.try(->[]) if people.length == 0
     r = @_r
     people_actions = []
