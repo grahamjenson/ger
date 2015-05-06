@@ -311,6 +311,27 @@ esm_tests = (ESM) ->
             (people_things['p2'] == undefined).should.equal true
           )
 
+      it 'should return the last_expires_at date', ->
+        tomorrow = moment().add(1, 'days').millisecond(0).format()
+        nextWeekdate = moment().add(7, 'days').millisecond(0)
+        nextWeek = nextWeekdate.format()
+
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', expires_at: tomorrow),
+            esm.add_event(ns,'p1','a','t1', expires_at: nextWeek)
+            esm.add_event(ns,'p1','a','t1'),
+            esm.add_event(ns,'p2','a','t1')
+          ])
+          .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1', 'p2']))
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 1
+            people_things['p1'][0].last_expires_at.should.equal nextWeekdate.toDate().getTime()
+            people_things['p2'].length.should.equal 1
+            (people_things['p2'][0].last_expires_at == null).should.equal true
+          )
+
       describe 'expires_after', ->
 
         it 'should not return things that expire before the date passed', ->

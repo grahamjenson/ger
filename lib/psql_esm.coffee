@@ -223,7 +223,7 @@ class PSQLEventStoreManager
 
     ql = []
     for p in people
-      ql.push "(select person, thing, MAX(created_at) as max_ca from \"#{namespace}\".events
+      ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
           where action = $1 and person = #{person_bindings[p]} and (expires_at is null or expires_at > '#{expires_after}') group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
@@ -234,7 +234,14 @@ class PSQLEventStoreManager
       temp = {}
       for r in rows
         temp[r.person] = [] if temp[r.person] == undefined
-        temp[r.person].push {thing: r.thing, last_actioned_at: r.max_ca.getTime()}
+        t = {
+          thing: r.thing 
+          last_actioned_at: r.max_ca.getTime()
+          last_expires_at: null
+        }
+
+        t.last_expires_at = r.max_ea.getTime() if r.max_ea
+        temp[r.person].push t
 
       temp
     )

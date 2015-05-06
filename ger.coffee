@@ -112,13 +112,18 @@ class GER
       for thing_date in things
         thing = thing_date.thing
         last_actioned_at = thing_date.last_actioned_at
+        last_expires_at = thing_date.last_expires_at
 
-        things_weight[thing] = {thing: thing, weight: 0} if things_weight[thing] == undefined
+        things_weight[thing] = {thing: thing, weight: 0, last_actioned_at: null, last_expires_at: null} if things_weight[thing] == undefined
         recommendation_info = things_weight[thing]
         recommendation_info.weight += people_weights[p]
         recommendation_info.people = [] if recommendation_info.people == undefined
         recommendation_info.people.push p
-        if recommendation_info.last_actioned_at == undefined or recommendation_info.last_actioned_at < last_actioned_at
+
+        if recommendation_info.last_expires_at == undefined or recommendation_info.last_expires_at == null or recommendation_info.last_expires_at < last_expires_at
+          recommendation_info.last_expires_at = last_expires_at if last_expires_at
+
+        if recommendation_info.last_actioned_at == undefined or recommendation_info.last_actioned_at == null or recommendation_info.last_actioned_at < last_actioned_at
           recommendation_info.last_actioned_at = last_actioned_at
 
     things_weight

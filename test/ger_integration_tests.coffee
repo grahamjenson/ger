@@ -191,10 +191,32 @@ describe 'recommendations_for_person', ->
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 2
-
         item_weights[0].thing.should.equal "a"
         item_weights[1].thing.should.equal "b"
         (item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime().toString()
+      )
+
+  it 'should return the last_expires_at date it was expires at', ->
+    date1 = moment().add(50, 'mins').toDate()
+    date2 = moment().add(1, 'days').toDate()
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p3','view','a', expires_at: date1),
+        ger.event(ns,'p2','view','b'),
+        ger.event(ns,'p2','view','b', expires_at: date1),
+        ger.event(ns,'p3','view','b', expires_at: date2),
+      ])
+      .then(-> ger.recommendations_for_person(ns, "p1","view", actions : {view: 1}))
+      .then((recommendations) ->
+        item_weights = recommendations.recommendations
+        item_weights.length.should.equal 2
+        item_weights[0].thing.should.equal "a"
+        (item_weights[0].last_expires_at.toString().replace(".","")).should.equal date1.getTime().toString()
+        item_weights[1].thing.should.equal "b"
+        (item_weights[1].last_expires_at.toString().replace(".","")).should.equal date2.getTime().toString()
       )
 
   it 'should people that contributed to recommendation', ->

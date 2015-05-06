@@ -99,7 +99,7 @@ class BasicInMemoryESM
     things = {}
     for person in people
       history = @_person_history_for_action(namespace, person, action)[...related_things_limit]
-      person_things = ({thing: event.thing, last_actioned_at: event.created_at.getTime()} for event in history when (event.expires_at == null or moment(event.expires_at).isAfter(expires_after)))
+      person_things = ({thing: event.thing, last_actioned_at: event.created_at.getTime(), last_expires_at: (if event.expires_at then event.expires_at.getTime() else null)} for event in history when (event.expires_at == null or moment(event.expires_at).isAfter(expires_after)))
       if person_things.length > 0
         things[person] = person_things
         
