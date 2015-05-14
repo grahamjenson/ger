@@ -12,9 +12,9 @@
     ],
     "author": "Graham Jenson <grahamjenson@maori.geek.nz>",
     "dependencies": {
-        "bluebird": "2.3.4",
-        "knex": "0.7.0",
-        "pg": "3.5.0",
+        "bluebird": "2.9.25",
+        "knex": "0.7.5",
+        "pg": "4.3.0",
         "rethinkdbdash": "neumino/rethinkdbdash#master",
         "pg-copy-streams": "0.3.0",
         "underscore": "1.7.0",

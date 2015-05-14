@@ -21,7 +21,7 @@ global.Readable = require('stream').Readable;
 
 global.moment = require "moment"
 
-global._knex = g.knex({client: 'pg', connection: {host: '127.0.0.1', user : 'postgres', password : 'postgres', database : 'ger_test'}})
+global._knex = g.knex({client: 'pg', pool: {min: 5, max: 20}, connection: {host: '127.0.0.1', user : 'postgres', password : 'postgres', database : 'ger_test'}})
 global._r = g.r({ host: '127.0.0.1', port: 28015, db:'test', timeout: 120000, buffer:10 , max: 50})
 
 #global.default_esm = PsqlESM
