@@ -99,16 +99,7 @@ class PSQLEventStoreManager
         throw new Errors.NamespaceDoestNotExist()
     )
 
-  questions_marks_to_dollar: (query) ->
-    counter = 1
-    nquery = ""
-    for i in [0...query.length]
-      char = query[i]
-      if char == '?'
-        char = "$#{counter}"
-        counter +=1 
-      nquery += char
-    nquery
+
 
 
   _event_selection: (namespace, person, action, thing) ->
@@ -185,28 +176,49 @@ class PSQLEventStoreManager
       (r.person for r in rows)
     )
 
+
+  questions_marks_to_dollar: (query) ->
+    counter = 1
+    nquery = ""
+    for i in [0...query.length]
+      char = query[i]
+      if char == '?'
+        char = "$#{counter}"
+        counter +=1 
+      nquery += char
+    nquery
+
   filter_things_by_previous_actions: (namespace, person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
 
-    bindings = []
-    values = []
-    for t in things
-      values.push "(?)"
-      bindings.push t
+    bindings = {person: person}
+    action_values = []
+    for a, ai in actions
+      akey = "action_#{ai}"
+      bindings[akey] = a
+      action_values.push(" :#{akey} ")
 
-    things_rows = "(VALUES #{values.join(", ")} ) AS t (tthing)"
+    action_values = action_values.join(',')
+
+    thing_values = []
+    for t, ti in things
+      tkey = "thing_#{ti}"
+      bindings[tkey] = t
+      thing_values.push "( :#{tkey} )"
+
+    thing_values = thing_values.join(", ")
+
+    things_rows = "(VALUES #{thing_values} ) AS t (tthing)"
 
     filter_things_sql = @_knex("#{namespace}.events")
     .select("thing")
-    .where(person: person)
-    .whereIn('action', actions)
+    .whereRaw("person = :person")
+    .whereRaw("action in (#{action_values})")
     .whereRaw("thing = t.tthing")
     .toSQL()
 
-    bindings = bindings.concat(filter_things_sql.bindings)
-   
     query = "select tthing from #{things_rows} where not exists (#{filter_things_sql.sql})"
-    query = @questions_marks_to_dollar(query)
+
     @_knex.raw(query, bindings)
     .then( (rows) ->
       (r.tthing for r in rows.rows)
@@ -215,16 +227,14 @@ class PSQLEventStoreManager
   recently_actioned_things_by_people: (namespace, action, people, limit = 50, expires_after = new Date().toISOString()) ->
     return bb.try(->[]) if people.length == 0
 
-    bindings = [action]
-    person_bindings = {}
-    for p in people
-      bindings.push(p)
-      person_bindings[p] = "$#{bindings.length}"
+    bindings = {action: action}
 
     ql = []
-    for p in people
+    for p,i in people
+      key = "person_#{i}"
+      bindings[key] = p
       ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where action = $1 and person = #{person_bindings[p]} and (expires_at is null or expires_at > '#{expires_after}') group by person, thing order by max_ca DESC limit #{limit})"
+          where action = :action and person = :#{key} and (expires_at is null or expires_at > '#{expires_after}') group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
 
@@ -289,21 +299,21 @@ class PSQLEventStoreManager
     return bb.try(->[]) if people.length == 0
     #TODO allow for arbitrary distance measurements here
 
-    bindings = [person] 
-    action_bindings = {}
-    person_bindings = {}
-    for action in actions
-      bindings.push(action)
-      action_bindings[action] = "$#{bindings.length}"
+    bindings = {person: person} 
 
-    for p in people
-      bindings.push(p)
-      person_bindings[p] = "$#{bindings.length}"
+    limit_distance_query = @jaccard_distance_for_limit(namespace, ':person', limit)
+    recent_distance_query = @jaccard_distance_for_recent(namespace, ':person', limit, days_ago)
 
-    limit_distance_query = @jaccard_distance_for_limit(namespace, '$1', limit)
-    recent_distance_query = @jaccard_distance_for_recent(namespace, '$1', limit, days_ago)
+    v_actions = []
+    for a, ai in actions
+      akey = "action_#{ai}"
+      bindings[akey] =  a
+      for p, pi in people
+        pkey = "person_#{pi}"
+        bindings[pkey] =  p
+        v_actions.push("( :#{pkey}, :#{akey} )")
 
-    v_actions = ("(#{person_bindings[p]}, #{action_bindings[a]})" for a in actions for p in people).join(', ')
+    v_actions = v_actions.join(', ')
 
     query = "select cperson, caction, #{limit_distance_query}, #{recent_distance_query} from (VALUES #{v_actions} ) AS t (cperson, caction)"
 
@@ -346,8 +356,8 @@ class PSQLEventStoreManager
     @_knex.raw("SELECT reltuples::bigint 
       AS estimate 
       FROM pg_class 
-      WHERE  oid = $1::regclass;"
-      ,["#{namespace}.events"])
+      WHERE  oid = :ns ::regclass;"
+      ,{ns: "#{namespace}.events"})
     .then( (rows) ->
       return 0 if rows.rows.length == 0
       return parseInt(rows.rows[0].estimate)
@@ -391,10 +401,10 @@ class PSQLEventStoreManager
     ])
 
   remove_non_unique_events_for_person_with_expiry: (namespace, person, limit) ->
-    bindings = [person]
+    bindings = {person: person}
     query = "DELETE FROM \"#{namespace}\".events as e where e.id IN 
     (SELECT e2.id FROM \"#{namespace}\".events e1, \"#{namespace}\".events e2 
-    WHERE e1.person = $1 
+    WHERE e1.person = :person 
     AND e1.expires_at is NOT NULL AND e2.expires_at is NOT NULL
     AND e1.id <> e2.id 
     AND e1.person = e2.person 
@@ -408,10 +418,10 @@ class PSQLEventStoreManager
 
   remove_non_unique_events_for_person_without_expiry: (namespace, person, limit) ->
     # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
-    bindings = [person]
+    bindings = {person: person}
     query = "DELETE FROM \"#{namespace}\".events as e where e.id IN 
     (SELECT e2.id FROM \"#{namespace}\".events e1, \"#{namespace}\".events e2 
-    WHERE e1.person = $1 
+    WHERE e1.person = :person
     AND e1.expires_at is NULL AND e2.expires_at is NULL
     AND e1.id <> e2.id 
     AND e1.person = e2.person 
@@ -485,11 +495,11 @@ class PSQLEventStoreManager
     
 
   truncate_thing_actions: (namespace, thing, trunc_size, action) ->
-    bindings = [thing, action]
+    bindings = {thing: thing, action: action}
 
     q = "delete from \"#{namespace}\".events as e 
          where e.id in 
-         (select id from \"#{namespace}\".events where action = $2 and thing = $1
+         (select id from \"#{namespace}\".events where action = :action and thing = :thing
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
 
@@ -505,10 +515,10 @@ class PSQLEventStoreManager
     
     
   truncate_person_actions: (namespace, person, trunc_size, action) ->
-    bindings = [person, action]
+    bindings = {person: person, action: action}
     q = "delete from \"#{namespace}\".events as e 
          where e.id in 
-         (select id from \"#{namespace}\".events where action = $2 and person = $1
+         (select id from \"#{namespace}\".events where action = :action and person = :person
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
     

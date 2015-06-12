@@ -13,7 +13,7 @@
     "author": "Graham Jenson <grahamjenson@maori.geek.nz>",
     "dependencies": {
         "bluebird": "2.9.25",
-        "knex": "0.7.5",
+        "knex": "0.8.6",
         "pg": "4.3.0",
         "rethinkdbdash": "neumino/rethinkdbdash#master",
         "pg-copy-streams": "0.3.0",
