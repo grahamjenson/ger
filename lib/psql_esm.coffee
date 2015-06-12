@@ -272,6 +272,7 @@ class PSQLEventStoreManager
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
   jaccard_distance_for_recent: (namespace, person, limit, days_ago) ->
+    #TODO remove now
     s1q = @person_history(namespace, person).toString()
     s2q = @person_history(namespace, 't.cperson').toString()
 
@@ -368,9 +369,8 @@ class PSQLEventStoreManager
     
   # DATABASE CLEANING METHODS
 
-  expire_events: (namespace) ->
-    #removes the events passed their expiry date
-    @_knex("#{namespace}.events").whereRaw('expires_at < NOW()').del()
+  expire_events: (namespace, now = new Date()) ->
+    @_knex("#{namespace}.events").where("expires_at", '<', now).del()
 
   pre_compact: (namespace) ->
     @analyze(namespace)

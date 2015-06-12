@@ -147,6 +147,19 @@ esm_tests = (ESM) ->
           .then( -> esm.count_events(ns))
           .then( (count) -> count.should.equal 0 )
 
+      it 'should be able to choose from what time to remove events', ->
+        init_esm(ESM)
+        .then (esm) ->
+          esm.add_event(ns, 'p','a','t', {expires_at: new Date(2050,10,10)} )
+          .then(->
+            esm.expire_events(ns).then( -> esm.count_events(ns) )
+          )
+          .then( (count) -> count.should.equal 1 )
+          .then(->
+            esm.expire_events(ns, new Date(2051,10,10)).then( -> esm.count_events(ns) )
+          )
+          .then( (count) -> count.should.equal 0 )
+
     it "does not remove events that have no expiry date or future date", ->
       init_esm(ESM)
       .then (esm) ->

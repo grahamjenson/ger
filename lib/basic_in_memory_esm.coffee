@@ -245,10 +245,10 @@ class BasicInMemoryESM
     @_delete_events(namespace, marked_for_deletion)
     bb.try(-> true)
 
-  expire_events: (namespace) ->
+  expire_events: (namespace, now = new Date()) ->
     marked_for_deletion = []
     for e in event_store[namespace]
-      if e && e.expires_at && e.expires_at < new Date()
+      if e && e.expires_at && e.expires_at < now
         marked_for_deletion.push e
 
     @_delete_events(namespace, marked_for_deletion)
