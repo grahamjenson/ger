@@ -65,8 +65,8 @@ class BasicInMemoryESM
 
     return bb.try(-> _.uniq(people))
 
-  _recent_jaccard_distance: (namespace, p1, p2, action, days) ->
-    recent_date = moment().subtract(days, 'days').toDate()
+  _recent_jaccard_distance: (namespace, p1, p2, action, days, now) ->
+    recent_date = moment(now).subtract(days, 'days').toDate()
 
     p1_things = @_person_history_for_action(namespace, p1,action).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
     p2_things = @_person_history_for_action(namespace, p2,action).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
@@ -82,14 +82,14 @@ class BasicInMemoryESM
     jaccard = 0 if isNaN(jaccard)
     return jaccard
 
-  calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit=100, recent_event_days= 14) ->
+  calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit=100, recent_event_days= 14, now = new Date()) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
     similarities = {}
     for p in people
       similarities[p] = {}
       for action in actions
         jaccard = @_jaccard_distance(namespace, person, p, action)
-        recent_jaccard = @_recent_jaccard_distance(namespace, person, p, action, recent_event_days)
+        recent_jaccard = @_recent_jaccard_distance(namespace, person, p, action, recent_event_days, now)
         similarities[p][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
 
     return bb.try(-> similarities)

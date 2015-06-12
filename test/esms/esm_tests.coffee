@@ -187,19 +187,34 @@ esm_tests = (ESM) ->
             similarities['p2']['a'].should.exist
           )
 
-      it 'should have a higher similarity for more recent events of person', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
-            esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(10, 'days').toDate())
+      describe "recent events", ->
+        it 'should have a higher impact on similarity', ->
+          init_esm(ESM, ns)
+          .then (esm) ->
+            bb.all([
+              esm.add_event(ns,'p1','a','t1', created_at: new Date()),
+              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
+              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days').toDate())
 
-          ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], 500, 5))
-          .then( (similarities) ->
-            similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
-          )
+            ])
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], 500, 5))
+            .then( (similarities) ->
+              similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+            )
+
+        it 'should be ale to define from what date', ->
+          init_esm(ESM, ns)
+          .then (esm) ->
+            bb.all([
+              esm.add_event(ns,'p1','a','t1', created_at: new Date()),
+              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
+              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days').toDate())
+
+            ])
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], 500, 5, moment().subtract(3, 'days').toDate()))
+            .then( (similarities) ->
+              similarities['p3']['a'].should.equal(similarities['p2']['a'])
+            )
 
       it 'should have a same similarity if histories are inversed', ->
         init_esm(ESM, ns)

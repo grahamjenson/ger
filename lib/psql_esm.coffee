@@ -176,18 +176,6 @@ class PSQLEventStoreManager
       (r.person for r in rows)
     )
 
-
-  questions_marks_to_dollar: (query) ->
-    counter = 1
-    nquery = ""
-    for i in [0...query.length]
-      char = query[i]
-      if char == '?'
-        char = "$#{counter}"
-        counter +=1 
-      nquery += char
-    nquery
-
   filter_things_by_previous_actions: (namespace, person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
 
@@ -287,19 +275,19 @@ class PSQLEventStoreManager
     s2q = @person_history(namespace, 't.cperson').toString()
 
     s1 = "select x.thing from (#{s1q}) as x where 
-          x.created_at > NOW() - '#{days_ago} day'::INTERVAL 
+          x.created_at > Date( :now ) - '#{days_ago} day'::INTERVAL 
           order by x.created_at DESC limit #{limit}"
     s2 = "select x.thing from (#{s2q}) as x where 
-          x.created_at > NOW() - '#{days_ago} day'::INTERVAL 
+          x.created_at > Date( :now ) - '#{days_ago} day'::INTERVAL 
           order by x.created_at DESC limit #{limit}"
 
     "#{@jaccard_query(s1, s2)} as recent_distance"
   
-  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14) ->
+  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14, now = new Date()) ->
     return bb.try(->[]) if people.length == 0
     #TODO allow for arbitrary distance measurements here
 
-    bindings = {person: person} 
+    bindings = {person: person, now: now} 
 
     limit_distance_query = @jaccard_distance_for_limit(namespace, ':person', limit)
     recent_distance_query = @jaccard_distance_for_recent(namespace, ':person', limit, days_ago)
@@ -332,11 +320,11 @@ class PSQLEventStoreManager
     )
 
 
-  calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit, recent_event_days) ->
+  calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit, recent_event_days, now) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
 
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @get_jaccard_distances_between_people(namespace, person, people, actions, person_history_limit, recent_event_days)
+    @get_jaccard_distances_between_people(namespace, person, people, actions, person_history_limit, recent_event_days, now)
     .spread( (event_weights, recent_event_weights) =>
       temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
