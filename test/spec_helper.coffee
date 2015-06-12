@@ -22,18 +22,20 @@ global.Readable = require('stream').Readable;
 global.moment = require "moment"
 
 global._knex = g.knex({client: 'pg', pool: {min: 5, max: 20}, connection: {host: '127.0.0.1', user : 'postgres', password : 'postgres', database : 'ger_test'}})
-global._r = g.r({ host: '127.0.0.1', port: 28015, db:'test', timeout: 120000, buffer:10 , max: 50})
 
 #global.default_esm = PsqlESM
 global.default_esm = PsqlESM
 
-global.esms = [{esm: RethinkDBESM, name: 'RethinkDBESM'} ,{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
+global.esms = [{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
 
 global.default_namespace = 'default'
 
+global.new_esm = (ESM)->
+  esm = new ESM({knex: _knex})
+
 global.init_esm = (ESM = global.default_esm, namespace = global.default_namespace) ->
   #in
-  esm = new ESM({knex: _knex, r: _r})
+  esm = new_esm(ESM)
   #drop the current tables, reinit the tables, return the esm
   bb.try(-> esm.destroy(namespace))
   .then( -> esm.initialize(namespace))

@@ -105,30 +105,6 @@ esm_tests = (ESM) ->
             events[0].expires_at.getFullYear().should.equal 2105
           )
 
-      it 'expiry events and non expiry events should not remove each other', ->
-        init_ger(ESM, ns)
-        .then (ger) ->
-          rs = new Readable();
-          rs.push('person,action,thing,2015-02-02,\n');
-          rs.push('person,action,thing,2014-01-01,2105-02-02\n');
-          rs.push(null);
-
-          ger.bootstrap(ns, rs)
-          .then( ->
-            ger.count_events(ns)
-          )
-          .then( (count) ->
-            count.should.equal 2
-          )
-          .then( ->
-            ger.compact_database(ns, actions: ['action'])
-          )
-          .then( ->
-            ger.count_events(ns)
-          )
-          .then( (count) ->
-            count.should.equal 2
-          )
 
     describe '#compact_things', ->
       it 'should truncate the events of things history', ->

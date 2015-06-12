@@ -3,7 +3,7 @@ esm_tests = (ESM) ->
 
   describe 'no namespace error', ->
     it 'should initialize namespace', ->
-      esm = new ESM({knex: _knex, r: _r})
+      esm = new_esm(ESM)
       esm.add_event('not_a_namespace', 'p','a','t')
       .then( -> 
         throw "SHOULD NOT GET HERE"

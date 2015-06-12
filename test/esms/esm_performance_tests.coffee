@@ -7,13 +7,13 @@ esm_tests = (ESM) ->
     ns = 'default'
 
     naction = 50
-    nevents = 2000
+    nevents = 500
     nevents_diff = 25
-    nbevents = 10000
+    nbevents = 5000
     nfindpeople = 100
     ncalcpeople = 100
-    ncompact = 3
-    nrecommendations = 100
+    ncompact = 2
+    nrecommendations = 20
 
     it "adding #{nevents} events takes so much time", ->
       self = @

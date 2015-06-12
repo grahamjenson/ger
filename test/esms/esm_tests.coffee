@@ -5,7 +5,7 @@ esm_tests = (ESM) ->
     describe '#initialize #exists #destroy', ->
       it 'should initialize namespace', ->
         namespace = "namespace"
-        esm = new ESM({knex: _knex, r: _r})
+        esm = new_esm(ESM)
         esm.destroy(namespace)
         .then( -> esm.exists(namespace))
         .then( (exist) -> exist.should.equal false)
@@ -16,7 +16,7 @@ esm_tests = (ESM) ->
       it 'should sucessfully initialize namespace with default', ->
         #based on an error where default is a reserved name in postgres
         namespace = "default"
-        esm = new ESM({knex: _knex, r: _r})
+        esm = new_esm(ESM)
         esm.destroy(namespace)
         .then( -> esm.exists(namespace))
         .then( (exist) -> exist.should.equal false)
@@ -26,7 +26,7 @@ esm_tests = (ESM) ->
 
       it 'should start with no events', ->
         namespace = "namespace"
-        esm = new ESM({knex: _knex, r: _r})
+        esm = new_esm(ESM)
         esm.destroy(namespace)
         .then( -> esm.initialize(namespace))
         .then( -> esm.count_events(namespace))
@@ -36,7 +36,7 @@ esm_tests = (ESM) ->
         
       it 'should not error out or remove events if re-initialized', ->
         namespace = "namespace"
-        esm = new ESM({knex: _knex, r: _r})
+        esm = new_esm(ESM)
         esm.destroy()
         .then( -> esm.initialize(namespace))
         .then( -> esm.add_event(namespace, 'p','a','t'))
@@ -49,7 +49,7 @@ esm_tests = (ESM) ->
       it 'should create resources for ESM namespace', ->
         ns1 = "namespace1"
         ns2 = "namespace2"
-        esm = new ESM({knex: _knex, r: _r}) #pass knex as it might be needed
+        esm = new_esm(ESM) #pass knex as it might be needed
         bb.all([esm.destroy(ns1), esm.destroy(ns2)])
         .then( -> bb.all([esm.initialize(ns1), esm.initialize(ns2)]) )
         .then( ->
@@ -70,7 +70,7 @@ esm_tests = (ESM) ->
 
       it 'should destroy should not break if resource does not exist', ->
         namespace = "namespace"
-        esm = new ESM( {knex: _knex, r: _r})
+        esm = new_esm(ESM)
         esm.destroy(namespace)
         .then( -> esm.destroy(namespace))
 
