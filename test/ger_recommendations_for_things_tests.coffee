@@ -8,7 +8,7 @@ describe 'recommending', ->
         ger.event(ns, 'p1','view','a', expires_at: tomorrow),
         ger.event(ns, 'p1','view','b', expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_thing(ns, 'a', 'view', actions: {view: 1}))
+      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
         recs = recs.recommendations
         recs[0].thing.should.equal 'b'
@@ -21,7 +21,7 @@ describe 'recommending', ->
         ger.event(ns, 'p1','view','a', expires_at: tomorrow),
         ger.event(ns, 'p1','view','b', expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_thing(ns, 'a', 'view', actions: {view: 1}))
+      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
         recs = recs.recommendations
         recs[0].thing.should.equal 'b'

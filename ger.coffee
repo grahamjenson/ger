@@ -245,7 +245,7 @@ class GER
       actions[action] = weight/total_action_weight
     actions
 
-  recommendations_for_thing: (namespace, thing, action, configuration = {}) ->
+  recommendations_for_thing: (namespace, thing, configuration = {}) ->
     configuration = @default_configuration(configuration)
 
     #first a check or two
@@ -254,7 +254,7 @@ class GER
     return @generate_recommendations_for_thing(namespace, thing, actions, 0, configuration)
 
 
-  recommendations_for_person: (namespace, person, action, configuration = {}) ->
+  recommendations_for_person: (namespace, person, configuration = {}) ->
     configuration = @default_configuration(configuration)
 
     #first a check or two
