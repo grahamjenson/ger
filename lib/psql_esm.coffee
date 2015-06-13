@@ -107,9 +107,23 @@ class PSQLEventStoreManager
     .select("person", "action", "thing", "created_at", "expires_at")
     .orderBy('created_at', 'desc')
 
-    q = q.where(person: person) if person
-    q = q.where(action: action) if action
-    q = q.where(thing: thing) if thing
+    if person
+      if _.isArray(person)
+        q = q.whereIn('person', person)
+      else
+        q = q.where(person: person)
+
+    if action
+      if _.isArray(action)
+        q = q.whereIn('action', action)
+      else
+        q = q.where(action: action)
+
+    if thing
+      if _.isArray(thing)
+        q = q.whereIn('thing', thing)
+      else
+        q = q.where(thing: thing)
 
     return q
 

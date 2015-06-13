@@ -185,9 +185,25 @@ class BasicInMemoryESM
     events = []
     for e in event_store[namespace]
       add = true
-      add = false if person and person != e.person
-      add = false if action and action != e.action
-      add = false if thing and thing != e.thing
+
+      if person
+        if _.isArray(person)
+          add = false if not _.contains(person, e.person)
+        else
+          add = false if person != e.person
+
+      if action
+        if _.isArray(action)
+          add = false if not _.contains(action, e.action)
+        else
+          add = false if action != e.action
+
+      if thing
+        if _.isArray(thing)
+          add = false if not _.contains(thing, e.thing)
+        else
+          add = false if thing != e.thing
+
       events.push e if add
     events = _.sortBy(events, (x) -> - x.created_at.getTime())
 

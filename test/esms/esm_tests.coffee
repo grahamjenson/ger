@@ -793,6 +793,27 @@ esm_tests = (ESM) ->
             events[0].thing.should.equal 't3'
           )
 
+      it 'should be able to take arrays', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1')
+            esm.add_event(ns,'p1','view','t2')
+            esm.add_event(ns,'p1','like','t1')
+            esm.add_event(ns,'p2','view','t1')
+          ])
+          .then( ->
+            bb.all([
+              esm.find_events(ns, ['p1', 'p2'])
+              esm.find_events(ns, 'p1', ['view', 'like'])
+              esm.find_events(ns, 'p1', 'view', ['t1','t2'])
+            ])
+          )
+          .spread( (events1, events2, events3) ->
+            events1.length.should.equal 4
+            events2.length.should.equal 3
+            events3.length.should.equal 2
+          )
 
     describe '#bootstrap', ->
       it 'should add a stream of events (person,action,thing,created_at,expires_at)', ->
