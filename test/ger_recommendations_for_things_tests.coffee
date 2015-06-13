@@ -5,8 +5,8 @@ describe 'recommending', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns, 'p1','view','a'),
-        ger.event(ns, 'p1','view','b'),
+        ger.event(ns, 'p1','view','a', expires_at: tomorrow),
+        ger.event(ns, 'p1','view','b', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a', 'view', actions: {view: 1}))
       .then((recs) ->
@@ -18,8 +18,8 @@ describe 'recommending', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns, 'p1','view','a'),
-        ger.event(ns, 'p1','view','b'),
+        ger.event(ns, 'p1','view','a', expires_at: tomorrow),
+        ger.event(ns, 'p1','view','b', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a', 'view', actions: {view: 1}))
       .then((recs) ->

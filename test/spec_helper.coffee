@@ -30,6 +30,9 @@ global.esms = [{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemo
 
 global.default_namespace = 'default'
 
+global.yesterday = moment().subtract(1, 'days')
+global.tomorrow = moment().add(1, 'days')
+
 global.new_esm = (ESM)->
   esm = new ESM({knex: _knex})
 

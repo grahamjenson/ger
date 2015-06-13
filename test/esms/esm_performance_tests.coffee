@@ -30,7 +30,7 @@ esm_tests = (ESM) ->
         st = new Date().getTime()
         promises = []
         for x in [1..nevents]
-          promises.push ger.event(ns, sample(people), sample(actions) , sample(things))
+          promises.push ger.event(ns, sample(people), sample(actions) , sample(things), expires_at: tomorrow)
         bb.all(promises)
         .then(->
           et = new Date().getTime()
@@ -44,7 +44,7 @@ esm_tests = (ESM) ->
           for x in [1..nevents/nevents_diff]
             events = []
             for y in [1..nevents_diff]
-              events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things)}
+              events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things), expires_at: tomorrow}
             promises.push ger.events(events)
           bb.all(promises)
           .then(->
@@ -59,7 +59,7 @@ esm_tests = (ESM) ->
 
           rs = new Readable();
           for x in [1..nbevents]
-            rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,\n")
+            rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,2050-01-01\n")
           rs.push(null);
 
           ger.bootstrap(ns, rs)

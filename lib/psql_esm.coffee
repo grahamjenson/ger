@@ -212,17 +212,17 @@ class PSQLEventStoreManager
       (r.tthing for r in rows.rows)
     )
 
-  recently_actioned_things_by_people: (namespace, action, people, limit = 50, expires_after = new Date().toISOString()) ->
+  recently_actioned_things_by_people: (namespace, action, people, limit = 50, expires_after = new Date()) ->
     return bb.try(->[]) if people.length == 0
 
-    bindings = {action: action}
+    bindings = {action: action, expires_after: expires_after}
 
     ql = []
     for p,i in people
       key = "person_#{i}"
       bindings[key] = p
       ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where action = :action and person = :#{key} and (expires_at is null or expires_at > '#{expires_after}') group by person, thing order by max_ca DESC limit #{limit})"
+          where action = :action and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
 
@@ -366,9 +366,6 @@ class PSQLEventStoreManager
     )
     
   # DATABASE CLEANING METHODS
-
-  expire_events: (namespace, now = new Date()) ->
-    @_knex("#{namespace}.events").where("expires_at", '<', now).del()
 
   pre_compact: (namespace) ->
     @analyze(namespace)

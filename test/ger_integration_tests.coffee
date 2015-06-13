@@ -42,14 +42,14 @@ describe '#count_events', ->
 
 describe 'recommendations_for_person', ->
 
-  it 'should reccommend basic things', ->
+  it 'should recommend basic things', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','buy','a'),
-        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p1','buy','a', expires_at: tomorrow),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
 
-        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p2', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
@@ -62,15 +62,15 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','buy','a'),
-        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p1','buy','a', expires_at: tomorrow),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
 
-        ger.event(ns,'p2','view','a'),
-        ger.event(ns,'p2','buy','c'),
-        ger.event(ns,'p2','buy','d'),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','buy','c', expires_at: tomorrow),
+        ger.event(ns,'p2','buy','d', expires_at: tomorrow),
 
-        ger.event(ns,'p3','view','a'),
-        ger.event(ns,'p3','buy','c')
+        ger.event(ns,'p3','view','a', expires_at: tomorrow),
+        ger.event(ns,'p3','buy','c', expires_at: tomorrow)
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
@@ -87,14 +87,14 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
 
-        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
 
-        ger.event(ns,'p2','view','a'),
-        ger.event(ns,'p2','view','c'),
-        ger.event(ns,'p2','view','d'),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','c', expires_at: tomorrow),
+        ger.event(ns,'p2','view','d', expires_at: tomorrow),
 
-        ger.event(ns,'p3','view','a'),
-        ger.event(ns,'p3','view','c')
+        ger.event(ns,'p3','view','a', expires_at: tomorrow),
+        ger.event(ns,'p3','view','c', expires_at: tomorrow)
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'view', actions: {view: 1}))
       .then((recommendations) ->
@@ -121,10 +121,10 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','buy','a'),
-        ger.event(ns,'p1','buy','b'),
-        ger.event(ns,'p2','buy','b'),
-        ger.event(ns,'p2','buy','c'),
+        ger.event(ns,'p1','buy','a', expires_at: tomorrow),
+        ger.event(ns,'p1','buy','b', expires_at: tomorrow),
+        ger.event(ns,'p2','buy','b', expires_at: tomorrow),
+        ger.event(ns,'p2','buy','c', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1}))
       .then((recommendations) ->
@@ -137,8 +137,8 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','buy','a'),
-        ger.event(ns,'p2','buy','a'),
+        ger.event(ns,'p1','buy','a', expires_at: tomorrow),
+        ger.event(ns,'p2','buy','a', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1, view: 1}))
       .then((recommendations) ->
@@ -150,9 +150,9 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','view','a'),
-        ger.event(ns,'p2','view','a'),
-        ger.event(ns,'p2','buy','a'),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','buy','a', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', filter_previous_actions: ['buy'], actions: {buy: 1, view: 1}))
       .then((recommendations) ->
@@ -165,8 +165,8 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,"'p\n,1};","v'i\new","'a\n;"),
-        ger.event(ns,"'p\n2};","v'i\new","'a\n;"),
+        ger.event(ns,"'p\n,1};","v'i\new","'a\n;", expires_at: tomorrow),
+        ger.event(ns,"'p\n2};","v'i\new","'a\n;", expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, "'p\n,1};","v'i\new", actions: {"v'i\new": 1}))
       .then((recommendations) ->
@@ -181,13 +181,13 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','view','a'),
-        ger.event(ns,'p2','view','a'),
-        ger.event(ns,'p3','view','a'),
-        ger.event(ns,'p2','view','b', created_at: date1),
-        ger.event(ns,'p3','view','b', created_at: date2),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
+        ger.event(ns,'p3','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','b', created_at: date1, expires_at: tomorrow),
+        ger.event(ns,'p3','view','b', created_at: date2, expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_person(ns, "p1","view", actions : {view: 1}))
+      .then(-> ger.recommendations_for_person(ns, "p1", "view", actions : {view: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 2
@@ -202,14 +202,14 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','view','a'),
-        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p1','view','a', expires_at: date1),
+        ger.event(ns,'p2','view','a', expires_at: date1),
         ger.event(ns,'p3','view','a', expires_at: date1),
-        ger.event(ns,'p2','view','b'),
+        ger.event(ns,'p2','view','b', expires_at: date1),
         ger.event(ns,'p2','view','b', expires_at: date1),
         ger.event(ns,'p3','view','b', expires_at: date2),
       ])
-      .then(-> ger.recommendations_for_person(ns, "p1","view", actions : {view: 1}))
+      .then(-> ger.recommendations_for_person(ns, "p1", "view", actions : {view: 1}))
       .then((recommendations) ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 2
@@ -223,10 +223,10 @@ describe 'recommendations_for_person', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p2','buy','a'),
-        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p2','buy','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
 
-        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
@@ -241,14 +241,14 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
 
-        ger.event(ns,'p1','view','a'),
+        ger.event(ns,'p1','view','a', expires_at: tomorrow),
 
-        ger.event(ns,'p2','buy','a'),
-        ger.event(ns,'p2','view','a'),
+        ger.event(ns,'p2','buy','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','a', expires_at: tomorrow),
 
-        ger.event(ns,'p3','buy','b'),
-        ger.event(ns,'p3','view','a'),
-        ger.event(ns,'p3','view','d'),
+        ger.event(ns,'p3','buy','b', expires_at: tomorrow),
+        ger.event(ns,'p3','view','a', expires_at: tomorrow),
+        ger.event(ns,'p3','view','d', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', {recommendations_limit: 1, actions: {view:1, buy:1}}))
       .then((recommendations) ->

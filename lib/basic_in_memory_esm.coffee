@@ -94,12 +94,12 @@ class BasicInMemoryESM
 
     return bb.try(-> similarities)
 
-  recently_actioned_things_by_people: (namespace, action, people, related_things_limit, expires_after = new Date().toISOString()) ->
+  recently_actioned_things_by_people: (namespace, action, people, related_things_limit, expires_after = new Date()) ->
     return bb.try(->[]) if people.length == 0
     things = {}
     for person in people
       history = @_person_history_for_action(namespace, person, action)[...related_things_limit]
-      person_things = ({thing: event.thing, last_actioned_at: event.created_at.getTime(), last_expires_at: (if event.expires_at then event.expires_at.getTime() else null)} for event in history when (event.expires_at == null or moment(event.expires_at).isAfter(expires_after)))
+      person_things = ({thing: event.thing, last_actioned_at: event.created_at.getTime(), last_expires_at: event.expires_at.getTime()} for event in history when moment(event.expires_at).isAfter(expires_after))
       if person_things.length > 0
         things[person] = person_things
         
@@ -241,15 +241,6 @@ class BasicInMemoryESM
         if events.length > limit
           
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
-
-    @_delete_events(namespace, marked_for_deletion)
-    bb.try(-> true)
-
-  expire_events: (namespace, now = new Date()) ->
-    marked_for_deletion = []
-    for e in event_store[namespace]
-      if e && e.expires_at && e.expires_at < now
-        marked_for_deletion.push e
 
     @_delete_events(namespace, marked_for_deletion)
     bb.try(-> true)

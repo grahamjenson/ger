@@ -131,56 +131,6 @@ esm_tests = (ESM) ->
           .then( (count) ->
             count.should.equal 2
           )
-
-    describe '#expire_events', ->
-      it 'should remove events that have expired', ->
-        init_esm(ESM)
-        .then (esm) ->
-          esm.add_event(ns, 'p','a','t', {expires_at: new Date(0).toISOString()} )
-          .then( ->
-            esm.count_events(ns)
-          )
-          .then( (count) ->
-            count.should.equal 1
-            esm.expire_events(ns)
-          )
-          .then( -> esm.count_events(ns))
-          .then( (count) -> count.should.equal 0 )
-
-      it 'should be able to choose from what time to remove events', ->
-        init_esm(ESM)
-        .then (esm) ->
-          esm.add_event(ns, 'p','a','t', {expires_at: new Date(2050,10,10)} )
-          .then(->
-            esm.expire_events(ns).then( -> esm.count_events(ns) )
-          )
-          .then( (count) -> count.should.equal 1 )
-          .then(->
-            esm.expire_events(ns, new Date(2051,10,10)).then( -> esm.count_events(ns) )
-          )
-          .then( (count) -> count.should.equal 0 )
-
-    it "does not remove events that have no expiry date or future date", ->
-      init_esm(ESM)
-      .then (esm) ->
-        bb.all([esm.add_event(ns, 'p1','a','t'),  esm.add_event(ns, 'p2','a','t', {expires_at:new Date(2050,10,10)}), esm.add_event(ns, 'p3','a','t', {expires_at: new Date(0).toISOString()})])
-        .then( ->
-          esm.count_events(ns)
-        )
-        .then( (count) ->
-          count.should.equal 3
-          esm.expire_events(ns)
-        )
-        .then( -> esm.count_events(ns))
-        .then( (count) ->
-          count.should.equal 2
-          esm.find_events(ns, 'p2','a','t')
-        )
-        .then( (events) ->
-          event = events[0]
-          event.expires_at.getTime().should.equal (new Date(2050,10,10)).getTime()
-        )
-
     
     describe '#pre_compact', ->
       it 'should prepare the ESM for compaction'
