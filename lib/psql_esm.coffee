@@ -108,19 +108,19 @@ class PSQLEventStoreManager
     .orderBy('created_at', 'desc')
 
     if person
-      if _.isArray(person)
+      if _.isArray(person) and person.length > 0
         q = q.whereIn('person', person)
       else
         q = q.where(person: person)
 
     if action
-      if _.isArray(action)
+      if _.isArray(action) and action.length > 0
         q = q.whereIn('action', action)
       else
         q = q.where(action: action)
 
     if thing
-      if _.isArray(thing)
+      if _.isArray(thing) and thing.length > 0
         q = q.whereIn('thing', thing)
       else
         q = q.where(thing: thing)
@@ -165,7 +165,7 @@ class PSQLEventStoreManager
     .orderByRaw('created_at DESC')
     .limit(limit)
 
-  find_similar_people: (namespace, person, actions, action, limit = 100, search_limit = 500) ->
+  find_similar_people: (namespace, person, actions, limit = 100, search_limit = 500, expires_after = new Date()) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
     one_degree_similar_people = @_knex(@last_events(namespace, person, search_limit ).as('e'))
@@ -178,7 +178,9 @@ class PSQLEventStoreManager
 
     filter_people = @_knex("#{namespace}.events")
     .select("person")
-    .where(action: action)
+    .whereRaw('expires_at IS NOT NULL')
+    .where('expires_at', '>', expires_after)
+    .whereIn('action', actions)
     .whereRaw("person = x.person")
 
     @_knex(one_degree_similar_people.as('x'))
@@ -227,7 +229,7 @@ class PSQLEventStoreManager
     )
 
   recently_actioned_things_by_people: (namespace, actions, people, limit = 50, expires_after = new Date()) ->
-    return bb.try(->[]) if people.length == 0
+    return bb.try(->[]) if people.length == 0 || actions.length == 0
 
     bindings = {expires_after: expires_after}
 
@@ -238,7 +240,6 @@ class PSQLEventStoreManager
       action_values.push(" :#{akey} ")
 
     action_values = action_values.join(',')
-
     ql = []
     for p,i in people
       key = "person_#{i}"

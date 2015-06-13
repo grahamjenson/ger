@@ -37,12 +37,6 @@ class GER
         n_people: n_people
       }
     )
-
-  half_array_by_mean: (arr, weights) ->
-    total_weight = _.reduce((weights[p] for p in arr), ((a,b) -> a+b) , 0)
-    mean_weigth = total_weight/arr.length
-    [ltmean, gtmean] = _.partition(arr, (p) -> weights[p] < mean_weigth)
-    [ltmean, gtmean]
     
   
   filter_recommendations: (namespace, person, recommendations, filter_previous_actions) ->
@@ -82,23 +76,13 @@ class GER
     tc
 
 
-  find_similar_people: (namespace, person, action, actions, similar_people_limit, history_search_size) ->
-    #Split the actions into two separate groups (actions below mean and actions above mean)
-    #This is a useful heuristic to  
-    action_list = Object.keys(actions)
-    [actions_below_mean, actions_above_mean] = @half_array_by_mean(action_list, actions)
+  find_similar_people: (namespace, person, actions, similar_people_limit, history_search_size) ->
+    @esm.find_similar_people(namespace, person, Object.keys(actions), similar_people_limit, history_search_size)
+      
 
-    bb.all([
-      @esm.find_similar_people(namespace, person, actions_below_mean, action, similar_people_limit, history_search_size), 
-      @esm.find_similar_people(namespace, person, actions_above_mean, action, similar_people_limit, history_search_size)])
-    .spread( (ltpeople, gtpeople) ->
-      _.unique(ltpeople.concat gtpeople)
-    )
-
-  recently_actioned_things_by_people: (namespace, action, people, related_things_limit, time_until_expiry) ->
+  recently_actioned_things_by_people: (namespace, actions, people, related_things_limit, time_until_expiry) ->
     expires_after = moment().add(time_until_expiry, 'seconds').format()
-
-    @esm.recently_actioned_things_by_people(namespace, [action], people, related_things_limit, expires_after)
+    @esm.recently_actioned_things_by_people(namespace, Object.keys(actions), people, related_things_limit, expires_after)
 
   crowd_weight_confidence: (weight, n_people, crowd_weight) ->
     crowd_size = Math.pow(n_people, crowd_weight)
@@ -128,13 +112,13 @@ class GER
 
     things_weight
 
-  generate_recommendations_for_person: (namespace, person, action, actions, person_history_count, configuration) ->
+  generate_recommendations_for_person: (namespace, person, actions, person_history_count, configuration) ->
 
-    @find_similar_people(namespace, person, action, actions, configuration.similar_people_limit, configuration.history_search_size)
+    @find_similar_people(namespace, person, actions, configuration.similar_people_limit, configuration.history_search_size)
     .then( (people) =>
       bb.all([
         @calculate_similarities_from_person(namespace, person, people, actions, configuration.history_search_size, configuration.recent_event_days)
-        @recently_actioned_things_by_people(namespace, action, people.concat(person), configuration.related_things_limit, configuration.time_until_expiry)
+        @recently_actioned_things_by_people(namespace, actions, people.concat(person), configuration.related_things_limit, configuration.time_until_expiry)
       ])
     )
     .spread( ( similar_people, people_things ) =>
@@ -172,11 +156,11 @@ class GER
 
     )
 
-  generate_recommendations_for_thing: (namespace, thing, action, actions, thing_history_count, configuration) ->
+  generate_recommendations_for_thing: (namespace, thing,  actions, thing_history_count, configuration) ->
     #find people that have actioned things
     promises = []
     for a,w of actions
-      promises.push(bb.all([a, @esm.find_events(namespace, null, action, thing, size: 100)]))
+      promises.push(bb.all([a, @esm.find_events(namespace, null, Object.keys(actions), thing, size: 100)]))
 
     bb.all(promises)
     .then( (action_things) =>
@@ -195,7 +179,7 @@ class GER
           similar_people.people_weights[p] += actions[a]
 
 
-      bb.all([similar_people, @recently_actioned_things_by_people(namespace, action, people, configuration.related_things_limit, configuration.time_until_expiry)])
+      bb.all([similar_people, @recently_actioned_things_by_people(namespace, actions, people, configuration.related_things_limit, configuration.time_until_expiry)])
     )
     .spread( ( similar_people, people_things ) =>
       people_weights = similar_people.people_weights
@@ -261,16 +245,16 @@ class GER
       actions[action] = weight/total_action_weight
     actions
 
-  recommendations_for_thing: (namespace, thing, rec_action, configuration = {}) ->
+  recommendations_for_thing: (namespace, thing, action, configuration = {}) ->
     configuration = @default_configuration(configuration)
 
     #first a check or two
     #TODO minimum thing history count
     actions = @normalize_actions(configuration.actions)    
-    return @generate_recommendations_for_thing(namespace, thing, rec_action, actions, 0, configuration)
+    return @generate_recommendations_for_thing(namespace, thing, actions, 0, configuration)
 
 
-  recommendations_for_person: (namespace, person, rec_action, configuration = {}) ->
+  recommendations_for_person: (namespace, person, action, configuration = {}) ->
     configuration = @default_configuration(configuration)
 
     #first a check or two
@@ -281,7 +265,7 @@ class GER
       else
         actions = @normalize_actions(configuration.actions)
          
-        return @generate_recommendations_for_person(namespace, person, rec_action, actions, count, configuration)
+        return @generate_recommendations_for_person(namespace, person, actions, count, configuration)
     )
 
   ##Wrappers of the ESM

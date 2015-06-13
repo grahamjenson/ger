@@ -81,61 +81,85 @@ esm_tests = (ESM) ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
-            esm.add_event(ns,'p1','view','t1')
-            esm.add_event(ns,'p2','view','t1')
-            esm.add_event(ns,'p2','buy','t1')
-            esm.add_event(ns,'p1','buy','t1')
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','buy','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p1','buy','t1', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['view', 'buy'], 'buy')
+            esm.find_similar_people(ns, 'p1', ['view', 'buy'])
           )
           .then( (people) ->
             people.length.should.equal 1
           )
 
-      it 'should not return people that have not actioned action', ->
+      it 'should not return people who have no unexpired events (i.e. potential recommendations) or in actions', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
-            esm.add_event(ns,'p1','view','t1')
-            esm.add_event(ns,'p2','view','t1')
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p3','view','t1', expires_at: yesterday)
+            esm.add_event(ns,'p4','view','t1')
+            esm.add_event(ns,'p5','view','t1')
+            esm.add_event(ns,'p5','likes','t2', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['view','buy'], 'buy')
+            esm.find_similar_people(ns, 'p1', ['view','buy'])
           )
           .then( (people) ->
-            people.length.should.equal 0
+            people.length.should.equal 1
           )
 
-     it 'should not return the given person', ->
-        @timeout(360000)
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','view','t1')
-          ])
-          .then( ->
-            esm.find_similar_people(ns, 'p1', ['view'], 'view')
-          )
-          .then( (people) ->
-            people.length.should.equal 0
-          )
+      it 'should not return the given person', ->
+          @timeout(360000)
+          init_esm(ESM, ns)
+          .then (esm) ->
+            bb.all([
+              esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            ])
+            .then( ->
+              esm.find_similar_people(ns, 'p1', ['view'])
+            )
+            .then( (people) ->
+              people.length.should.equal 0
+            )
 
       it 'should only return people related via given actions', ->
-        @timeout(60000)
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','view','t1')
-            esm.add_event(ns,'p2','view','t1')
-            esm.add_event(ns,'p2','buy','t1')
-          ])
-          .then( ->
-            esm.find_similar_people(ns, 'p1', ['buy'], 'buy')
-          )
-          .then( (people) ->
-            people.length.should.equal 0
-          )
+          init_esm(ESM, ns)
+          .then (esm) ->
+            bb.all([
+              esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+              esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+              esm.add_event(ns,'p2','buy','t1', expires_at: tomorrow)
+            ])
+            .then( ->
+              esm.find_similar_people(ns, 'p1', ['buy'])
+            )
+            .then( (people) ->
+              people.length.should.equal 0
+            )
+
+      it 'should find similar people across actions', ->
+          init_esm(ESM, ns)
+          .then (esm) ->
+            bb.all([
+              esm.add_event(ns, 'p1','view','a'),
+              esm.add_event(ns, 'p1','view','b'),
+              #p2 is closer to p1, but theie recommendation was 2 days ago. It should still be included
+              esm.add_event(ns, 'p2','view','a'),
+              esm.add_event(ns, 'p2','view','b'),
+              esm.add_event(ns, 'p2','buy','x', created_at: moment().subtract(2, 'days').toDate(), expires_at: tomorrow),
+
+              esm.add_event(ns, 'p3','view','a'),
+              esm.add_event(ns, 'p3','buy','l', created_at: moment().subtract(3, 'hours').toDate(), expires_at: tomorrow),
+              esm.add_event(ns, 'p3','buy','m', created_at: moment().subtract(2, 'hours').toDate(), expires_at: tomorrow),
+              esm.add_event(ns, 'p3','buy','n', created_at: moment().subtract(1, 'hours').toDate(), expires_at: tomorrow)
+            ])
+            .then(-> esm.find_similar_people(ns, 'p1', ['buy', 'view']))
+            .then((people) ->
+              people.length.should.equal 2
+            )
 
     describe '#calculate_similarities_from_person', ->
       it 'more similar histories should be greater', ->

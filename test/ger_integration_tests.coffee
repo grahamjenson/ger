@@ -224,9 +224,9 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
         ger.event(ns,'p2','buy','a', expires_at: tomorrow),
-        ger.event(ns,'p2','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','a'),
 
-        ger.event(ns,'p1','view','a', expires_at: tomorrow),
+        ger.event(ns,'p1','view','a'),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', actions: {view:1, buy:1}))
       .then((recommendations) ->
@@ -241,14 +241,14 @@ describe 'recommendations_for_person', ->
     .then (ger) ->
       bb.all([
 
-        ger.event(ns,'p1','view','a', expires_at: tomorrow),
+        ger.event(ns,'p1','view','a'),
 
         ger.event(ns,'p2','buy','a', expires_at: tomorrow),
-        ger.event(ns,'p2','view','a', expires_at: tomorrow),
+        ger.event(ns,'p2','view','a'),
 
         ger.event(ns,'p3','buy','b', expires_at: tomorrow),
-        ger.event(ns,'p3','view','a', expires_at: tomorrow),
-        ger.event(ns,'p3','view','d', expires_at: tomorrow),
+        ger.event(ns,'p3','view','a'),
+        ger.event(ns,'p3','view','d'),
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', 'buy', {recommendations_limit: 1, actions: {view:1, buy:1}}))
       .then((recommendations) ->
@@ -263,16 +263,16 @@ describe 'find_similar_people', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','action1','a'),
-        ger.event(ns,'p2','action1','a'),
-        ger.event(ns,'p3','action1','a'),
+        ger.event(ns,'p1','action1','a', expires_at: tomorrow),
+        ger.event(ns,'p2','action1','a', expires_at: tomorrow),
+        ger.event(ns,'p3','action1','a', expires_at: tomorrow),
 
-        ger.event(ns,'p1','action1','b'),
-        ger.event(ns,'p3','action1','b'),
+        ger.event(ns,'p1','action1','b', expires_at: tomorrow),
+        ger.event(ns,'p3','action1','b', expires_at: tomorrow),
 
-        ger.event(ns,'p4','action1','d')
+        ger.event(ns,'p4','action1','d', expires_at: tomorrow)
       ])
-      .then(-> ger.find_similar_people(ns, 'p1', 'action1', {'action1': 1}))
+      .then(-> ger.find_similar_people(ns, 'p1', {'action1': 1}))
       .then((similar_people) ->
         similar_people.should.include 'p2'
         similar_people.should.include 'p3'
@@ -282,17 +282,17 @@ describe 'find_similar_people', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns,'p1','action1','not')
-        ger.event(ns,'p1','action1','a'),
-        ger.event(ns,'p2','action1','a'),
-        ger.event(ns,'p3','action1','a'),
+        ger.event(ns,'p1','action1','not', expires_at: tomorrow)
+        ger.event(ns,'p1','action1','a', expires_at: tomorrow),
+        ger.event(ns,'p2','action1','a', expires_at: tomorrow),
+        ger.event(ns,'p3','action1','a', expires_at: tomorrow),
 
-        ger.event(ns,'p1','action1','b'),
-        ger.event(ns,'p3','action1','b'),
+        ger.event(ns,'p1','action1','b', expires_at: tomorrow),
+        ger.event(ns,'p3','action1','b', expires_at: tomorrow),
 
-        ger.event(ns,'p4','action1','d')
+        ger.event(ns,'p4','action1','d', expires_at: tomorrow)
       ])
-      .then(-> ger.find_similar_people(ns, 'p1', 'action1', {'action1': 1}))
+      .then(-> ger.find_similar_people(ns, 'p1', {'action1': 1}))
       .then((similar_people) ->
         similar_people.length.should.equal 2
       )

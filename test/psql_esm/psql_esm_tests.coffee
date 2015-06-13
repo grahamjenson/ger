@@ -37,28 +37,28 @@ describe "find_similar_people", ->
     .then (esm) ->
       bb.all([
 
-        esm.add_event(ns, 'p1','view','t1', {created_at: new Date(2014, 6, 6, 13, 1)})
-        esm.add_event(ns, 'p1','view','t4', {created_at: new Date(2014, 6, 6, 13, 1)})
-        esm.add_event(ns, 'p1','view','t2', {created_at: new Date(2014, 6, 6, 13, 30)})
+        esm.add_event(ns, 'p1','view','t1', created_at: new Date(2014, 6, 6, 13, 1), expires_at: tomorrow)
+        esm.add_event(ns, 'p1','view','t4', created_at: new Date(2014, 6, 6, 13, 1), expires_at: tomorrow)
+        esm.add_event(ns, 'p1','view','t2', created_at: new Date(2014, 6, 6, 13, 30), expires_at: tomorrow)
 
         #t3 is more important as it has more recently been seen
-        esm.add_event(ns, 'p1','view','t3', {created_at: new Date(2014, 6, 7, 13, 0)})
+        esm.add_event(ns, 'p1','view','t3', created_at: new Date(2014, 6, 7, 13, 0), expires_at: tomorrow)
 
         #Most recent person ordered first
-        esm.add_event(ns, 'p4','view','t3')
-        esm.add_event(ns, 'p4','buy','t1')
+        esm.add_event(ns, 'p4','view','t3', expires_at: tomorrow)
+        esm.add_event(ns, 'p4','buy','t1', expires_at: tomorrow)
 
         #ordered second as most similar person
-        esm.add_event(ns, 'p2','view','t1')
-        esm.add_event(ns, 'p2','buy','t1')
-        esm.add_event(ns, 'p2','view','t4')
+        esm.add_event(ns, 'p2','view','t1', expires_at: tomorrow)
+        esm.add_event(ns, 'p2','buy','t1', expires_at: tomorrow)
+        esm.add_event(ns, 'p2','view','t4', expires_at: tomorrow)
 
         #ordered third equal as third most similar people
-        esm.add_event(ns, 'p3','view','t2')
-        esm.add_event(ns, 'p3','buy','t2')
+        esm.add_event(ns, 'p3','view','t2', expires_at: tomorrow)
+        esm.add_event(ns, 'p3','buy','t2', expires_at: tomorrow)
       ])
       .then( ->
-        esm.find_similar_people(ns, 'p1', ['view', 'buy'], 'buy')
+        esm.find_similar_people(ns, 'p1', ['view', 'buy'])
       )
       .then( (people) ->
         people[0].should.equal 'p4'

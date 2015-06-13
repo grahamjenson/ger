@@ -36,12 +36,15 @@ class BasicInMemoryESM
     events = (event for thing, event of person_action_store[namespace][person][action])  
     return _.sortBy(events, (x) -> - x.created_at.getTime())
 
+  _person_history_for_action_after_expiry: (namespace, person, action, expires_after) ->
+    (e for e in @_person_history_for_action(namespace, person, action) when moment(e.expires_at).isAfter(expires_after) )
+      
   _thing_history_for_action: (namespace, thing, action) ->
     return [] if thing_action_store[namespace][thing] == undefined or thing_action_store[namespace][thing][action] == undefined
     events = (event for person, event of thing_action_store[namespace][thing][action])  
     return _.sortBy(events, (x) -> - x.created_at.getTime())
 
-  _find_similar_people_for_action: (namespace, person, action_to_search, action_to_do, person_history_limit) ->
+  _find_similar_people_for_action: (namespace, person, action_to_search, person_history_limit, expires_after) ->
     #find things the person has actioned
     person_history = @_person_history_for_action(namespace, person, action_to_search)
     things = (e.thing for e in person_history)
@@ -51,19 +54,27 @@ class BasicInMemoryESM
       thing_history = @_thing_history_for_action(namespace, t, action_to_search)
       people = people.concat (e.person for e in thing_history)
 
-    #filter those people if they havent done action_to_do
-    people = people.filter((p) => !!person_action_store[namespace][p] && !!person_action_store[namespace][p][action_to_do])
+    people = _.uniq(people)
     people
 
-  find_similar_people: (namespace, person, actions, action_to_do, similar_people_limit = 100, person_history_limit = 500) ->
+  find_similar_people: (namespace, person, actions, similar_people_limit = 100, person_history_limit = 500, expires_after = new Date()) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
     people = []
     for action_to_search in actions
-      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, action_to_do, person_history_limit)
+      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, person_history_limit, expires_after)
     people = people.filter((p) -> p != person)
+    
+    #filter people who have not got an event with current 
+    people_to_return = []
+    for p in people
+      for action_to_search in actions
+        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, expires_after)
+      
+        if list.length > 0
+          people_to_return.push p
 
-    return bb.try(-> _.uniq(people))
+    return bb.try(-> _.uniq(people_to_return))
 
   _recent_jaccard_distance: (namespace, p1, p2, action, days, now) ->
     recent_date = moment(now).subtract(days, 'days').toDate()
@@ -101,8 +112,7 @@ class BasicInMemoryESM
     for person in people
       group_by_person_thing[person] = {}
       for action in actions
-        for event in @_person_history_for_action(namespace, person, action)
-          continue if not moment(event.expires_at).isAfter(expires_after)
+        for event in @_person_history_for_action_after_expiry(namespace, person, action, expires_after)
 
           group_by_person_thing[person][event.thing] = {} if not group_by_person_thing[person][event.thing]
           group_by_person_thing[person][event.thing] = {

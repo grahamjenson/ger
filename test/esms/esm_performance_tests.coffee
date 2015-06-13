@@ -89,7 +89,7 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..nfindpeople]
-            promises.push ger.esm.find_similar_people(ns, sample(people), actions, sample(actions))
+            promises.push ger.esm.find_similar_people(ns, sample(people), actions)
           bb.all(promises)
 
           .then(->
