@@ -274,6 +274,48 @@ esm_tests = (ESM) ->
 
     describe '#recently_actioned_things_by_people', ->
 
+      # TODO multiple returned things 
+      # it 'should return multiple things for multiple actions', ->
+      #   init_esm(ESM, ns)
+      #   .then (esm) ->
+      #     bb.all([
+      #       esm.add_event(ns,'p1','a1','t1', expires_at: tomorrow),
+      #       esm.add_event(ns,'p1','a2','t1', expires_at: tomorrow)
+      #     ])
+      #     .then( -> esm.recently_actioned_things_by_people(ns, ['a1', 'a2'], ['p1']))
+      #     .then( (people_things) ->
+      #       people_things['p1']['a1'].length.should.equal 1
+      #       people_things['p1']['a2'].length.should.equal 1
+      #     )
+
+
+      it 'should return multiple things for multiple actions', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a1','t1', expires_at: tomorrow),
+            esm.add_event(ns,'p1','a2','t2', expires_at: tomorrow)
+          ])
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a1', 'a2'], ['p1']))
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 2
+          )
+
+      it 'should return things for multiple actions and multiple people', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a1','t1', expires_at: tomorrow),
+            esm.add_event(ns,'p2','a2','t2', expires_at: tomorrow)
+          ])
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a1', 'a2'] ,['p1', 'p2']))
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 1
+            people_things['p1'][0].thing.should.equal 't1'
+            people_things['p2'].length.should.equal 1
+            people_things['p2'][0].thing.should.equal 't2'
+          )
+
       it 'should return things for multiple people', ->
         init_esm(ESM, ns)
         .then (esm) ->
@@ -281,7 +323,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1', expires_at: tomorrow),
             esm.add_event(ns,'p2','a','t2', expires_at: tomorrow)
           ])
-          .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1', 'p2']))
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a'] ,['p1', 'p2']))
           .then( (people_things) ->
             people_things['p1'].length.should.equal 1
             people_things['p1'].length.should.equal 1
@@ -294,7 +336,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1', expires_at: tomorrow),
             esm.add_event(ns,'p1','a','t2')
           ])
-          .then( -> esm.recently_actioned_things_by_people(ns, 'a', ['p1']))
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a'], ['p1']))
           .then( (people_things) ->
             people_things['p1'].length.should.equal 1
           )
@@ -306,7 +348,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1', expires_at: tomorrow),
             esm.add_event(ns,'p1','a','t2', expires_at: yesterday)
           ])
-          .then( -> esm.recently_actioned_things_by_people(ns, 'a', ['p1']))
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a'], ['p1']))
           .then( (people_things) ->
             people_things['p1'].length.should.equal 1
           )
@@ -319,7 +361,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1', expires_at: tomorrow),
             esm.add_event(ns,'p2','a','t2', expires_at: tomorrow)
           ])
-          .then( -> esm.recently_actioned_things_by_people(ns, 'a', ['p1','p2']))
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a'], ['p1','p2']))
           .then( (people_things) ->
             people_things['p1'][0].thing.should.equal 't1'
             people_things['p1'].length.should.equal 1
@@ -334,7 +376,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t', expires_at: tomorrow), 
             esm.add_event(ns,'p2','a','t', expires_at: tomorrow)
           ])
-          .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2']))
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a'],['p1','p2']))
           .then( (people_things) ->
             people_things['p1'][0].thing.should.equal 't'
             people_things['p1'].length.should.equal 1
@@ -394,7 +436,7 @@ esm_tests = (ESM) ->
             .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2'], 50, a2days))
             .then( (people_things) ->
               people_things['p1'].length.should.equal 1
-              (people_things['p2'] == undefined).should.equal true
+              people_things['p2'].length.should.equal 0
             )
 
     describe '#person_history_count', ->

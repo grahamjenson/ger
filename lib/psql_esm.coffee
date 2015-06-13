@@ -212,17 +212,25 @@ class PSQLEventStoreManager
       (r.tthing for r in rows.rows)
     )
 
-  recently_actioned_things_by_people: (namespace, action, people, limit = 50, expires_after = new Date()) ->
+  recently_actioned_things_by_people: (namespace, actions, people, limit = 50, expires_after = new Date()) ->
     return bb.try(->[]) if people.length == 0
 
-    bindings = {action: action, expires_after: expires_after}
+    bindings = {expires_after: expires_after}
+
+    action_values = []
+    for a, ai in actions
+      akey = "action_#{ai}"
+      bindings[akey] = a
+      action_values.push(" :#{akey} ")
+
+    action_values = action_values.join(',')
 
     ql = []
     for p,i in people
       key = "person_#{i}"
       bindings[key] = p
       ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where action = :action and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{limit})"
+          where action in (#{action_values}) and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{limit})"
 
     query = ql.join( " UNION ")
 
@@ -230,15 +238,18 @@ class PSQLEventStoreManager
     .then( (ret) ->
       rows = ret.rows
       temp = {}
+      for p in people
+        temp[p] = []
+
       for r in rows
-        temp[r.person] = [] if temp[r.person] == undefined
         t = {
-          thing: r.thing 
+          person: r.person
+          thing: r.thing
+          action: r.action
           last_actioned_at: r.max_ca.getTime()
-          last_expires_at: null
+          last_expires_at: r.max_ea.getTime()
         }
 
-        t.last_expires_at = r.max_ea.getTime() if r.max_ea
         temp[r.person].push t
 
       temp

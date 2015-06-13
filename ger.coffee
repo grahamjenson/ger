@@ -98,7 +98,7 @@ class GER
   recently_actioned_things_by_people: (namespace, action, people, related_things_limit, time_until_expiry) ->
     expires_after = moment().add(time_until_expiry, 'seconds').format()
 
-    @esm.recently_actioned_things_by_people(namespace, action, people, related_things_limit, expires_after)
+    @esm.recently_actioned_things_by_people(namespace, [action], people, related_things_limit, expires_after)
 
   crowd_weight_confidence: (weight, n_people, crowd_weight) ->
     crowd_size = Math.pow(n_people, crowd_weight)

@@ -94,15 +94,29 @@ class BasicInMemoryESM
 
     return bb.try(-> similarities)
 
-  recently_actioned_things_by_people: (namespace, action, people, related_things_limit, expires_after = new Date()) ->
+  recently_actioned_things_by_people: (namespace, actions, people, related_things_limit, expires_after = new Date()) ->
     return bb.try(->[]) if people.length == 0
+
+    group_by_person_thing = {}
+    for person in people
+      group_by_person_thing[person] = {}
+      for action in actions
+        for event in @_person_history_for_action(namespace, person, action)
+          continue if not moment(event.expires_at).isAfter(expires_after)
+
+          group_by_person_thing[person][event.thing] = {} if not group_by_person_thing[person][event.thing]
+          group_by_person_thing[person][event.thing] = {
+            thing: event.thing
+            last_actioned_at: Math.max(event.created_at.getTime(), group_by_person_thing[person][event.thing].last_actioned_at||0)
+            last_expires_at: Math.max(event.expires_at.getTime(), group_by_person_thing[person][event.thing].last_expires_at||0)
+          }
+
     things = {}
     for person in people
-      history = @_person_history_for_action(namespace, person, action)[...related_things_limit]
-      person_things = ({thing: event.thing, last_actioned_at: event.created_at.getTime(), last_expires_at: event.expires_at.getTime()} for event in history when moment(event.expires_at).isAfter(expires_after))
-      if person_things.length > 0
-        things[person] = person_things
-        
+      things[person] = []
+      for thing, list of group_by_person_thing[person]
+        things[person] = (things[person].concat list)[...related_things_limit]
+
     bb.try(-> things)
 
   person_history_count: (namespace, person) ->
