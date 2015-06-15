@@ -7,6 +7,9 @@ _ = require 'underscore'
 Errors = require './errors'
 
 Transform = require('stream').Transform;
+moment = require 'moment'
+
+
 class CounterStream extends Transform
   _transform: (chunk, encoding, done) ->
     @count |= 0
@@ -234,8 +237,15 @@ class PSQLEventStoreManager
       (r.tthing for r in rows.rows)
     )
 
-  recently_actioned_things_by_people: (namespace, actions, people, limit = 50, expires_after = new Date()) ->
+  recently_actioned_things_by_people: (namespace, actions, people, options = {}) ->
     return bb.try(->[]) if people.length == 0 || actions.length == 0
+
+    options = _.defaults(options,
+      related_things_limit: 10
+      time_until_expiry: 0
+    )
+
+    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
 
     bindings = {expires_after: expires_after}
 
@@ -251,7 +261,7 @@ class PSQLEventStoreManager
       key = "person_#{i}"
       bindings[key] = p
       ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where action in (#{action_values}) and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{limit})"
+          where action in (#{action_values}) and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{options.related_things_limit})"
 
     query = ql.join( " UNION ")
 

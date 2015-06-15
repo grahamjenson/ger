@@ -111,8 +111,15 @@ class BasicInMemoryESM
 
     return bb.try(-> similarities)
 
-  recently_actioned_things_by_people: (namespace, actions, people, related_things_limit, expires_after = new Date()) ->
-    return bb.try(->[]) if people.length == 0
+  recently_actioned_things_by_people: (namespace, actions, people, options={}) ->
+    return bb.try(->[]) if people.length == 0 || actions.length == 0
+
+    options = _.defaults(options,
+      related_things_limit: 10
+      time_until_expiry: 0
+    )
+
+    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
 
     group_by_person_thing = {}
     for person in people
@@ -131,7 +138,7 @@ class BasicInMemoryESM
     for person in people
       things[person] = []
       for thing, list of group_by_person_thing[person]
-        things[person] = (things[person].concat list)[...related_things_limit]
+        things[person] = (things[person].concat list)[...options.related_things_limit]
 
     bb.try(-> things)
 

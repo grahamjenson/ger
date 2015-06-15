@@ -416,7 +416,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t2', expires_at: tomorrow),
             esm.add_event(ns,'p2','a','t2', expires_at: tomorrow)
           ])
-          .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2'], 1))
+          .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2'], {related_things_limit: 1}))
           .then( (people_things) ->
             people_things['p1'].length.should.equal 1
             people_things['p2'].length.should.equal 1
@@ -443,7 +443,7 @@ esm_tests = (ESM) ->
             people_things['p2'][0].last_expires_at.should.equal tomorrow.toDate().getTime()
           )
 
-      describe 'expires_after', ->
+      describe 'time_until_expiry', ->
 
         it 'should not return things that expire before the date passed', ->
           
@@ -457,7 +457,7 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p1','a','t1', expires_at: a3days),
               esm.add_event(ns,'p2','a','t2', expires_at: a1day)
             ])
-            .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2'], 50, a2days))
+            .then( -> esm.recently_actioned_things_by_people(ns, 'a',['p1','p2'], { time_until_expiry: 48*60*60}))
             .then( (people_things) ->
               people_things['p1'].length.should.equal 1
               people_things['p2'].length.should.equal 0
