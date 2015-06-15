@@ -83,11 +83,6 @@ class GER
   recently_actioned_things_by_people: (namespace, actions, people, configuration) ->
     @esm.recently_actioned_things_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
 
-  crowd_weight_confidence: (weight, n_people, crowd_weight) ->
-    crowd_size = Math.pow(n_people, crowd_weight)
-    cwc = 1.0 - Math.pow(Math.E,( (- crowd_size) / 4 ))
-    cwc * weight
-
 
   calculate_recommendations_weights: (people_weights, people_things) ->
     things_weight = {}
@@ -128,9 +123,6 @@ class GER
       bb.all([@filter_recommendations(namespace, person, things_weight, configuration.filter_previous_actions), similar_people] )
     )
     .spread( (recommendations, similar_people) =>
-      #recommendations in the format {thing: weight: people: last_actioned_at:}
-      for thing, ri of recommendations
-        ri.weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
 
       recommendations_object = {}
 
@@ -187,9 +179,6 @@ class GER
       recommendations = _.values(recommendations)
 
       sorted_things = recommendations
-      for thing, ri of sorted_things
-        weight = @crowd_weight_confidence(ri.weight, ri.people.length, configuration.crowd_weight)
-
 
       recommendations_object = {}
 
@@ -221,7 +210,6 @@ class GER
     _.defaults(configuration,
       minimum_history_required: 1,
       history_search_size: 500
-      crowd_weight: 0
       similar_people_limit: 25,
       related_things_limit: 10
       recommendations_limit: 20,
