@@ -112,54 +112,76 @@ esm_tests = (ESM) ->
           )
 
       it 'should not return the given person', ->
-          @timeout(360000)
-          init_esm(ESM, ns)
-          .then (esm) ->
-            bb.all([
-              esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
-            ])
-            .then( ->
-              esm.find_similar_people(ns, 'p1', ['view'])
-            )
-            .then( (people) ->
-              people.length.should.equal 0
-            )
+        @timeout(360000)
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.find_similar_people(ns, 'p1', ['view'])
+          )
+          .then( (people) ->
+            people.length.should.equal 0
+          )
 
       it 'should only return people related via given actions', ->
-          init_esm(ESM, ns)
-          .then (esm) ->
-            bb.all([
-              esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
-              esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
-              esm.add_event(ns,'p2','buy','t1', expires_at: tomorrow)
-            ])
-            .then( ->
-              esm.find_similar_people(ns, 'p1', ['buy'])
-            )
-            .then( (people) ->
-              people.length.should.equal 0
-            )
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','buy','t1', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.find_similar_people(ns, 'p1', ['buy'])
+          )
+          .then( (people) ->
+            people.length.should.equal 0
+          )
 
       it 'should find similar people across actions', ->
-          init_esm(ESM, ns)
-          .then (esm) ->
-            bb.all([
-              esm.add_event(ns, 'p1','view','a'),
-              esm.add_event(ns, 'p1','view','b'),
-              #p2 is closer to p1, but theie recommendation was 2 days ago. It should still be included
-              esm.add_event(ns, 'p2','view','a'),
-              esm.add_event(ns, 'p2','view','b'),
-              esm.add_event(ns, 'p2','buy','x', created_at: moment().subtract(2, 'days').toDate(), expires_at: tomorrow),
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns, 'p1','view','a'),
+            esm.add_event(ns, 'p1','view','b'),
+            #p2 is closer to p1, but theie recommendation was 2 days ago. It should still be included
+            esm.add_event(ns, 'p2','view','a'),
+            esm.add_event(ns, 'p2','view','b'),
+            esm.add_event(ns, 'p2','buy','x', created_at: moment().subtract(2, 'days'), expires_at: tomorrow),
 
-              esm.add_event(ns, 'p3','view','a'),
-              esm.add_event(ns, 'p3','buy','l', created_at: moment().subtract(3, 'hours').toDate(), expires_at: tomorrow),
-              esm.add_event(ns, 'p3','buy','m', created_at: moment().subtract(2, 'hours').toDate(), expires_at: tomorrow),
-              esm.add_event(ns, 'p3','buy','n', created_at: moment().subtract(1, 'hours').toDate(), expires_at: tomorrow)
-            ])
-            .then(-> esm.find_similar_people(ns, 'p1', ['buy', 'view']))
-            .then((people) ->
-              people.length.should.equal 2
-            )
+            esm.add_event(ns, 'p3','view','a'),
+            esm.add_event(ns, 'p3','buy','l', created_at: moment().subtract(3, 'hours'), expires_at: tomorrow),
+            esm.add_event(ns, 'p3','buy','m', created_at: moment().subtract(2, 'hours'), expires_at: tomorrow),
+            esm.add_event(ns, 'p3','buy','n', created_at: moment().subtract(1, 'hours'), expires_at: tomorrow)
+          ])
+          .then(-> esm.find_similar_people(ns, 'p1', ['buy', 'view']))
+          .then((people) ->
+            people.length.should.equal 2
+          )
+
+      it 'should find similar after a fake now is set', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns, 'p1','view','a', created_at: moment().subtract(3, 'days')),
+            esm.add_event(ns, 'p1','view','b', created_at: moment().subtract(1, 'days')),
+            #p2 is closer to p1, but theie recommendation was 2 days ago. It should still be included
+            esm.add_event(ns, 'p2','view','a', created_at: moment().subtract(3, 'days'), expires_at: tomorrow),
+
+            esm.add_event(ns, 'p3','view','b', created_at: moment().subtract(3, 'days'), expires_at: tomorrow)
+          ])
+          .then(-> 
+            esm.find_similar_people(ns, 'p1', ['view'])
+          )
+          .then((people) ->
+            people.length.should.equal 2
+            esm.find_similar_people(ns, 'p1', ['view'], now: moment().subtract(2, 'days'))
+          )
+          .then((people) ->
+            people.length.should.equal 1
+          )
 
     describe '#calculate_similarities_from_person', ->
       it 'more similar histories should be greater', ->
@@ -217,8 +239,8 @@ esm_tests = (ESM) ->
           .then (esm) ->
             bb.all([
               esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
-              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days').toDate())
+              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days'))
+              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
 
             ])
             .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5 ))
@@ -231,11 +253,11 @@ esm_tests = (ESM) ->
           .then (esm) ->
             bb.all([
               esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days').toDate())
-              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days').toDate())
+              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days'))
+              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5, now: moment().subtract(3, 'days').toDate()))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5, now: moment().subtract(3, 'days')))
             .then( (similarities) ->
               similarities['p3']['a'].should.equal(similarities['p2']['a'])
             )
@@ -245,9 +267,9 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(10, 'days').toDate())
+            esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(10, 'days'))
 
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(10, 'days').toDate()),
+            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(10, 'days')),
             esm.add_event(ns,'p3','a','t2', created_at: new Date())
           ])
           .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], { recent_event_days: 5 }))
@@ -488,19 +510,19 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
-            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(6, 'days').toDate())
+            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days'))
+            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(6, 'days'))
           ])
           .then( ->
             esm.person_history_count(ns, 'p1')
           )
           .then( (count) ->
             count.should.equal 3
-            esm.person_history_count(ns, 'p1', now: moment().subtract(1, 'days').toDate())
+            esm.person_history_count(ns, 'p1', now: moment().subtract(1, 'days'))
           )
           .then( (count) ->
             count.should.equal 2
-            esm.person_history_count(ns, 'p1', now: moment().subtract(3, 'days').toDate())
+            esm.person_history_count(ns, 'p1', now: moment().subtract(3, 'days'))
           )
           .then( (count) ->
             count.should.equal 1
@@ -795,8 +817,8 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
-            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days').toDate())
+            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days'))
+            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days'))
           ])
           .then( ->
             esm.find_events(ns, 'p1')
@@ -813,8 +835,8 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
-            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days').toDate())
+            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days'))
+            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days'))
           ])
           .then( ->
             esm.find_events(ns, 'p1', null, null, {size: 2})
@@ -830,8 +852,8 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns, 'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns, 'p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
-            esm.add_event(ns, 'p1','a','t3', created_at: moment().subtract(10, 'days').toDate())
+            esm.add_event(ns, 'p1','a','t2', created_at: moment().subtract(2, 'days'))
+            esm.add_event(ns, 'p1','a','t3', created_at: moment().subtract(10, 'days'))
           ])
           .then( ->
             esm.find_events(ns, 'p1', null, null, {size: 2, page: 1})

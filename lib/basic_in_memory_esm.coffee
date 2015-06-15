@@ -31,22 +31,24 @@ class BasicInMemoryESM
     bb.try(=> !!event_store[namespace])
 
 
-  _person_history_for_action: (namespace, person, action) ->
+  _person_history_for_action: (namespace, person, action, now = new Date()) ->
+    now = moment(now).toDate()
+    
     return [] if person_action_store[namespace][person] == undefined or person_action_store[namespace][person][action] == undefined
-    events = (event for thing, event of person_action_store[namespace][person][action])  
+    events = (event for thing, event of person_action_store[namespace][person][action] when event.created_at.getTime() <= now.getTime())  
     return _.sortBy(events, (x) -> - x.created_at.getTime())
 
-  _person_history_for_action_after_expiry: (namespace, person, action, expires_after) ->
-    (e for e in @_person_history_for_action(namespace, person, action) when moment(e.expires_at).isAfter(expires_after) )
+  _person_history_for_action_after_expiry: (namespace, person, action, expires_after, now) ->
+    (e for e in @_person_history_for_action(namespace, person, action, now) when moment(e.expires_at).isAfter(expires_after) )
       
   _thing_history_for_action: (namespace, thing, action) ->
     return [] if thing_action_store[namespace][thing] == undefined or thing_action_store[namespace][thing][action] == undefined
     events = (event for person, event of thing_action_store[namespace][thing][action])  
     return _.sortBy(events, (x) -> - x.created_at.getTime())
 
-  _find_similar_people_for_action: (namespace, person, action_to_search, person_history_limit, expires_after) ->
+  _find_similar_people_for_action: (namespace, person, action_to_search, person_history_limit, expires_after, now) ->
     #find things the person has actioned
-    person_history = @_person_history_for_action(namespace, person, action_to_search)
+    person_history = @_person_history_for_action(namespace, person, action_to_search, now)
     things = (e.thing for e in person_history)
     #find people who have also actioned that thing
     people = []
@@ -63,22 +65,26 @@ class BasicInMemoryESM
     options = _.defaults(options,
       similar_people_limit: 100
       history_search_size: 500
-      expires_after: new Date()
+      time_until_expiry: 0
+      now: new Date()
     )
+
+    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
 
     people = []
     for action_to_search in actions
-      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, options.history_search_size, options.expires_after)
+      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, options.history_search_size, options.expires_after, options.now)
     people = people.filter((p) -> p != person)
     
-    #filter people who have not got an event with current 
+    #filter people who have not got an event with current expiry date
     people_to_return = []
     for p in people
       for action_to_search in actions
-        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, options.expires_after)
+        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, options.expires_after, options.now)
       
         if list.length > 0
           people_to_return.push p
+
 
     return bb.try(-> _.uniq(people_to_return)[...options.similar_people_limit])
 
@@ -183,8 +189,8 @@ class BasicInMemoryESM
     if !event_store[namespace]
       return bb.try( -> throw new Errors.NamespaceDoestNotExist())
 
-    created_at = dates.created_at || new Date()
-    expires_at = if dates.expires_at then new Date(dates.expires_at) else null
+    created_at = moment(dates.created_at || new Date()).toDate()
+    expires_at = if dates.expires_at then moment(new Date(dates.expires_at)).toDate() else null
     found_event = @_find_event(namespace, person, action, thing)
 
     if found_event

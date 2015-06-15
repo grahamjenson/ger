@@ -159,7 +159,7 @@ class PSQLEventStoreManager
 
     @_knex("#{namespace}.events")
     .groupBy('thing')
-    .where('created_at', '<', options.now)
+    .where('created_at', '<=', options.now)
     .where({person: person})
     .count()
     .then( (counts) ->
@@ -179,13 +179,18 @@ class PSQLEventStoreManager
     options = _.defaults(options,
       similar_people_limit: 100
       history_search_size: 500
-      expires_after: new Date()
+      time_until_expiry: 0
+      now: new Date()
     )
+
+    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
 
     one_degree_similar_people = @_knex(@last_events(namespace, person, options.history_search_size ).as('e'))
     .innerJoin("#{namespace}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
     .whereIn('f.action', actions)
+    .where('f.created_at', '<=', options.now)
+    .where('e.created_at', '<=', options.now)
     .select(@_knex.raw("f.person, date_trunc('day', max(e.created_at)) as created_at_day, count(f.person) as count"))
     .groupBy('f.person')
     .orderByRaw("created_at_day DESC, count(f.person) DESC")
@@ -193,7 +198,8 @@ class PSQLEventStoreManager
     filter_people = @_knex("#{namespace}.events")
     .select("person")
     .whereRaw('expires_at IS NOT NULL')
-    .where('expires_at', '>', options.expires_after)
+    .where('expires_at', '>', expires_after)
+    .where('created_at', '<=', options.now)
     .whereIn('action', actions)
     .whereRaw("person = x.person")
 

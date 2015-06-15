@@ -214,7 +214,8 @@ class GER
       recent_event_days: 14,
       filter_previous_actions: [],
       time_until_expiry: 0
-      actions: {}
+      actions: {},
+      now: new Date()
     )
 
   normalize_actions: (in_actions) ->
