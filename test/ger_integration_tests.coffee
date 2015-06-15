@@ -307,7 +307,7 @@ describe 'calculate_similarities_from_person', ->
         ger.event(ns,'p2','view','a', created_at: moment().subtract(50, 'mins').toDate()),
         ger.event(ns,'p3','view','a', created_at: moment().subtract(2, 'days').toDate()),
       ])
-      .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': 1}, 500, 1) )
+      .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': 1}, recent_event_days: 1) )
       .then((similar_people) ->
         similar_people.people_weights['p1'].should.equal 1
         similar_people.people_weights['p2'].should.equal 1

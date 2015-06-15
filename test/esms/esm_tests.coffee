@@ -221,7 +221,7 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days').toDate())
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], 500, 5))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5 ))
             .then( (similarities) ->
               similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
             )
@@ -235,7 +235,7 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days').toDate())
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], 500, 5, moment().subtract(3, 'days').toDate()))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5, now: moment().subtract(3, 'days').toDate()))
             .then( (similarities) ->
               similarities['p3']['a'].should.equal(similarities['p2']['a'])
             )
@@ -250,7 +250,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(10, 'days').toDate()),
             esm.add_event(ns,'p3','a','t2', created_at: new Date())
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], 500, 5))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], { recent_event_days: 5 }))
           .then( (similarities) ->
             similarities['p3']['a'].should.equal similarities['p2']['a']
           )

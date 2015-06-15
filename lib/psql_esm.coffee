@@ -325,7 +325,7 @@ class PSQLEventStoreManager
 
     "#{@jaccard_query(s1, s2)} as recent_distance"
   
-  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14, now = new Date()) ->
+  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14, now = new Date())->
     return bb.try(->[]) if people.length == 0
     #TODO allow for arbitrary distance measurements here
 
@@ -362,11 +362,18 @@ class PSQLEventStoreManager
     )
 
 
-  calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit, recent_event_days, now) ->
+  calculate_similarities_from_person: (namespace, person, people, actions, options={}) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
 
+    options = _.defaults(options,
+      history_search_size: 500
+      recent_event_days: 14
+      now: new Date()
+    )
+
+
     #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @get_jaccard_distances_between_people(namespace, person, people, actions, person_history_limit, recent_event_days, now)
+    @get_jaccard_distances_between_people(namespace, person, people, actions, options.history_search_size, options.recent_event_days, options.now)
     .spread( (event_weights, recent_event_weights) =>
       temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham

@@ -105,7 +105,7 @@ esm_tests = (ESM) ->
           promises = []
           for x in [1..ncalcpeople]
             peeps = _.unique((sample(people) for i in [0..10]))
-            promises.push ger.esm.calculate_similarities_from_person(ns, peeps[0], peeps[1..-1] , actions, 500, 5)
+            promises.push ger.esm.calculate_similarities_from_person(ns, peeps[0], peeps[1..-1] , actions)
           bb.all(promises)
 
           .then(->

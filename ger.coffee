@@ -10,8 +10,8 @@ class GER
 
   ####################### Weighted people  #################################
 
-  calculate_similarities_from_person : (namespace, person, people, actions, history_search_size, recent_event_days) ->
-    @esm.calculate_similarities_from_person(namespace, person, people, Object.keys(actions), history_search_size, recent_event_days)
+  calculate_similarities_from_person : (namespace, person, people, actions, configuration) ->
+    @esm.calculate_similarities_from_person(namespace, person, people, Object.keys(actions), _.clone(configuration))
     .then( (people_weights) =>
       temp = {}
       for p, weights of people_weights
@@ -75,11 +75,9 @@ class GER
 
     tc
 
-
   find_similar_people: (namespace, person, actions, configuration) ->
     @esm.find_similar_people(namespace, person, Object.keys(actions), _.clone(configuration))
       
-
   recently_actioned_things_by_people: (namespace, actions, people, configuration) ->
     @esm.recently_actioned_things_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
 
@@ -111,8 +109,8 @@ class GER
     @find_similar_people(namespace, person, actions, configuration)
     .then( (people) =>
       bb.all([
-        @calculate_similarities_from_person(namespace, person, people, actions, configuration.history_search_size, configuration.recent_event_days)
-        @recently_actioned_things_by_people(namespace, actions, people.concat(person), configuration)
+        @calculate_similarities_from_person(namespace, person, people, actions, _.clone(configuration))
+        @recently_actioned_things_by_people(namespace, actions, people.concat(person), _.clone(configuration))
       ])
     )
     .spread( ( similar_people, people_things ) =>
