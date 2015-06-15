@@ -152,9 +152,14 @@ class PSQLEventStoreManager
 
 
 
-  person_history_count: (namespace, person) ->
+  person_history_count: (namespace, person, options = {}) ->
+    options = _.defaults(options,
+      now: new Date()
+    )
+
     @_knex("#{namespace}.events")
     .groupBy('thing')
+    .where('created_at', '<', options.now)
     .where({person: person})
     .count()
     .then( (counts) ->
@@ -372,7 +377,7 @@ class PSQLEventStoreManager
     )
 
 
-    #TODO fix this, it double counts newer listings [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
+    #TODO fix this, it double counts newer things [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(namespace, person, people, actions, options.history_search_size, options.recent_event_days, options.now)
     .spread( (event_weights, recent_event_weights) =>
       temp = {}

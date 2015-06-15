@@ -149,10 +149,16 @@ class BasicInMemoryESM
 
     bb.try(-> things)
 
-  person_history_count: (namespace, person) ->
+  person_history_count: (namespace, person, options = {}) ->
+    options = _.defaults(options,
+      now: new Date()
+    )
+
     things = []
     for action, thing_events of person_action_store[namespace][person]
-      things = things.concat(Object.keys(thing_events))
+      for thing, thing_event of thing_events
+        continue if moment(options.now).isBefore(thing_event.created_at)
+        things.push thing
 
     return bb.try(-> _.uniq(things).length)
 

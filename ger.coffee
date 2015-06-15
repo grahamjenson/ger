@@ -243,7 +243,7 @@ class GER
     configuration = @default_configuration(configuration)
 
     #first a check or two
-    @esm.person_history_count(namespace, person)
+    @esm.person_history_count(namespace, person, _.clone(configuration))
     .then( (count) =>
       if count < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}

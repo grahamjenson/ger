@@ -483,6 +483,30 @@ esm_tests = (ESM) ->
             count.should.equal 0
           )
 
+      it 'should be able to select from now', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: new Date()),
+            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days').toDate())
+            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(6, 'days').toDate())
+          ])
+          .then( ->
+            esm.person_history_count(ns, 'p1')
+          )
+          .then( (count) ->
+            count.should.equal 3
+            esm.person_history_count(ns, 'p1', now: moment().subtract(1, 'days').toDate())
+          )
+          .then( (count) ->
+            count.should.equal 2
+            esm.person_history_count(ns, 'p1', now: moment().subtract(3, 'days').toDate())
+          )
+          .then( (count) ->
+            count.should.equal 1
+          )
+
+
     describe '#filter_things_by_previous_actions', ->
       it 'should remove things that a person has previously actioned', ->
         init_esm(ESM, ns)
