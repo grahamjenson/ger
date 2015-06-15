@@ -33,7 +33,7 @@ class BasicInMemoryESM
 
   _person_history_for_action: (namespace, person, action, now = new Date()) ->
     now = moment(now).toDate()
-    
+
     return [] if person_action_store[namespace][person] == undefined or person_action_store[namespace][person][action] == undefined
     events = (event for thing, event of person_action_store[namespace][person][action] when event.created_at.getTime() <= now.getTime())  
     return _.sortBy(events, (x) -> - x.created_at.getTime())
@@ -66,21 +66,21 @@ class BasicInMemoryESM
       similar_people_limit: 100
       history_search_size: 500
       time_until_expiry: 0
-      now: new Date()
+      current_datetime: new Date()
     )
 
     expires_after = moment().add(options.time_until_expiry, 'seconds').format()
 
     people = []
     for action_to_search in actions
-      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, options.history_search_size, options.expires_after, options.now)
+      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, options.history_search_size, options.expires_after, options.current_datetime)
     people = people.filter((p) -> p != person)
     
     #filter people who have not got an event with current expiry date
     people_to_return = []
     for p in people
       for action_to_search in actions
-        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, options.expires_after, options.now)
+        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, options.expires_after, options.current_datetime)
       
         if list.length > 0
           people_to_return.push p
@@ -119,7 +119,7 @@ class BasicInMemoryESM
       similarities[p] = {}
       for action in actions
         jaccard = @_jaccard_distance(namespace, person, p, action)
-        recent_jaccard = @_recent_jaccard_distance(namespace, person, p, action, options.recent_event_days, options.now)
+        recent_jaccard = @_recent_jaccard_distance(namespace, person, p, action, options.recent_event_days, options.current_datetime)
         similarities[p][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
 
     return bb.try(-> similarities)
@@ -157,13 +157,13 @@ class BasicInMemoryESM
 
   person_history_count: (namespace, person, options = {}) ->
     options = _.defaults(options,
-      now: new Date()
+      current_datetime: new Date()
     )
 
     things = []
     for action, thing_events of person_action_store[namespace][person]
       for thing, thing_event of thing_events
-        continue if moment(options.now).isBefore(thing_event.created_at)
+        continue if moment(options.current_datetime).isBefore(thing_event.created_at)
         things.push thing
 
     return bb.try(-> _.uniq(things).length)

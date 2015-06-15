@@ -154,12 +154,12 @@ class PSQLEventStoreManager
 
   person_history_count: (namespace, person, options = {}) ->
     options = _.defaults(options,
-      now: new Date()
+      current_datetime: new Date()
     )
 
     @_knex("#{namespace}.events")
     .groupBy('thing')
-    .where('created_at', '<=', options.now)
+    .where('created_at', '<=', options.current_datetime)
     .where({person: person})
     .count()
     .then( (counts) ->
@@ -180,7 +180,7 @@ class PSQLEventStoreManager
       similar_people_limit: 100
       history_search_size: 500
       time_until_expiry: 0
-      now: new Date()
+      current_datetime: new Date()
     )
 
     expires_after = moment().add(options.time_until_expiry, 'seconds').format()
@@ -189,8 +189,8 @@ class PSQLEventStoreManager
     .innerJoin("#{namespace}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
     .where('e.person', person)
     .whereIn('f.action', actions)
-    .where('f.created_at', '<=', options.now)
-    .where('e.created_at', '<=', options.now)
+    .where('f.created_at', '<=', options.current_datetime)
+    .where('e.created_at', '<=', options.current_datetime)
     .select(@_knex.raw("f.person, date_trunc('day', max(e.created_at)) as created_at_day, count(f.person) as count"))
     .groupBy('f.person')
     .orderByRaw("created_at_day DESC, count(f.person) DESC")
@@ -199,7 +199,7 @@ class PSQLEventStoreManager
     .select("person")
     .whereRaw('expires_at IS NOT NULL')
     .where('expires_at', '>', expires_after)
-    .where('created_at', '<=', options.now)
+    .where('created_at', '<=', options.current_datetime)
     .whereIn('action', actions)
     .whereRaw("person = x.person")
 
@@ -384,7 +384,7 @@ class PSQLEventStoreManager
 
 
     #TODO fix this, it double counts newer things [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @get_jaccard_distances_between_people(namespace, person, people, actions, options.history_search_size, options.recent_event_days, options.now)
+    @get_jaccard_distances_between_people(namespace, person, people, actions, options.history_search_size, options.recent_event_days, options.current_datetime)
     .spread( (event_weights, recent_event_weights) =>
       temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham

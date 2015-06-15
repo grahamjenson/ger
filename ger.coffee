@@ -215,7 +215,7 @@ class GER
       filter_previous_actions: [],
       time_until_expiry: 0
       actions: {},
-      now: new Date()
+      current_datetime: new Date() #what is the time now
     )
 
   normalize_actions: (in_actions) ->

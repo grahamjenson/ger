@@ -161,7 +161,7 @@ esm_tests = (ESM) ->
             people.length.should.equal 2
           )
 
-      it 'should find similar after a fake now is set', ->
+      it 'should be able to set current_datetime', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -177,7 +177,7 @@ esm_tests = (ESM) ->
           )
           .then((people) ->
             people.length.should.equal 2
-            esm.find_similar_people(ns, 'p1', ['view'], now: moment().subtract(2, 'days'))
+            esm.find_similar_people(ns, 'p1', ['view'], current_datetime: moment().subtract(2, 'days'))
           )
           .then((people) ->
             people.length.should.equal 1
@@ -248,7 +248,7 @@ esm_tests = (ESM) ->
               similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
             )
 
-        it 'should be ale to define from what date', ->
+        it 'should be ale to set current_datetime', ->
           init_esm(ESM, ns)
           .then (esm) ->
             bb.all([
@@ -257,7 +257,7 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5, now: moment().subtract(3, 'days')))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5, current_datetime: moment().subtract(3, 'days')))
             .then( (similarities) ->
               similarities['p3']['a'].should.equal(similarities['p2']['a'])
             )
@@ -505,7 +505,7 @@ esm_tests = (ESM) ->
             count.should.equal 0
           )
 
-      it 'should be able to select from now', ->
+      it 'should be able to select current_datetime', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -518,11 +518,11 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 3
-            esm.person_history_count(ns, 'p1', now: moment().subtract(1, 'days'))
+            esm.person_history_count(ns, 'p1', current_datetime: moment().subtract(1, 'days'))
           )
           .then( (count) ->
             count.should.equal 2
-            esm.person_history_count(ns, 'p1', now: moment().subtract(3, 'days'))
+            esm.person_history_count(ns, 'p1', current_datetime: moment().subtract(3, 'days'))
           )
           .then( (count) ->
             count.should.equal 1
