@@ -57,24 +57,30 @@ class BasicInMemoryESM
     people = _.uniq(people)
     people
 
-  find_similar_people: (namespace, person, actions, similar_people_limit = 100, person_history_limit = 500, expires_after = new Date()) ->
+  find_similar_people: (namespace, person, actions, options = {}) ->
     return bb.try(-> []) if !actions or actions.length == 0
+
+    options = _.defaults(options,
+      similar_people_limit: 100
+      history_search_size: 500
+      expires_after: new Date()
+    )
 
     people = []
     for action_to_search in actions
-      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, person_history_limit, expires_after)
+      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, options.history_search_size, options.expires_after)
     people = people.filter((p) -> p != person)
     
     #filter people who have not got an event with current 
     people_to_return = []
     for p in people
       for action_to_search in actions
-        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, expires_after)
+        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, options.expires_after)
       
         if list.length > 0
           people_to_return.push p
 
-    return bb.try(-> _.uniq(people_to_return))
+    return bb.try(-> _.uniq(people_to_return)[...options.similar_people_limit])
 
   _recent_jaccard_distance: (namespace, p1, p2, action, days, now) ->
     recent_date = moment(now).subtract(days, 'days').toDate()

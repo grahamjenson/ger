@@ -76,8 +76,8 @@ class GER
     tc
 
 
-  find_similar_people: (namespace, person, actions, similar_people_limit, history_search_size) ->
-    @esm.find_similar_people(namespace, person, Object.keys(actions), similar_people_limit, history_search_size)
+  find_similar_people: (namespace, person, actions, configuration) ->
+    @esm.find_similar_people(namespace, person, Object.keys(actions), _.clone(configuration))
       
 
   recently_actioned_things_by_people: (namespace, actions, people, related_things_limit, time_until_expiry) ->
@@ -114,7 +114,7 @@ class GER
 
   generate_recommendations_for_person: (namespace, person, actions, person_history_count, configuration) ->
 
-    @find_similar_people(namespace, person, actions, configuration.similar_people_limit, configuration.history_search_size)
+    @find_similar_people(namespace, person, actions, configuration)
     .then( (people) =>
       bb.all([
         @calculate_similarities_from_person(namespace, person, people, actions, configuration.history_search_size, configuration.recent_event_days)
