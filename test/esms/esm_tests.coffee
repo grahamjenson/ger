@@ -375,6 +375,30 @@ esm_tests = (ESM) ->
       #       people_things['p1']['a2'].length.should.equal 1
       #     )
 
+      it 'should only return things created before current_datetime', ->
+        a2daysago = moment().subtract(2, 'days')
+        a3daysago = moment().subtract(3, 'days')
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: today, expires_at: tomorrow),
+            esm.add_event(ns,'p1','a','t2', created_at: yesterday, expires_at: tomorrow),
+            esm.add_event(ns,'p1','a','t3', created_at: a2daysago, expires_at: tomorrow),
+            esm.add_event(ns,'p1','a','t4', created_at: a3daysago, expires_at: tomorrow),
+          ])
+          .then( -> esm.recently_actioned_things_by_people(ns, ['a'], ['p1']))
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 4
+            esm.recently_actioned_things_by_people(ns, ['a'], ['p1'], current_datetime: yesterday)
+          )
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 3
+            esm.recently_actioned_things_by_people(ns, ['a'], ['p1'], current_datetime: a2daysago)
+          )
+          .then( (people_things) ->
+            people_things['p1'].length.should.equal 2
+          )
+
 
       it 'should return multiple things for multiple actions', ->
         init_esm(ESM, ns)

@@ -130,15 +130,16 @@ class BasicInMemoryESM
     options = _.defaults(options,
       related_things_limit: 10
       time_until_expiry: 0
+      current_datetime: new Date()
     )
 
-    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
+    expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
     group_by_person_thing = {}
     for person in people
       group_by_person_thing[person] = {}
       for action in actions
-        for event in @_person_history_for_action_after_expiry(namespace, person, action, expires_after)
+        for event in @_person_history_for_action_after_expiry(namespace, person, action, expires_after, options.current_datetime)
 
           group_by_person_thing[person][event.thing] = {} if not group_by_person_thing[person][event.thing]
           group_by_person_thing[person][event.thing] = {

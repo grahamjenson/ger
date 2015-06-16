@@ -180,7 +180,7 @@ class PSQLEventStoreManager
       current_datetime: new Date()
     )
 
-    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
+    expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
     one_degree_similar_people = @_knex(@last_events(namespace, person, options.history_search_size ).as('e'))
     .innerJoin("#{namespace}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
@@ -251,11 +251,12 @@ class PSQLEventStoreManager
     options = _.defaults(options,
       related_things_limit: 10
       time_until_expiry: 0
+      current_datetime: new Date()
     )
 
-    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
+    expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
-    bindings = {expires_after: expires_after}
+    bindings = {expires_after: expires_after, now: options.current_datetime}
 
     action_values = []
     for a, ai in actions
@@ -269,7 +270,7 @@ class PSQLEventStoreManager
       key = "person_#{i}"
       bindings[key] = p
       ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where action in (#{action_values}) and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{options.related_things_limit})"
+          where created_at <= :now and action in (#{action_values}) and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{options.related_things_limit})"
 
     query = ql.join( " UNION ")
 
@@ -327,10 +328,10 @@ class PSQLEventStoreManager
     s2q = @person_history(namespace, 't.cperson').toString()
 
     s1 = "select x.thing from (#{s1q}) as x where 
-          x.created_at > Date( :now ) - '#{days_ago} day'::INTERVAL 
+          x.created_at >= Date( :now ) - '#{days_ago} day'::INTERVAL 
           order by x.created_at DESC limit #{limit}"
     s2 = "select x.thing from (#{s2q}) as x where 
-          x.created_at > Date( :now ) - '#{days_ago} day'::INTERVAL 
+          x.created_at >= Date( :now ) - '#{days_ago} day'::INTERVAL 
           order by x.created_at DESC limit #{limit}"
 
     "#{@jaccard_query(s1, s2)} as recent_distance"
