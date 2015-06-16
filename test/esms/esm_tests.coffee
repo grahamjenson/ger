@@ -233,6 +233,27 @@ esm_tests = (ESM) ->
             similarities['p2']['a'].should.exist
           )
 
+      it 'more should be able to set the current_datetime', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: yesterday)
+
+            esm.add_event(ns,'p2','a','t1', created_at: yesterday)
+
+            esm.add_event(ns,'p3','a','t1')
+          ])
+          .then( -> 
+            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],['a'], current_datetime: yesterday)
+          ) 
+          .then( (similarities) ->
+            similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],['a'])
+          )
+          .then( (similarities) ->
+            similarities['p3']['a'].should.equal(similarities['p2']['a'])
+          )
+
       describe "recent events", ->
         it 'should have a higher impact on similarity', ->
           init_esm(ESM, ns)

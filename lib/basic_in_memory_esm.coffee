@@ -91,16 +91,16 @@ class BasicInMemoryESM
   _recent_jaccard_distance: (namespace, p1, p2, action, days, now) ->
     recent_date = moment(now).subtract(days, 'days').toDate()
 
-    p1_things = @_person_history_for_action(namespace, p1,action).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
-    p2_things = @_person_history_for_action(namespace, p2,action).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
+    p1_things = @_person_history_for_action(namespace, p1,action, now).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
+    p2_things = @_person_history_for_action(namespace, p2,action, now).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
 
     jaccard = (_.intersection(p1_things, p2_things).length)/(_.union(p1_things, p2_things).length)
     jaccard = 0 if isNaN(jaccard)
     return jaccard
 
-  _jaccard_distance: (namespace, p1, p2, action) ->
-    p1_things = @_person_history_for_action(namespace, p1,action).map((e) -> e.thing)
-    p2_things = @_person_history_for_action(namespace, p2,action).map((e) -> e.thing)
+  _jaccard_distance: (namespace, p1, p2, action, now) ->
+    p1_things = @_person_history_for_action(namespace, p1,action, now).map((e) -> e.thing)
+    p2_things = @_person_history_for_action(namespace, p2,action, now).map((e) -> e.thing)
     jaccard = (_.intersection(p1_things, p2_things).length)/(_.union(p1_things, p2_things).length)
     jaccard = 0 if isNaN(jaccard)
     return jaccard
@@ -111,14 +111,14 @@ class BasicInMemoryESM
     options = _.defaults(options,
       history_search_size: 500
       recent_event_days: 14
-      now: new Date()
+      current_datetime: new Date()
     )
 
     similarities = {}
     for p in people
       similarities[p] = {}
       for action in actions
-        jaccard = @_jaccard_distance(namespace, person, p, action)
+        jaccard = @_jaccard_distance(namespace, person, p, action, options.current_datetime)
         recent_jaccard = @_recent_jaccard_distance(namespace, person, p, action, options.recent_event_days, options.current_datetime)
         similarities[p][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
 

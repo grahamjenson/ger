@@ -149,9 +149,6 @@ class PSQLEventStoreManager
       {deleted: delete_count}
     )
 
-
-
-
   person_history_count: (namespace, person, options = {}) ->
     options = _.defaults(options,
       current_datetime: new Date()
@@ -303,6 +300,7 @@ class PSQLEventStoreManager
     .select('thing').max('created_at as created_at')
     .groupBy('thing')
     .orderByRaw("max(created_at) DESC")
+    .whereRaw('created_at <= :now')
     .whereRaw("action = t.caction")
     .whereRaw("person = #{person}")
 
@@ -317,6 +315,7 @@ class PSQLEventStoreManager
   jaccard_distance_for_limit: (namespace, person, limit) ->
     s1q = @person_history(namespace, person).toString()
     s2q = @person_history(namespace, 't.cperson').toString()
+
     s1 = "select x.thing from (#{s1q}) as x limit #{limit}"
     s2 = "select x.thing from (#{s2q}) as x limit #{limit}"
     
@@ -379,7 +378,7 @@ class PSQLEventStoreManager
     options = _.defaults(options,
       history_search_size: 500
       recent_event_days: 14
-      now: new Date()
+      current_datetime: new Date()
     )
 
 
@@ -573,9 +572,5 @@ class PSQLEventStoreManager
     query = "delete from #{namespace}.events where id not in (select id from #{namespace}.events order by created_at desc limit #{number_of_events})"
     @_knex.raw(query)
 
-#AMD
-if (typeof define != 'undefined' && define.amd)
-  define([], -> return PSQLEventStoreManager)
-#Node
-else if (typeof module != 'undefined' && module.exports)
-    module.exports = PSQLEventStoreManager;
+
+module.exports = PSQLEventStoreManager;
