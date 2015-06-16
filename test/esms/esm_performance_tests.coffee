@@ -2,18 +2,22 @@ actions = ["buy", "like", "view"]
 people = [1..1000]
 things = [1..100]
 
+random_created_at = ->
+  moment().subtract(_.random(0, 120), 'minutes')
+
 esm_tests = (ESM) ->
   describe 'performance tests', ->
     ns = 'default'
 
     naction = 50
-    nevents = 500
+    nevents = 2000
     nevents_diff = 25
-    nbevents = 5000
+    nbevents = 10000
     nfindpeople = 100
     ncalcpeople = 100
-    ncompact = 2
+    ncompact = 3
     nrecommendations = 20
+    nrecpeople = 100
 
     it "adding #{nevents} events takes so much time", ->
       self = @
@@ -30,7 +34,7 @@ esm_tests = (ESM) ->
         st = new Date().getTime()
         promises = []
         for x in [1..nevents]
-          promises.push ger.event(ns, sample(people), sample(actions) , sample(things), expires_at: tomorrow)
+          promises.push ger.event(ns, sample(people), sample(actions) , sample(things), created_at: random_created_at(), expires_at: tomorrow)
         bb.all(promises)
         .then(->
           et = new Date().getTime()
@@ -44,7 +48,7 @@ esm_tests = (ESM) ->
           for x in [1..nevents/nevents_diff]
             events = []
             for y in [1..nevents_diff]
-              events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things), expires_at: tomorrow}
+              events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things),created_at: random_created_at(), expires_at: tomorrow}
             promises.push ger.events(events)
           bb.all(promises)
           .then(->
@@ -59,7 +63,7 @@ esm_tests = (ESM) ->
 
           rs = new Readable();
           for x in [1..nbevents]
-            rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},2014-01-01,2050-01-01\n")
+            rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},#{random_created_at().format()},#{tomorrow.format()}\n")
           rs.push(null);
 
           ger.bootstrap(ns, rs)
@@ -104,8 +108,8 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..ncalcpeople]
-            peeps = _.unique((sample(people) for i in [0..10]))
-            promises.push ger.esm.calculate_similarities_from_person(ns, peeps[0], peeps[1..-1] , actions)
+            peeps = _.unique((sample(people) for i in [0..25]))
+            promises.push ger.esm.calculate_similarities_from_person(ns, sample(people), peeps , actions)
           bb.all(promises)
 
           .then(->
@@ -113,6 +117,22 @@ esm_tests = (ESM) ->
             time = et-st
             pe = time/ncalcpeople
             console.log "#{pe}ms per calculate_similarities_from_person"
+          )
+        )
+        .then( ->
+          st = new Date().getTime()
+
+          promises = []
+          for x in [1..nrecpeople]
+            peeps = _.unique((sample(people) for i in [0..25]))
+            promises.push ger.esm.recently_actioned_things_by_people(ns, actions, peeps)
+          bb.all(promises)
+
+          .then(->
+            et = new Date().getTime()
+            time = et-st
+            pe = time/ncalcpeople
+            console.log "#{pe}ms per recently_actioned_things_by_people"
           )
         )
         .then( ->

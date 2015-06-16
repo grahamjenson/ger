@@ -204,7 +204,7 @@ class PSQLEventStoreManager
     .select('x.person', 'x.created_at_day', 'x.count')
     .whereExists(filter_people)
     .orderByRaw("x.created_at_day DESC, x.count DESC")
-    .limit(options.history_search_size)
+    .limit(options.similar_people_limit)
     .then( (rows) ->
       (r.person for r in rows)
     )

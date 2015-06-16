@@ -111,6 +111,26 @@ esm_tests = (ESM) ->
             people.length.should.equal 1
           )
 
+      it 'should not return more people than limited', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p3','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p4','view','t1', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.find_similar_people(ns, 'p1', ['view','buy'], {similar_people_limit: 1})
+          )
+          .then( (people) ->
+            people.length.should.equal 1
+            esm.find_similar_people(ns, 'p1', ['view','buy'], {similar_people_limit: 2})
+          )
+          .then( (people) ->
+            people.length.should.equal 2
+          )
+
       it 'should not return the given person', ->
         @timeout(360000)
         init_esm(ESM, ns)
