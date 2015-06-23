@@ -550,49 +550,6 @@ esm_tests = (ESM) ->
               people_things['p2'].length.should.equal 0
             )
 
-    describe '#person_history_count', ->
-      it 'should return the number of things a person has actioned in their history', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','view','t1')
-            esm.add_event(ns,'p1','buy','t1')
-            esm.add_event(ns,'p1','view','t2')
-          ])
-          .then( ->
-            esm.person_history_count(ns, 'p1')
-          )
-          .then( (count) ->
-            count.should.equal 2
-            esm.person_history_count(ns, 'p2')
-          )
-          .then( (count) ->
-            count.should.equal 0
-          )
-
-      it 'should be able to select current_datetime', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days'))
-            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(6, 'days'))
-          ])
-          .then( ->
-            esm.person_history_count(ns, 'p1')
-          )
-          .then( (count) ->
-            count.should.equal 3
-            esm.person_history_count(ns, 'p1', current_datetime: moment().subtract(1, 'days'))
-          )
-          .then( (count) ->
-            count.should.equal 2
-            esm.person_history_count(ns, 'p1', current_datetime: moment().subtract(3, 'days'))
-          )
-          .then( (count) ->
-            count.should.equal 1
-          )
-
 
     describe '#filter_things_by_previous_actions', ->
       it 'should remove things that a person has previously actioned', ->
@@ -895,6 +852,22 @@ esm_tests = (ESM) ->
             events[2].thing.should.equal 't3'
           )
 
+      it "should return only the most recent unique events", ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: today),
+            esm.add_event(ns,'p1','a','t1', created_at: yesterday)
+          ])
+          .then( ->
+            esm.find_events(ns, 'p1')
+          )
+          .then( (events) ->
+            events.length.should.equal 1
+            moment(events[0].created_at).format().should.equal today.format()
+            events[0].thing.should.equal 't1'
+          )
+
       it "should limit the returned events to size", ->
         init_esm(ESM, ns)
         .then (esm) ->
@@ -948,6 +921,29 @@ esm_tests = (ESM) ->
             events1.length.should.equal 4
             events2.length.should.equal 3
             events3.length.should.equal 2
+          )
+
+      it 'should be able to select current_datetime', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: new Date()),
+            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days'))
+            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(6, 'days'))
+          ])
+          .then( ->
+            esm.find_events(ns, 'p1')
+          )
+          .then( (events) ->
+            events.length.should.equal 3
+            esm.find_events(ns, 'p1', null, null, current_datetime: moment().subtract(1, 'days'))
+          )
+          .then( (events) ->
+            events.length.should.equal 2
+            esm.find_events(ns, 'p1', null, null, current_datetime: moment().subtract(3, 'days'))
+          )
+          .then( (events) ->
+            events.length.should.equal 1
           )
 
     describe '#bootstrap', ->

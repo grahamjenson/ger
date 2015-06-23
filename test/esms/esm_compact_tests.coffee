@@ -63,8 +63,8 @@ esm_tests = (ESM) ->
         init_ger(ESM, ns)
         .then (ger) ->
           rs = new Readable();
-          rs.push('person,action,thing,2015-02-02,\n');
-          rs.push('person,action,thing,2020-02-02,\n');
+          rs.push('person,action,thing,2012-02-02,\n');
+          rs.push('person,action,thing,2013-02-02,\n');
           rs.push(null);
 
           ger.bootstrap(ns, rs)
@@ -79,7 +79,7 @@ esm_tests = (ESM) ->
             ger.find_events(ns, 'person', 'action', 'thing')
           )
           .then( (events) ->
-            events[0].created_at.getFullYear().should.equal 2020
+            events[0].created_at.getFullYear().should.equal 2013
           )
 
       it 'should have no duplicate expires_at events after and take the latest expiry', ->

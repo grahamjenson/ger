@@ -107,8 +107,6 @@ class PSQLEventStoreManager
 
   _event_selection: (namespace, person, action, thing) ->
     q = @_knex("#{namespace}.events")
-    .select("person", "action", "thing", "created_at", "expires_at")
-    .orderBy('created_at', 'desc')
 
     if person
       if _.isArray(person) and person.length > 0
@@ -131,13 +129,22 @@ class PSQLEventStoreManager
     return q
 
   find_events: (namespace, person, action, thing, options = {}) ->
-    options = _.defaults(options, {size: 50, page: 0})
-    size = options.size
-    page = options.page
-    
+
+    options = _.defaults(options,
+      size: 50
+      page: 0
+      current_datetime: new Date()
+    )
+
     @_event_selection(namespace, person, action, thing)
-    .limit(size)
-    .offset(size*page)
+    .select("person", "action", "thing")
+    .max('created_at as created_at')
+    .max('expires_at as expires_at')
+    .where('created_at', '<=', options.current_datetime)
+    .orderBy('created_at', 'desc')
+    .groupBy(['person', "action", "thing"])
+    .limit(options.size)
+    .offset(options.size*options.page)
     .then((rows)->
       rows
     )
@@ -147,20 +154,6 @@ class PSQLEventStoreManager
     .del()
     .then((delete_count)->
       {deleted: delete_count}
-    )
-
-  person_history_count: (namespace, person, options = {}) ->
-    options = _.defaults(options,
-      current_datetime: new Date()
-    )
-
-    @_knex("#{namespace}.events")
-    .groupBy('thing')
-    .where('created_at', '<=', options.current_datetime)
-    .where({person: person})
-    .count()
-    .then( (counts) ->
-      counts.length
     )
 
   last_events: (namespace, person, limit) ->

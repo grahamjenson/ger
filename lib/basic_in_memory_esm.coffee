@@ -156,20 +156,6 @@ class BasicInMemoryESM
 
     bb.try(-> things)
 
-  person_history_count: (namespace, person, options = {}) ->
-    options = _.defaults(options,
-      current_datetime: new Date()
-    )
-
-    things = []
-    for action, thing_events of person_action_store[namespace][person]
-      for thing, thing_event of thing_events
-        continue if moment(options.current_datetime).isBefore(thing_event.created_at)
-        things.push thing
-
-    return bb.try(-> _.uniq(things).length)
-
-
   _filter_things_by_previous_action: (namespace, person, things, action) ->
     things.filter((t) => !person_action_store[namespace][person] or !person_action_store[namespace][person][action] or !person_action_store[namespace][person][action][t])
 
@@ -223,11 +209,16 @@ class BasicInMemoryESM
     return null if not person_action_store[namespace][person][action][thing]
     return person_action_store[namespace][person][action][thing]
 
-  _find_events: (namespace, person, action, thing) ->
+  _find_events: (namespace, person, action, thing, options = {}) ->
+    options = _.defaults(options,
+      current_datetime: new Date()
+    )
     #returns all events fitting the above description
     events = []
     for e in event_store[namespace]
       add = true
+      if moment(e.created_at).isAfter(options.current_datetime)
+        add = false
 
       if person
         if _.isArray(person)
@@ -253,12 +244,14 @@ class BasicInMemoryESM
     return events
 
   find_events: (namespace, person, action, thing, options = {}) ->
-    options = _.defaults(options, {size: 50, page: 0})
-    size = options.size
-    page = options.page
+    options = _.defaults(options,
+      size: 50
+      page: 0
+      current_datetime: new Date()
+    )
 
-    events = @_find_events(namespace, person, action, thing)
-    events = events[size*page ... size*(page+1)]
+    events = @_find_events(namespace, person, action, thing, options)
+    events = events[options.size*options.page ... options.size*(options.page+1)]
     return bb.try(=> events)
 
 

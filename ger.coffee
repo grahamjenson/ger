@@ -244,14 +244,14 @@ class GER
     configuration = @default_configuration(configuration)
 
     #first a check or two
-    @esm.person_history_count(namespace, person, _.clone(configuration))
-    .then( (count) =>
-      if count < configuration.minimum_history_required
+    @esm.find_events(namespace, person, null, null, {current_datetime: configuration.current_datetime, size: 100})
+    .then( (events) =>
+      if events.length < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}
       else
         actions = @normalize_actions(configuration.actions)
          
-        return @generate_recommendations_for_person(namespace, person, actions, count, configuration)
+        return @generate_recommendations_for_person(namespace, person, actions, events.length, configuration)
     )
 
   ##Wrappers of the ESM
