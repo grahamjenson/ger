@@ -233,24 +233,24 @@ class GER
 
   recommendations_for_thing: (namespace, thing, configuration = {}) ->
     configuration = @default_configuration(configuration)
+    actions = @normalize_actions(configuration.actions) 
 
     #first a check or two
     #TODO minimum thing history count
-    actions = @normalize_actions(configuration.actions)    
+       
     return @generate_recommendations_for_thing(namespace, thing, actions, 0, configuration)
 
 
   recommendations_for_person: (namespace, person, configuration = {}) ->
     configuration = @default_configuration(configuration)
+    actions = @normalize_actions(configuration.actions)
 
     #first a check or two
-    @esm.find_events(namespace, person, null, null, {current_datetime: configuration.current_datetime, size: 100})
+    @find_events(namespace, person: person, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
       if events.length < configuration.minimum_history_required
         return {recommendations: [], confidence: 0}
       else
-        actions = @normalize_actions(configuration.actions)
-         
         return @generate_recommendations_for_person(namespace, person, actions, events.length, configuration)
     )
 
@@ -270,8 +270,8 @@ class GER
     @esm.add_event(namespace, person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
 
-  find_events: (namespace, person, action, thing, options) ->
-    @esm.find_events(namespace, person, action, thing, options)
+  find_events: (namespace, options = {}) ->
+    @esm.find_events(namespace, options)
 
   delete_events: (namespace, person, action, thing) ->
     @esm.delete_events(namespace, person, action, thing)

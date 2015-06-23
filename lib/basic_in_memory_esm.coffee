@@ -243,14 +243,14 @@ class BasicInMemoryESM
 
     return events
 
-  find_events: (namespace, person, action, thing, options = {}) ->
+  find_events: (namespace, options = {}) ->
     options = _.defaults(options,
       size: 50
       page: 0
       current_datetime: new Date()
     )
 
-    events = @_find_events(namespace, person, action, thing, options)
+    events = @_find_events(namespace, options.person || options.people, options.action || options.actions, options.thing || options.things, options)
     events = events[options.size*options.page ... options.size*(options.page+1)]
     return bb.try(=> events)
 
@@ -280,8 +280,8 @@ class BasicInMemoryESM
       delete person_action_store[namespace][e.person][e.action][e.thing]
       delete thing_action_store[namespace][e.thing][e.action][e.person]
 
-  delete_events: (namespace, person, action, thing) ->
-    events = @_find_events(namespace, person, action, thing) 
+  delete_events: (namespace, options = {}) ->
+    events = @_find_events(namespace, options.person, options.action, options.thing) 
     @_delete_events(namespace, events)
     bb.try(=> {deleted: events.length})
 

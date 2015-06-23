@@ -606,7 +606,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 1
-            esm.find_events(ns, 'p','a', 't')
+            esm.find_events(ns, person: 'p', action: 'a', thing: 't')
           )
           .then( (events) ->
             event = events[0]
@@ -627,7 +627,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 3
-            esm.find_events(ns, 'p1','a', 't3')
+            esm.find_events(ns, person: 'p1', action: 'a', thing: 't3')
           )
           .then( (events) ->
             event = events[0]
@@ -646,7 +646,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 1
-            esm.find_events(ns, 'p','a', 't')
+            esm.find_events(ns, person: 'p', action: 'a', thing: 't')
           )
           .then( (events) ->
             event = events[0]
@@ -702,7 +702,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','like','t1')
           ])
           .then( ->
-            esm.delete_events(ns, 'p1','view','t1')
+            esm.delete_events(ns, person: 'p1', action: 'view', thing: 't1')
           )
           .then( (ret) ->
             ret.deleted.should.equal 1
@@ -738,7 +738,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','like','t1')
           ])
           .then( ->
-            esm.delete_events(ns, null, 'view')
+            esm.delete_events(ns, action: 'view')
           )
           .then( (ret) ->
             ret.deleted.should.equal 2
@@ -771,7 +771,7 @@ esm_tests = (ESM) ->
         .then (esm) ->
           esm.add_event(ns,'p','a','t')
           .then( ->
-            esm.find_events(ns, 'p','a','t')
+            esm.find_events(ns, person: 'p', action: 'a', thing: 't')
           )
           .then( (events) ->
             event = events[0]
@@ -783,7 +783,7 @@ esm_tests = (ESM) ->
       it "should return null if no event matches", ->
         init_esm(ESM, ns)
         .then (esm) ->
-          esm.find_events(ns, 'p','a','t')
+          esm.find_events(ns, person: 'p', action: 'a', thing: 't')
           .then( (events) ->
             events.length.should.equal 0
           )
@@ -794,9 +794,9 @@ esm_tests = (ESM) ->
           esm.add_event(ns,'p','a','t')
           .then( ->
             bb.all([
-              esm.find_events(ns, 'p')
-              esm.find_events(ns, null, 'a')
-              esm.find_events(ns, null, undefined, 't')
+              esm.find_events(ns, person: 'p')
+              esm.find_events(ns, action: 'a')
+              esm.find_events(ns, thing: 't')
             ])
           )
           .spread( (events1, events2, events3) ->
@@ -819,11 +819,11 @@ esm_tests = (ESM) ->
           ])
           .then( ->
             bb.all([
-              esm.find_events(ns, 'p1')
-              esm.find_events(ns, 'p1', 'view')
-              esm.find_events(ns, 'p1', 'view', 't1')
-              esm.find_events(ns, null, 'view', null)
-              esm.find_events(ns, 'p1', null, 't1')
+              esm.find_events(ns, person: 'p1')
+              esm.find_events(ns, person:'p1', action: 'view')
+              esm.find_events(ns, person:'p1', action: 'view', thing: 't1')
+              esm.find_events(ns, action: 'view')
+              esm.find_events(ns, person: 'p1', thing:'t1')
             ])
           )
           .spread( (events1, events2, events3, events4, events5) ->
@@ -843,7 +843,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days'))
           ])
           .then( ->
-            esm.find_events(ns, 'p1')
+            esm.find_events(ns, person: 'p1')
           )
           .then( (events) ->
             events.length.should.equal 3
@@ -860,7 +860,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1', created_at: yesterday)
           ])
           .then( ->
-            esm.find_events(ns, 'p1')
+            esm.find_events(ns, person: 'p1')
           )
           .then( (events) ->
             events.length.should.equal 1
@@ -877,7 +877,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days'))
           ])
           .then( ->
-            esm.find_events(ns, 'p1', null, null, {size: 2})
+            esm.find_events(ns, person: 'p1', size: 2)
           )
           .then( (events) ->
             events.length.should.equal 2
@@ -894,7 +894,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns, 'p1','a','t3', created_at: moment().subtract(10, 'days'))
           ])
           .then( ->
-            esm.find_events(ns, 'p1', null, null, {size: 2, page: 1})
+            esm.find_events(ns, person: 'p1', size: 2, page: 1)
           )
           .then( (events) ->
             events.length.should.equal 1
@@ -912,9 +912,9 @@ esm_tests = (ESM) ->
           ])
           .then( ->
             bb.all([
-              esm.find_events(ns, ['p1', 'p2'])
-              esm.find_events(ns, 'p1', ['view', 'like'])
-              esm.find_events(ns, 'p1', 'view', ['t1','t2'])
+              esm.find_events(ns, people: ['p1', 'p2'])
+              esm.find_events(ns, person: 'p1', actions: ['view', 'like'])
+              esm.find_events(ns, person: 'p1', action: 'view', things: ['t1','t2'])
             ])
           )
           .spread( (events1, events2, events3) ->
@@ -932,15 +932,15 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(6, 'days'))
           ])
           .then( ->
-            esm.find_events(ns, 'p1')
+            esm.find_events(ns, person: 'p1')
           )
           .then( (events) ->
             events.length.should.equal 3
-            esm.find_events(ns, 'p1', null, null, current_datetime: moment().subtract(1, 'days'))
+            esm.find_events(ns, person: 'p1', current_datetime: moment().subtract(1, 'days'))
           )
           .then( (events) ->
             events.length.should.equal 2
-            esm.find_events(ns, 'p1', null, null, current_datetime: moment().subtract(3, 'days'))
+            esm.find_events(ns, person: 'p1', current_datetime: moment().subtract(3, 'days'))
           )
           .then( (events) ->
             events.length.should.equal 1
@@ -980,7 +980,7 @@ esm_tests = (ESM) ->
           .then( -> esm.count_events(ns))
           .then( (count) ->
             count.should.equal 1
-            esm.find_events(ns, 'person','action','thing')
+            esm.find_events(ns, person: 'person', action: 'action', thing: 'thing')
           )
           .then( (events) ->
             event = events[0]

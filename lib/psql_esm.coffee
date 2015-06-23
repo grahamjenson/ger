@@ -102,33 +102,7 @@ class PSQLEventStoreManager
         throw new Errors.NamespaceDoestNotExist()
     )
 
-
-
-
-  _event_selection: (namespace, person, action, thing) ->
-    q = @_knex("#{namespace}.events")
-
-    if person
-      if _.isArray(person) and person.length > 0
-        q = q.whereIn('person', person)
-      else
-        q = q.where(person: person)
-
-    if action
-      if _.isArray(action) and action.length > 0
-        q = q.whereIn('action', action)
-      else
-        q = q.where(action: action)
-
-    if thing
-      if _.isArray(thing) and thing.length > 0
-        q = q.whereIn('thing', thing)
-      else
-        q = q.where(thing: thing)
-
-    return q
-
-  find_events: (namespace, person, action, thing, options = {}) ->
+  find_events: (namespace, options = {}) ->
 
     options = _.defaults(options,
       size: 50
@@ -136,7 +110,7 @@ class PSQLEventStoreManager
       current_datetime: new Date()
     )
 
-    @_event_selection(namespace, person, action, thing)
+    q = @_knex("#{namespace}.events")
     .select("person", "action", "thing")
     .max('created_at as created_at')
     .max('expires_at as expires_at')
@@ -145,13 +119,33 @@ class PSQLEventStoreManager
     .groupBy(['person', "action", "thing"])
     .limit(options.size)
     .offset(options.size*options.page)
-    .then((rows)->
+
+    q = q.where(person: options.person) if options.person
+    q = q.whereIn('person', options.people) if options.people
+
+    q = q.where(action: options.action) if options.action
+    q = q.whereIn('action', options.actions) if options.actions
+
+    q = q.where(thing: options.thing) if options.thing
+    q = q.whereIn('thing', options.things) if options.things
+
+    q.then((rows)->
       rows
     )
 
-  delete_events: (namespace, person, action, thing) ->
-    @_event_selection(namespace, person, action, thing)
-    .del()
+  delete_events: (namespace, options = {}) ->
+    q = @_knex("#{namespace}.events")
+    
+    q = q.where(person: options.person) if options.person
+    q = q.whereIn('person', options.people) if options.people
+
+    q = q.where(action: options.action) if options.action
+    q = q.whereIn('action', options.actions) if options.actions
+
+    q = q.where(thing: options.thing) if options.thing
+    q = q.whereIn('thing', options.things) if options.things
+
+    q.del()
     .then((delete_count)->
       {deleted: delete_count}
     )

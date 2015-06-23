@@ -51,7 +51,7 @@ esm_tests = (ESM) ->
             esm.post_compact(ns)
           )
           .then( ->
-            bb.all([esm.count_events(ns), esm.find_events(ns, 'p1','view','t1'), esm.find_events(ns, 'p1','buy','t1')])
+            bb.all([esm.count_events(ns), esm.find_events(ns, person: 'p1', action: 'view', thing: 't1'), esm.find_events(ns, person: 'p1', action: 'buy', thing: 't1')])
           )
           .spread( (count, es1, es2) ->
             count.should.equal 2
@@ -76,7 +76,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 1
-            ger.find_events(ns, 'person', 'action', 'thing')
+            ger.find_events(ns, person: 'person', action: 'action', thing: 'thing')
           )
           .then( (events) ->
             events[0].created_at.getFullYear().should.equal 2013
@@ -99,7 +99,7 @@ esm_tests = (ESM) ->
           )
           .then( (count) ->
             count.should.equal 1
-            ger.find_events(ns, 'person', 'action', 'thing')
+            ger.find_events(ns, person: 'person', action: 'action', thing: 'thing')
           )
           .then( (events) ->
             events[0].expires_at.getFullYear().should.equal 2105
