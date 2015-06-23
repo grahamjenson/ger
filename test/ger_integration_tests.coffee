@@ -258,7 +258,7 @@ describe 'recommendations_for_person', ->
         Object.keys(recommendations.similar_people).length.should.equal 1
       )
 
-describe 'find_similar_people', ->
+describe 'person_neighbourhood', ->
   it 'should return a list of similar people', ->
     init_ger()
     .then (ger) ->
@@ -272,7 +272,7 @@ describe 'find_similar_people', ->
 
         ger.event(ns,'p4','action1','d', expires_at: tomorrow)
       ])
-      .then(-> ger.find_similar_people(ns, 'p1', {'action1': 1}))
+      .then(-> ger.person_neighbourhood(ns, 'p1', {'action1': 1}))
       .then((similar_people) ->
         similar_people.should.include 'p2'
         similar_people.should.include 'p3'
@@ -292,7 +292,7 @@ describe 'find_similar_people', ->
 
         ger.event(ns,'p4','action1','d', expires_at: tomorrow)
       ])
-      .then(-> ger.find_similar_people(ns, 'p1', {'action1': 1}))
+      .then(-> ger.person_neighbourhood(ns, 'p1', {'action1': 1}))
       .then((similar_people) ->
         similar_people.length.should.equal 2
       )

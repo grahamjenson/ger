@@ -31,7 +31,7 @@ describe '#get_jaccard_distances_between_people', ->
 describe "#bootstrap", ->
   it 'should not exhaust the pg connections'
 
-describe "find_similar_people", ->
+describe "person_neighbourhood", ->
   it 'should order by persons activity DATE (NOT DATETIME) then by COUNT', ->
     init_esm(PsqlESM)
     .then (esm) ->
@@ -58,7 +58,7 @@ describe "find_similar_people", ->
         esm.add_event(ns, 'p3','buy','t2', expires_at: tomorrow)
       ])
       .then( ->
-        esm.find_similar_people(ns, 'p1', ['view', 'buy'])
+        esm.person_neighbourhood(ns, 'p1', ['view', 'buy'])
       )
       .then( (people) ->
         people[0].should.equal 'p4'

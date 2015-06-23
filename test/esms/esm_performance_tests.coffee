@@ -13,11 +13,11 @@ esm_tests = (ESM) ->
     nevents = 2000
     nevents_diff = 25
     nbevents = 10000
-    nfindpeople = 100
-    ncalcpeople = 100
-    ncompact = 3
-    nrecommendations = 20
-    nrecpeople = 100
+    nfindpeople = 25
+    ncalcpeople = 25
+    ncompact = 2
+    nrecommendations = 25
+    nrecpeople = 25
 
     it "adding #{nevents} events takes so much time", ->
       self = @
@@ -93,14 +93,14 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..nfindpeople]
-            promises.push ger.esm.find_similar_people(ns, sample(people), actions)
+            promises.push ger.esm.person_neighbourhood(ns, sample(people), actions)
           bb.all(promises)
 
           .then(->
             et = new Date().getTime()
             time = et-st
             pe = time/nfindpeople
-            console.log "#{pe}ms per find_similar_people"
+            console.log "#{pe}ms per person_neighbourhood"
           )
         )
         .then( ->

@@ -191,7 +191,7 @@ class EventStoreMapper
     .default([]).distinct().count().run({useOutdated: true})
 
 
-  find_similar_people: (namespace, person, actions, action, limit = 100, search_limit = 500) ->
+  person_neighbourhood: (namespace, person, actions, action, limit = 100, search_limit = 500) ->
     return bb.try(-> []) if !actions or actions.length == 0
     r = @_r
     person_actions = ([person, a] for a in actions)

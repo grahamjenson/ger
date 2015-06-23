@@ -75,9 +75,12 @@ class GER
 
     tc
 
-  find_similar_people: (namespace, person, actions, configuration) ->
-    @esm.find_similar_people(namespace, person, Object.keys(actions), _.clone(configuration))
-      
+  person_neighbourhood: (namespace, person, actions, configuration) ->
+    @esm.person_neighbourhood(namespace, person, Object.keys(actions), _.clone(configuration))
+
+  thing_neighbourhood: (namespace, thing, actions, configuration) ->
+    @esm.thing_neighbourhood(namespace, person, Object.keys(actions), _.clone(configuration))
+
   recently_actioned_things_by_people: (namespace, actions, people, configuration) ->
     @esm.recently_actioned_things_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
 
@@ -106,7 +109,7 @@ class GER
 
   generate_recommendations_for_person: (namespace, person, actions, person_history_count, configuration) ->
 
-    @find_similar_people(namespace, person, actions, configuration)
+    @person_neighbourhood(namespace, person, actions, configuration)
     .then( (people) =>
       bb.all([
         @calculate_similarities_from_person(namespace, person, people, actions, _.clone(configuration))
@@ -146,56 +149,21 @@ class GER
     )
 
   generate_recommendations_for_thing: (namespace, thing,  actions, thing_history_count, configuration) ->
-    #find people that have actioned things
-    promises = []
-    for a,w of actions
-      promises.push(bb.all([a, @esm.find_events(namespace, null, Object.keys(actions), thing, size: 100)]))
+    #"People who Actioned this Thing also Actioned"
 
-    bb.all(promises)
-    .then( (action_things) =>
-      similar_people = {people_weights: {}, n_people: 0}
-      people = []
-      for action_thing in action_things
-        a = action_thing[0]
-        for e in action_thing[1]
-
-          p = e.person
-          if not similar_people.people_weights[p]
-            similar_people.people_weights[p] = 0 
-            similar_people.n_people += 1
-            people.push p
-
-          similar_people.people_weights[p] += actions[a]
-
-
-      bb.all([similar_people, @recently_actioned_things_by_people(namespace, actions, people, configuration)])
+    @thing_neighbourhood(namespace, thing, actions, configuration)
+    .then( (things) =>
+      #@calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
+      things
     )
-    .spread( ( similar_people, people_things ) =>
-      people_weights = similar_people.people_weights
-      recommendations = @calculate_recommendations_weights(people_weights, people_things)
-      delete recommendations[thing] #removing the original object
-      recommendations = _.values(recommendations)
-
-      sorted_things = recommendations
-
+    .then( ( things ) =>
       recommendations_object = {}
+      recommendations_object.recommendations = {}
+      for t in things
 
-      # {thing: weight} needs to be [{thing: thing, weight: weight}] sorted
-      sorted_things = sorted_things.sort((x, y) -> y.weight - x.weight)
-      recommendations_object.recommendations = sorted_things[0...configuration.recommendations_limit]
-      
+        recommendations_object.recommendations.push {thing: t}
 
-      people_confidence = @people_confidence(similar_people.n_people)
-      history_confidence = @history_confidence(thing_history_count)
-      things_confidence = @things_confidence(sorted_things)
-
-      recommendations_object.confidence = people_confidence * history_confidence * things_confidence
-
-
-      recommendations_object.similar_people = {}
-      for rec in recommendations_object.recommendations
-        for p in rec.people
-          recommendations_object.similar_people[p] = similar_people.people_weights[p]
+      recommendations_object.confidence = 0
 
       recommendations_object
       
@@ -208,7 +176,7 @@ class GER
     _.defaults(configuration,
       minimum_history_required: 1,
       history_search_size: 500
-      similar_people_limit: 25,
+      neighbourhood_size: 25,
       related_things_limit: 10
       recommendations_limit: 20,
       recent_event_days: 14,
@@ -248,10 +216,9 @@ class GER
     #first a check or two
     @find_events(namespace, person: person, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
-      if events.length < configuration.minimum_history_required
-        return {recommendations: [], confidence: 0}
-      else
-        return @generate_recommendations_for_person(namespace, person, actions, events.length, configuration)
+      return {recommendations: [], confidence: 0} if events.length < configuration.minimum_history_required
+
+      return @generate_recommendations_for_person(namespace, person, actions, events.length, configuration)
     )
 
   ##Wrappers of the ESM

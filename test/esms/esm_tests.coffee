@@ -76,7 +76,23 @@ esm_tests = (ESM) ->
 
   describe 'recommendation methods', ->
 
-    describe '#find_similar_people' , ->
+    describe '#thing_neighbourhood', ->
+      it 'should return a list of similar things', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p1','view','t2', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.thing_neighbourhood(ns, 't1', ['view'])
+          )
+          .then( (things) ->
+            things.length.should.equal 1
+            things[0].should.equal 't2'
+          )
+
+    describe '#person_neighbourhood' , ->
       it 'should return a list of similar people', ->
         init_esm(ESM, ns)
         .then (esm) ->
@@ -87,7 +103,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','buy','t1', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['view', 'buy'])
+            esm.person_neighbourhood(ns, 'p1', ['view', 'buy'])
           )
           .then( (people) ->
             people.length.should.equal 1
@@ -105,7 +121,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p5','likes','t2', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['view','buy'])
+            esm.person_neighbourhood(ns, 'p1', ['view','buy'])
           )
           .then( (people) ->
             people.length.should.equal 1
@@ -121,11 +137,11 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p4','view','t1', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['view','buy'], {similar_people_limit: 1})
+            esm.person_neighbourhood(ns, 'p1', ['view','buy'], {neighbourhood_size: 1})
           )
           .then( (people) ->
             people.length.should.equal 1
-            esm.find_similar_people(ns, 'p1', ['view','buy'], {similar_people_limit: 2})
+            esm.person_neighbourhood(ns, 'p1', ['view','buy'], {neighbourhood_size: 2})
           )
           .then( (people) ->
             people.length.should.equal 2
@@ -139,7 +155,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['view'])
+            esm.person_neighbourhood(ns, 'p1', ['view'])
           )
           .then( (people) ->
             people.length.should.equal 0
@@ -154,7 +170,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p2','buy','t1', expires_at: tomorrow)
           ])
           .then( ->
-            esm.find_similar_people(ns, 'p1', ['buy'])
+            esm.person_neighbourhood(ns, 'p1', ['buy'])
           )
           .then( (people) ->
             people.length.should.equal 0
@@ -176,7 +192,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns, 'p3','buy','m', created_at: moment().subtract(2, 'hours'), expires_at: tomorrow),
             esm.add_event(ns, 'p3','buy','n', created_at: moment().subtract(1, 'hours'), expires_at: tomorrow)
           ])
-          .then(-> esm.find_similar_people(ns, 'p1', ['buy', 'view']))
+          .then(-> esm.person_neighbourhood(ns, 'p1', ['buy', 'view']))
           .then((people) ->
             people.length.should.equal 2
           )
@@ -193,11 +209,11 @@ esm_tests = (ESM) ->
             esm.add_event(ns, 'p3','view','b', created_at: moment().subtract(3, 'days'), expires_at: tomorrow)
           ])
           .then(-> 
-            esm.find_similar_people(ns, 'p1', ['view'])
+            esm.person_neighbourhood(ns, 'p1', ['view'])
           )
           .then((people) ->
             people.length.should.equal 2
-            esm.find_similar_people(ns, 'p1', ['view'], current_datetime: moment().subtract(2, 'days'))
+            esm.person_neighbourhood(ns, 'p1', ['view'], current_datetime: moment().subtract(2, 'days'))
           )
           .then((people) ->
             people.length.should.equal 1
@@ -941,6 +957,29 @@ esm_tests = (ESM) ->
           .then( (events) ->
             events.length.should.equal 2
             esm.find_events(ns, person: 'p1', current_datetime: moment().subtract(3, 'days'))
+          )
+          .then( (events) ->
+            events.length.should.equal 1
+          )
+
+      it 'should be able to select time_until_expiry', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', expires_at: today),
+            esm.add_event(ns,'p1','a','t2', expires_at: moment(today).add(10, 'minutes'))
+            esm.add_event(ns,'p1','a','t3', expires_at: moment(today).add(100, 'minutes'))
+          ])
+          .then( ->
+            esm.find_events(ns, person: 'p1')
+          )
+          .then( (events) ->
+            events.length.should.equal 3
+            esm.find_events(ns, person: 'p1', time_until_expiry: 60)
+          )
+          .then( (events) ->
+            events.length.should.equal 2
+            esm.find_events(ns, person: 'p1', time_until_expiry: 630)
           )
           .then( (events) ->
             events.length.should.equal 1

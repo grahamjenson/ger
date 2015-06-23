@@ -110,6 +110,8 @@ class PSQLEventStoreManager
       current_datetime: new Date()
     )
 
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format() if options.time_until_expiry
+
     q = @_knex("#{namespace}.events")
     .select("person", "action", "thing")
     .max('created_at as created_at')
@@ -119,6 +121,8 @@ class PSQLEventStoreManager
     .groupBy(['person', "action", "thing"])
     .limit(options.size)
     .offset(options.size*options.page)
+
+    q.where('expires_at', '>', options.expires_after) if options.expires_after
 
     q = q.where(person: options.person) if options.person
     q = q.whereIn('person', options.people) if options.people
@@ -135,7 +139,7 @@ class PSQLEventStoreManager
 
   delete_events: (namespace, options = {}) ->
     q = @_knex("#{namespace}.events")
-    
+
     q = q.where(person: options.person) if options.person
     q = q.whereIn('person', options.people) if options.people
 
@@ -150,51 +154,74 @@ class PSQLEventStoreManager
       {deleted: delete_count}
     )
 
-  last_events: (namespace, person, limit) ->
-    @_knex("#{namespace}.events")
-    .select("person", "action", "thing", "created_at")
-    .where(person: person)
-    .orderByRaw('created_at DESC')
-    .limit(limit)
+  ###########################
+  ####  NEIGHBOURHOOD  ######
+  ###########################
 
-  find_similar_people: (namespace, person, actions, options = {}) ->
+  thing_neighbourhood: (namespace, thing, actions, options = {}) ->
+    @_neighbourhood(namespace, "thing", "person", thing, actions, options)
+
+  person_neighbourhood: (namespace, person, actions, options = {}) ->
+    @_neighbourhood(namespace, "person", "thing", person, actions, options)
+
+  _neighbourhood: (namespace, column1, column2, value, actions, options) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
     options = _.defaults(options,
-      similar_people_limit: 100
+      neighbourhood_size: 100
       history_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
     )
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
-    expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
+    one_degree_away = @_one_degree_away(namespace, column1, column2, value, actions, options)
+    unexpired_events = @_unexpired_events(namespace, column1, column2, value, actions, options)
 
-    one_degree_similar_people = @_knex(@last_events(namespace, person, options.history_search_size ).as('e'))
-    .innerJoin("#{namespace}.events as f", -> @on('e.thing', 'f.thing').on('e.action','f.action').on('f.person','!=', 'e.person'))
-    .where('e.person', person)
+    @_knex(one_degree_away.as('x'))
+    .select("x.#{column1}", 'x.created_at_day', 'x.count')
+    .whereExists(unexpired_events)
+    .orderByRaw("x.created_at_day DESC, x.count DESC")
+    .limit(options.neighbourhood_size)
+    .then( (rows) ->
+      (r[column1] for r in rows)
+    )
+
+  _unexpired_events: (namespace, column1, column2, value, actions, options) ->
+    @_knex("#{namespace}.events")
+    .select(column1)
+    .whereRaw('expires_at IS NOT NULL')
+    .where('expires_at', '>', options.expires_after)
+    .where('created_at', '<=', options.current_datetime)
+    .whereIn('action', actions)
+    .whereRaw("#{column1} = x.#{column1}")
+
+
+  _one_degree_away: (namespace, column1, column2, value, actions, options) ->
+    query_hash = {}
+    query_hash[column1] = value #e.g. {person: person}
+
+    recent_events = @_knex("#{namespace}.events")
+    .select("person", "action", "thing", "created_at")
+    .where(query_hash)
+    .whereIn('action', actions)
+    .orderByRaw('created_at DESC')
+    .limit(options.history_search_size)
+
+    @_knex(recent_events.as('e'))
+    .innerJoin("#{namespace}.events as f", -> @on("e.#{column2}", "f.#{column2}").on('e.action','f.action').on("f.#{column1}",'!=', "e.#{column1}"))
+    .where("e.#{column1}", value)
     .whereIn('f.action', actions)
     .where('f.created_at', '<=', options.current_datetime)
     .where('e.created_at', '<=', options.current_datetime)
-    .select(@_knex.raw("f.person, date_trunc('day', max(e.created_at)) as created_at_day, count(f.person) as count"))
-    .groupBy('f.person')
-    .orderByRaw("created_at_day DESC, count(f.person) DESC")
+    .select(@_knex.raw("f.#{column1}, date_trunc('day', max(e.created_at)) as created_at_day, count(f.#{column1}) as count"))
+    .groupBy("f.#{column1}")
+    .orderByRaw("created_at_day DESC, count(f.#{column1}) DESC")
 
-    filter_people = @_knex("#{namespace}.events")
-    .select("person")
-    .whereRaw('expires_at IS NOT NULL')
-    .where('expires_at', '>', expires_after)
-    .where('created_at', '<=', options.current_datetime)
-    .whereIn('action', actions)
-    .whereRaw("person = x.person")
+  ##################################
+  ####  END OF NEIGHBOURHOOD  ######
+  ##################################
 
-    @_knex(one_degree_similar_people.as('x'))
-    .select('x.person', 'x.created_at_day', 'x.count')
-    .whereExists(filter_people)
-    .orderByRaw("x.created_at_day DESC, x.count DESC")
-    .limit(options.similar_people_limit)
-    .then( (rows) ->
-      (r.person for r in rows)
-    )
 
   filter_things_by_previous_actions: (namespace, person, things, actions) ->
     return bb.try(-> things) if !actions or actions.length == 0 or things.length == 0
@@ -368,7 +395,6 @@ class PSQLEventStoreManager
       recent_event_days: 14
       current_datetime: new Date()
     )
-
 
     #TODO fix this, it double counts newer things [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
     @get_jaccard_distances_between_people(namespace, person, people, actions, options.history_search_size, options.recent_event_days, options.current_datetime)

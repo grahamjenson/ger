@@ -31,62 +31,79 @@ class BasicInMemoryESM
     bb.try(=> !!event_store[namespace])
 
 
-  _person_history_for_action: (namespace, person, action, now = new Date()) ->
-    now = moment(now).toDate()
+  ###########################
+  ####  NEIGHBOURHOOD  ######
+  ###########################
 
-    return [] if person_action_store[namespace][person] == undefined or person_action_store[namespace][person][action] == undefined
-    events = (event for thing, event of person_action_store[namespace][person][action] when event.created_at.getTime() <= now.getTime())  
-    return _.sortBy(events, (x) -> - x.created_at.getTime())
+  thing_neighbourhood: (namespace, thing, actions, options = {}) ->
+    @_neighbourhood(namespace, "thing", "person", thing, actions, options)
+
+  person_neighbourhood: (namespace, person, actions, options = {}) ->
+    @_neighbourhood(namespace, "person", "thing", person, actions, options)
+
+
+  
+  _person_history_for_action: (namespace, person, action, now = new Date()) ->
+    @_find_events(namespace, person: person, action: action, current_datetime: now)
+
+  _thing_history_for_action: (namespace, thing, action) ->
+    @find_events(namespace, thing: thing, action: action)
 
   _person_history_for_action_after_expiry: (namespace, person, action, expires_after, now) ->
     (e for e in @_person_history_for_action(namespace, person, action, now) when moment(e.expires_at).isAfter(expires_after) )
       
-  _thing_history_for_action: (namespace, thing, action) ->
-    return [] if thing_action_store[namespace][thing] == undefined or thing_action_store[namespace][thing][action] == undefined
-    events = (event for person, event of thing_action_store[namespace][thing][action])  
-    return _.sortBy(events, (x) -> - x.created_at.getTime())
-
-  _find_similar_people_for_action: (namespace, person, action_to_search, person_history_limit, expires_after, now) ->
-    #find things the person has actioned
-    person_history = @_person_history_for_action(namespace, person, action_to_search, now)
-    things = (e.thing for e in person_history)
-    #find people who have also actioned that thing
-    people = []
-    for t in things
-      thing_history = @_thing_history_for_action(namespace, t, action_to_search)
-      people = people.concat (e.person for e in thing_history)
-
-    people = _.uniq(people)
-    people
-
-  find_similar_people: (namespace, person, actions, options = {}) ->
+  _neighbourhood: (namespace, column1, column2, value, actions, options) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
     options = _.defaults(options,
-      similar_people_limit: 100
+      neighbourhood_size: 100
       history_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
+      actions: actions
     )
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
-    expires_after = moment().add(options.time_until_expiry, 'seconds').format()
+    one_degree_away = @_one_degree_away(namespace, column1, column2, value, _.clone(options))
 
-    people = []
-    for action_to_search in actions
-      people = people.concat @_find_similar_people_for_action(namespace, person, action_to_search, options.history_search_size, options.expires_after, options.current_datetime)
-    people = people.filter((p) -> p != person)
-    
-    #filter people who have not got an event with current expiry date
-    people_to_return = []
-    for p in people
-      for action_to_search in actions
-        list = @_person_history_for_action_after_expiry(namespace, p, action_to_search, options.expires_after, options.current_datetime)
+    query_hash = _.clone(options)
+    plural = ""
+    if column1 == "person"      
+      plural = "people"
+    else
+      plural = "things"
+    query_hash[plural] = one_degree_away
+    unexpired_events = (x[column1] for x in @_find_events(namespace, query_hash) when value != x[column1])
+
+    bb.try(-> _.uniq(unexpired_events)[...options.neighbourhood_size])
+
+
+  _one_degree_away: (namespace, column1, column2, value, options) ->
+    search_hash = {
+      current_datetime: options.current_datetime
+      size: options.neighbourhood_size
+      actions: options.actions
+    }
+    search_hash_1 = _.clone(search_hash)
+    search_hash_1[column1] = value
+
+    ret = []
+    for x in @_find_events(namespace, search_hash_1)
       
-        if list.length > 0
-          people_to_return.push p
+      search_hash_2 = _.clone(search_hash)
+      search_hash_2[column2] = x[column2]
+      for y in @_find_events(namespace, search_hash_2)
+        ret.push y[column1] if value != y[column1]
+    ret
+
+  ##################################
+  ####  END OF NEIGHBOURHOOD  ######
+  ##################################
 
 
-    return bb.try(-> _.uniq(people_to_return)[...options.similar_people_limit])
+
+
+
 
   _recent_jaccard_distance: (namespace, p1, p2, action, days, now) ->
     recent_date = moment(now).subtract(days, 'days').toDate()
@@ -209,51 +226,73 @@ class BasicInMemoryESM
     return null if not person_action_store[namespace][person][action][thing]
     return person_action_store[namespace][person][action][thing]
 
-  _find_events: (namespace, person, action, thing, options = {}) ->
-    options = _.defaults(options,
-      current_datetime: new Date()
-    )
-    #returns all events fitting the above description
-    events = []
-    for e in event_store[namespace]
-      add = true
-      if moment(e.created_at).isAfter(options.current_datetime)
-        add = false
+  _filter_event: (e, options) ->
+    return false if !e
 
-      if person
-        if _.isArray(person)
-          add = false if not _.contains(person, e.person)
-        else
-          add = false if person != e.person
+    add = true
+    if moment(options.current_datetime).isBefore(e.created_at)
+      add = false
 
-      if action
-        if _.isArray(action)
-          add = false if not _.contains(action, e.action)
-        else
-          add = false if action != e.action
+    if options.expires_after && (!e.expires_at || moment(e.expires_at).isBefore(options.expires_after))
+      add = false
 
-      if thing
-        if _.isArray(thing)
-          add = false if not _.contains(thing, e.thing)
-        else
-          add = false if thing != e.thing
+    if options.people
+      add = false if not _.contains(options.people, e.person)
 
-      events.push e if add
-    events = _.sortBy(events, (x) -> - x.created_at.getTime())
+    if options.person
+      add = false if options.person != e.person
 
-    return events
 
-  find_events: (namespace, options = {}) ->
+    if options.actions
+      add = false if not _.contains(options.actions, e.action)
+
+    if options.action
+      add = false if options.action != e.action
+
+    if options.things
+      add = false if not _.contains(options.things, e.thing)
+
+    if options.thing
+      add = false if options.thing != e.thing
+    add
+
+  _find_events: (namespace, options = {}) ->
     options = _.defaults(options,
       size: 50
       page: 0
       current_datetime: new Date()
     )
 
-    events = @_find_events(namespace, options.person || options.people, options.action || options.actions, options.thing || options.things, options)
-    events = events[options.size*options.page ... options.size*(options.page+1)]
-    return bb.try(=> events)
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds') if options.time_until_expiry
 
+    #returns all events fitting the above description
+    events = []
+
+    if options.person and options.action and options.thing
+      e = person_action_store[namespace]?[options.person]?[options.action]?[options.thing]
+      events = [e]
+    else if options.person and options.action
+      events = (e for t, e of person_action_store[namespace]?[options.person]?[options.action])
+    else if options.thing and options.action
+      events = (e for t, e of thing_action_store[namespace]?[options.thing]?[options.action])
+    else if options.person
+      events = _.flatten((e for t,e of ats for at, ats of person_action_store[namespace]?[options.person]))
+    else if options.thing
+      events = _.flatten((e for t,e of ats for at, ats of thing_action_store[namespace]?[options.thing]))
+    else if options.people
+      events = _.flatten((e for t,e of ats for at, ats of person_action_store[namespace]?[thth] for thth in options.people))
+    else if options.things
+      events = _.flatten((e for t,e of ats for at, ats of thing_action_store[namespace]?[thth] for thth in options.things))
+    else
+      events = (e for e in event_store[namespace])
+    
+    events = (e for e in events when @_filter_event(e, options))
+    events = _.sortBy(events, (x) -> - x.created_at.getTime())
+    events = events[options.size*options.page ... options.size*(options.page+1)]
+    return events
+
+  find_events: (namespace, options = {}) ->
+    return bb.try(=> @_find_events(namespace, options))
 
 
   bootstrap: (namespace, stream) ->
@@ -281,7 +320,7 @@ class BasicInMemoryESM
       delete thing_action_store[namespace][e.thing][e.action][e.person]
 
   delete_events: (namespace, options = {}) ->
-    events = @_find_events(namespace, options.person, options.action, options.thing) 
+    events = @_find_events(namespace, person: options.person, action: options.action, thing: options.thing) 
     @_delete_events(namespace, events)
     bb.try(=> {deleted: events.length})
 

@@ -204,7 +204,7 @@ The API for Initialization
 The API for the ESM to generate recommendations is:
 
 1. `get_actions()` returns the actions with weights e.g. {'like': 1}
-2. `find_similar_people(person, action, actions, limits...)` returns 
+2. `person_neighbourhood(person, action, actions, limits...)` returns 
 3. `calculate_similarities_from_person(person, people, actions, limits...)`
 4. `recently_actioned_things_by_people(people)`
 5. `person_history_count`
