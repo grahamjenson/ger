@@ -209,7 +209,7 @@ class GER
     #first a check or two
     #TODO minimum thing history count
     #first a check or two
-    @find_events(namespace, thing: thing, current_datetime: configuration.current_datetime, size: 100)
+    @find_events(namespace, actions: Object.keys(actions), thing: thing, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
       return {recommendations: [], confidence: 0} if events.length < configuration.minimum_history_required
 
@@ -222,7 +222,7 @@ class GER
     actions = @normalize_actions(configuration.actions)
 
     #first a check or two
-    @find_events(namespace, person: person, current_datetime: configuration.current_datetime, size: 100)
+    @find_events(namespace, actions: Object.keys(actions), person: person, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
 
       return {recommendations: [], confidence: 0} if events.length < configuration.minimum_history_required
