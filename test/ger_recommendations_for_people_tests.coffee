@@ -65,8 +65,8 @@ describe "joining multiple gers", ->
         ger2.event(ns2, 'p2','buy','b', expires_at: tomorrow),
       ])
       .then( -> bb.all([
-          ger1.recommendations_for_person(ns1, 'p1', {similar_people_limit: 2, history_search_size: 4, actions: {view: 1}}),
-          ger2.recommendations_for_person(ns2, 'p1', {similar_people_limit: 4, history_search_size: 8, actions: {view: 1}})
+          ger1.recommendations_for_person(ns1, 'p1', {neighbourhood_size: 2, history_search_size: 4, actions: {view: 1}}),
+          ger2.recommendations_for_person(ns2, 'p1', {neighbourhood_size: 4, history_search_size: 8, actions: {view: 1}})
         ])
       )
       .spread((recs1, recs2) ->

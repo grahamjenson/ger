@@ -47,7 +47,7 @@ class BasicInMemoryESM
     @_find_events(namespace, person: person, action: action, current_datetime: now)
 
   _thing_history_for_action: (namespace, thing, action) ->
-    @find_events(namespace, thing: thing, action: action)
+    @_find_events(namespace, thing: thing, action: action)
 
   _person_history_for_action_after_expiry: (namespace, person, action, expires_after, now) ->
     (e for e in @_person_history_for_action(namespace, person, action, now) when moment(e.expires_at).isAfter(expires_after) )
@@ -156,7 +156,7 @@ class BasicInMemoryESM
     for person in people
       group_by_person_thing[person] = {}
       for action in actions
-        for event in @_person_history_for_action_after_expiry(namespace, person, action, expires_after, options.current_datetime)
+        for event in @_find_events(namespace, _.extend({person: person, action: action}, options))
 
           group_by_person_thing[person][event.thing] = {} if not group_by_person_thing[person][event.thing]
           group_by_person_thing[person][event.thing] = {
@@ -262,8 +262,8 @@ class BasicInMemoryESM
       page: 0
       current_datetime: new Date()
     )
-
-    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds') if options.time_until_expiry
+    
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds') if options.time_until_expiry != undefined
 
     #returns all events fitting the above description
     events = []

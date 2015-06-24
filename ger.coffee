@@ -79,7 +79,7 @@ class GER
     @esm.person_neighbourhood(namespace, person, Object.keys(actions), _.clone(configuration))
 
   thing_neighbourhood: (namespace, thing, actions, configuration) ->
-    @esm.thing_neighbourhood(namespace, person, Object.keys(actions), _.clone(configuration))
+    @esm.thing_neighbourhood(namespace, thing, Object.keys(actions), _.clone(configuration))
 
   recently_actioned_things_by_people: (namespace, actions, people, configuration) ->
     @esm.recently_actioned_things_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
