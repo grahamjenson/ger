@@ -9,35 +9,36 @@ class GER
   constructor: (@esm) ->
 
   ####################### Weighted people  #################################
-
-  calculate_similarities_from_person : (namespace, person, people, actions, configuration) ->
-    @esm.calculate_similarities_from_person(namespace, person, people, Object.keys(actions), _.clone(configuration))
-    .then( (people_weights) =>
-      temp = {}
-      for p, weights of people_weights
-        for ac, weight of weights
-          temp[p] = 0 if p not of temp
-          temp[p] += weight * actions[ac] # jaccard weight for action * percent of 
-      temp[person] = 1 # add person 
-      temp
-    )
-    .then( (people_weights) =>
-      # add confidence to the selection
-
-      # Weight the list of subjects by looking for the probability they are actioned by the similar objects
-
-      total_weight = 0
-      for p, weight of people_weights
-        total_weight += weight if p != person #remove object as it is 1
-
-      n_people = Object.keys(people_weights).length - 1 #remove original object
-
-      {
-        people_weights: people_weights,
-        n_people: n_people
-      }
-    )
+  _normalise_similarities: (similarities, actions) ->
     
+    temp = {}
+    for v, weights of similarities
+      for ac, weight of weights
+        temp[v] = 0 if v not of temp
+        temp[v] += weight * actions[ac]
+    temp
+
+
+    {
+      weights: temp,
+      n_values: Object.keys(similarities).length
+    }
+  
+
+  calculate_similarities_from_thing: (namespace, thing, things, actions, configuration) ->
+    @esm.calculate_similarities_from_thing(namespace, thing, things, Object.keys(actions), _.clone(configuration))
+    .then( (similarities) =>
+      similarities = @_normalise_similarities(similarities, actions)
+      similarities
+    )
+
+  calculate_similarities_from_person: (namespace, person, people, actions, configuration) ->
+    @esm.calculate_similarities_from_person(namespace, person, people, Object.keys(actions), _.clone(configuration))
+    .then( (similarities) =>
+      similarities = @_normalise_similarities(similarities, actions)
+      similarities.weights[person] = 1 #manually add person to weights
+      similarities
+    )
   
   filter_recommendations: (namespace, person, recommendations, filter_previous_actions) ->
     @esm.filter_things_by_previous_actions(namespace, person, Object.keys(recommendations), filter_previous_actions)
@@ -49,10 +50,10 @@ class GER
       filtered_recs
     )
 
-  people_confidence: (n_people ) ->
+  neighbourhood_confidence: (n_values ) ->
     #The more similar people found, the more we trust the recommendations
     #15 is a magic number chosen to make 10 around 50% and 50 around 95%
-    pc = 1.0 - Math.pow(Math.E,( (- n_people) / 15 ))
+    pc = 1.0 - Math.pow(Math.E,( (- n_values) / 15 ))
     #The person confidence multiplied by the mean distance
     pc
 
@@ -85,7 +86,7 @@ class GER
     @esm.recently_actioned_things_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
 
 
-  calculate_recommendations_weights: (people_weights, people_things) ->
+  calculate_recommendations_weights: (weights, people_things) ->
     things_weight = {}
     for p, things of people_things
       for thing_date in things
@@ -95,7 +96,7 @@ class GER
 
         things_weight[thing] = {thing: thing, weight: 0, last_actioned_at: null, last_expires_at: null} if things_weight[thing] == undefined
         recommendation_info = things_weight[thing]
-        recommendation_info.weight += people_weights[p]
+        recommendation_info.weight += weights[p]
         recommendation_info.people = [] if recommendation_info.people == undefined
         recommendation_info.people.push p
 
@@ -117,11 +118,14 @@ class GER
       ])
     )
     .spread( ( similar_people, people_things ) =>
-      people_weights = similar_people.people_weights
-      things_weight = @calculate_recommendations_weights(people_weights, people_things)
+      weights = similar_people.weights
+      things_weight = @calculate_recommendations_weights(weights, people_things)
  
       # CALCULATE CONFIDENCES
-      bb.all([@filter_recommendations(namespace, person, things_weight, configuration.filter_previous_actions), similar_people] )
+      bb.all([
+        @filter_recommendations(namespace, person, things_weight, configuration.filter_previous_actions), 
+        similar_people
+      ])
     )
     .spread( (recommendations, similar_people) =>
 
@@ -132,17 +136,17 @@ class GER
       recommendations_object.recommendations = sorted_things[0...configuration.recommendations_limit]
       
 
-      people_confidence = @people_confidence(similar_people.n_people)
+      neighbourhood_confidence = @neighbourhood_confidence(similar_people.n_values)
       history_confidence = @history_confidence(person_history_count)
       things_confidence = @things_confidence(sorted_things)
 
-      recommendations_object.confidence = people_confidence * history_confidence * things_confidence
+      recommendations_object.confidence = neighbourhood_confidence * history_confidence * things_confidence
 
 
       recommendations_object.similar_people = {}
       for rec in recommendations_object.recommendations
         for p in rec.people
-          recommendations_object.similar_people[p] = similar_people.people_weights[p]
+          recommendations_object.similar_people[p] = similar_people.weights[p]
 
       recommendations_object
 
@@ -153,17 +157,16 @@ class GER
 
     @thing_neighbourhood(namespace, thing, actions, configuration)
     .then( (things) =>
-      #@calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
-      things
+      @calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
     )
-    .then( ( things ) =>
+    .then( ( similarities ) =>
       recommendations_object = {}
-      recommendations_object.recommendations = {}
-      for t in things
-
-        recommendations_object.recommendations.push {thing: t}
-
-      recommendations_object.confidence = 0
+      recommendations_object.recommendations = []
+      recommendations_object.confidence = @history_confidence(thing_history_count)
+      for t,w of similarities.weights
+        recommendations_object.recommendations.push {thing: t, weight: w}
+      
+      recommendations_object.recommendations = recommendations_object.recommendations.sort((x, y) -> y.weight - x.weight)[0...configuration.recommendations_limit]
 
       recommendations_object
       
@@ -205,8 +208,13 @@ class GER
 
     #first a check or two
     #TODO minimum thing history count
-       
-    return @generate_recommendations_for_thing(namespace, thing, actions, 0, configuration)
+    #first a check or two
+    @find_events(namespace, thing: thing, current_datetime: configuration.current_datetime, size: 100)
+    .then( (events) =>
+      return {recommendations: [], confidence: 0} if events.length < configuration.minimum_history_required
+
+      return @generate_recommendations_for_thing(namespace, thing, actions, events.length, configuration)
+    )
 
 
   recommendations_for_person: (namespace, person, configuration = {}) ->

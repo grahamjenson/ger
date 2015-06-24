@@ -310,14 +310,14 @@ class PSQLEventStoreManager
     )
 
 
-  person_history: (namespace, person) ->
+  _history: (namespace, column1, column2, value) ->
     @_knex("#{namespace}.events")
-    .select('thing').max('created_at as created_at')
-    .groupBy('thing')
+    .select(column2).max('created_at as created_at')
+    .groupBy(column2)
     .orderByRaw("max(created_at) DESC")
     .whereRaw('created_at <= :now')
     .whereRaw("action = t.caction")
-    .whereRaw("person = #{person}")
+    .whereRaw("#{column1} = #{value}")
 
   jaccard_query: (s1,s2) ->
     intersection = "(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float"
@@ -327,69 +327,66 @@ class PSQLEventStoreManager
     # dont put the name of the action in the sql stopping sql injection
     "(#{intersection} / #{union})"
 
-  jaccard_distance_for_limit: (namespace, person, limit) ->
-    s1q = @person_history(namespace, person).toString()
-    s2q = @person_history(namespace, 't.cperson').toString()
+  jaccard_distance_for_limit: (namespace, column1, column2, limit) ->
+    s1q = @_history(namespace, column1, column2, ':value').toString()
+    s2q = @_history(namespace, column1, column2, 't.cvalue').toString()
 
-    s1 = "select x.thing from (#{s1q}) as x limit #{limit}"
-    s2 = "select x.thing from (#{s2q}) as x limit #{limit}"
+    s1 = "select x.#{column2} from (#{s1q}) as x limit #{limit}"
+    s2 = "select x.#{column2} from (#{s2q}) as x limit #{limit}"
     
     "#{@jaccard_query(s1, s2)} as limit_distance"
 
-  jaccard_distance_for_recent: (namespace, person, limit, days_ago) ->
+  jaccard_distance_for_recent: (namespace, column1, column2, limit, days_ago) ->
     #TODO remove now
-    s1q = @person_history(namespace, person).toString()
-    s2q = @person_history(namespace, 't.cperson').toString()
+    s1q = @_history(namespace, column1, column2, ':value').toString()
+    s2q = @_history(namespace, column1, column2, 't.cvalue').toString()
 
-    s1 = "select x.thing from (#{s1q}) as x where 
+    s1 = "select x.#{column2} from (#{s1q}) as x where 
           x.created_at >= Date( :now ) - '#{days_ago} day'::INTERVAL 
           order by x.created_at DESC limit #{limit}"
-    s2 = "select x.thing from (#{s2q}) as x where 
+    s2 = "select x.#{column2} from (#{s2q}) as x where 
           x.created_at >= Date( :now ) - '#{days_ago} day'::INTERVAL 
           order by x.created_at DESC limit #{limit}"
 
     "#{@jaccard_query(s1, s2)} as recent_distance"
   
-  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14, now = new Date())->
-    return bb.try(->[]) if people.length == 0
-    #TODO allow for arbitrary distance measurements here
+  get_jaccard_distances: (namespace, column1, column2, value, values, actions, limit = 500, days_ago=14, now = new Date())->
+    return bb.try(->[]) if values.length == 0
 
-    bindings = {person: person, now: now} 
+    bindings = {value: value, now: now} 
 
-    limit_distance_query = @jaccard_distance_for_limit(namespace, ':person', limit)
-    recent_distance_query = @jaccard_distance_for_recent(namespace, ':person', limit, days_ago)
+    limit_distance_query = @jaccard_distance_for_limit(namespace,column1, column2, limit)
+    recent_distance_query = @jaccard_distance_for_recent(namespace, column1, column2, limit, days_ago)
 
     v_actions = []
     for a, ai in actions
       akey = "action_#{ai}"
       bindings[akey] =  a
-      for p, pi in people
-        pkey = "person_#{pi}"
-        bindings[pkey] =  p
-        v_actions.push("( :#{pkey}, :#{akey} )")
+      for v, vi in values
+        vkey = "value_#{vi}"
+        bindings[vkey] =  v
+        v_actions.push("( :#{vkey}, :#{akey} )")
 
     v_actions = v_actions.join(', ')
 
-    query = "select cperson, caction, #{limit_distance_query}, #{recent_distance_query} from (VALUES #{v_actions} ) AS t (cperson, caction)"
+    query = "select cvalue, caction, #{limit_distance_query}, #{recent_distance_query} from (VALUES #{v_actions} ) AS t (cvalue, caction)"
 
     @_knex.raw(query, bindings)
     .then( (rows) ->
       limit_distance = {}
       recent_distance = {}
       for row in rows.rows
-        recent_distance[row["cperson"]] ||= {}
-        limit_distance[row["cperson"]] ||= {}
+        recent_distance[row["cvalue"]] ||= {}
+        limit_distance[row["cvalue"]] ||= {}
 
-        limit_distance[row["cperson"]][row["caction"]] = row["limit_distance"]
-        recent_distance[row["cperson"]][row["caction"]] = row["recent_distance"]
+        limit_distance[row["cvalue"]][row["caction"]] = row["limit_distance"]
+        recent_distance[row["cvalue"]][row["caction"]] = row["recent_distance"]
 
       [limit_distance, recent_distance]
     )
 
-
-  calculate_similarities_from_person: (namespace, person, people, actions, options={}) ->
-    return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
-
+  _similarities: (namespace, column1, column2, value, values, actions, options={}) ->
+    return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
     options = _.defaults(options,
       history_search_size: 500
       recent_event_days: 14
@@ -397,17 +394,26 @@ class PSQLEventStoreManager
     )
 
     #TODO fix this, it double counts newer things [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @get_jaccard_distances_between_people(namespace, person, people, actions, options.history_search_size, options.recent_event_days, options.current_datetime)
+    @get_jaccard_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.recent_event_days, options.current_datetime)
     .spread( (event_weights, recent_event_weights) =>
       temp = {}
       #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
-      for p in people
-        temp[p] = {}
+      for v in values
+        temp[v] = {}
         for ac in actions
-          temp[p][ac] = ((recent_event_weights[p][ac] * 4) + (event_weights[p][ac] * 1))/5.0
+          temp[v][ac] = ((recent_event_weights[v][ac] * 4) + (event_weights[v][ac] * 1))/5.0
       
       temp
     )
+
+  calculate_similarities_from_thing: (namespace, thing, things, actions, options={}) ->
+    @_similarities(namespace, 'thing', 'person', thing, things, actions, options)
+
+  calculate_similarities_from_person: (namespace, person, people, actions, options={}) ->
+    @_similarities(namespace, 'person', 'thing', person, people, actions, options)
+
+
+
 
   count_events: (namespace) ->
     @_knex("#{namespace}.events").count()

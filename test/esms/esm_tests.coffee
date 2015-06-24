@@ -92,6 +92,24 @@ esm_tests = (ESM) ->
             things[0].should.equal 't2'
           )
 
+    describe '#calculate_similarities_from_thing', ->
+      it 'more similar histories should be greater', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1')
+            esm.add_event(ns,'p2','a','t1')
+
+            esm.add_event(ns,'p1','a','t2')
+            esm.add_event(ns,'p2','a','t2')
+
+            esm.add_event(ns,'p2','a','t3')
+          ])
+          .then( -> esm.calculate_similarities_from_thing(ns, 't1',['t2','t3'],['a']))
+          .then( (similarities) ->
+            similarities['t3']['a'].should.be.lessThan(similarities['t2']['a'])
+          )
+
     describe '#person_neighbourhood' , ->
       it 'should return a list of similar people', ->
         init_esm(ESM, ns)

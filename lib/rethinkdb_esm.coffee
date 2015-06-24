@@ -258,7 +258,7 @@ class EventStoreMapper
     .default({})
     .run({useOutdated: true})
 
-  get_jaccard_distances_between_people: (namespace, person, people, actions, limit = 500, days_ago=14) ->
+  get_jaccard_distances_between_values: (namespace, person, people, actions, limit = 500, days_ago=14) ->
     return bb.try(->[]) if people.length == 0
     r = @_r
 
@@ -331,7 +331,7 @@ class EventStoreMapper
     .run({useOutdated: true})
 
   calculate_similarities_from_person: (namespace, person, people, actions, person_history_limit, recent_event_days) ->
-    @get_jaccard_distances_between_people(namespace, person, people, actions, person_history_limit, recent_event_days)
+    @get_jaccard_distances_between_values(namespace, person, people, actions, person_history_limit, recent_event_days)
 
   has_event: (namespace, person, action, thing) ->
     shasum = crypto.createHash("sha256")

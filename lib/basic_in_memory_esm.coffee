@@ -42,16 +42,6 @@ class BasicInMemoryESM
     @_neighbourhood(namespace, "person", "thing", person, actions, options)
 
 
-  
-  _person_history_for_action: (namespace, person, action, now = new Date()) ->
-    @_find_events(namespace, person: person, action: action, current_datetime: now)
-
-  _thing_history_for_action: (namespace, thing, action) ->
-    @_find_events(namespace, thing: thing, action: action)
-
-  _person_history_for_action_after_expiry: (namespace, person, action, expires_after, now) ->
-    (e for e in @_person_history_for_action(namespace, person, action, now) when moment(e.expires_at).isAfter(expires_after) )
-      
   _neighbourhood: (namespace, column1, column2, value, actions, options) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
@@ -72,18 +62,18 @@ class BasicInMemoryESM
       plural = "people"
     else
       plural = "things"
+
     query_hash[plural] = one_degree_away
     unexpired_events = (x[column1] for x in @_find_events(namespace, query_hash) when value != x[column1])
-
     bb.try(-> _.uniq(unexpired_events)[...options.neighbourhood_size])
 
 
   _one_degree_away: (namespace, column1, column2, value, options) ->
     search_hash = {
       current_datetime: options.current_datetime
-      size: options.neighbourhood_size
       actions: options.actions
     }
+
     search_hash_1 = _.clone(search_hash)
     search_hash_1[column1] = value
 
@@ -105,25 +95,36 @@ class BasicInMemoryESM
 
 
 
-  _recent_jaccard_distance: (namespace, p1, p2, action, days, now) ->
+  _recent_jaccard_distance: (namespace, column1, column2, v1, v2, action, days, now) ->
     recent_date = moment(now).subtract(days, 'days').toDate()
+    search1 = {action: action, current_datetime: now}
+    search2 = {action: action, current_datetime: now}
+    search1[column1] = v1
+    search2[column1] = v2
 
-    p1_things = @_person_history_for_action(namespace, p1,action, now).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
-    p2_things = @_person_history_for_action(namespace, p2,action, now).filter((e) -> e.created_at > recent_date).map((e) -> e.thing)
+    p1_values = @_find_events(namespace, search1).filter((e) -> e.created_at > recent_date).map((e) -> e[column2])
+    p2_values = @_find_events(namespace, search2).filter((e) -> e.created_at > recent_date).map((e) -> e[column2])
 
-    jaccard = (_.intersection(p1_things, p2_things).length)/(_.union(p1_things, p2_things).length)
+    jaccard = (_.intersection(p1_values, p2_values).length)/(_.union(p1_values, p2_values).length)
     jaccard = 0 if isNaN(jaccard)
     return jaccard
 
-  _jaccard_distance: (namespace, p1, p2, action, now) ->
-    p1_things = @_person_history_for_action(namespace, p1,action, now).map((e) -> e.thing)
-    p2_things = @_person_history_for_action(namespace, p2,action, now).map((e) -> e.thing)
-    jaccard = (_.intersection(p1_things, p2_things).length)/(_.union(p1_things, p2_things).length)
+  _jaccard_distance: (namespace, column1, column2, v1, v2, action, now) ->
+
+    search1 = {action: action, current_datetime: now}
+    search2 = {action: action, current_datetime: now}
+    search1[column1] = v1
+    search2[column1] = v2
+
+    p1_values = @_find_events(namespace, search1).map((e) -> e[column2])
+    p2_values = @_find_events(namespace, search2).map((e) -> e[column2])
+
+    jaccard = (_.intersection(p1_values, p2_values).length)/(_.union(p1_values, p2_values).length)
     jaccard = 0 if isNaN(jaccard)
     return jaccard
 
-  calculate_similarities_from_person: (namespace, person, people, actions, options={}) ->
-    return bb.try(-> {}) if !actions or actions.length == 0 or people.length == 0
+  _similarities: (namespace, column1, column2, value, values, actions, options={}) ->
+    return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
 
     options = _.defaults(options,
       history_search_size: 500
@@ -132,14 +133,22 @@ class BasicInMemoryESM
     )
 
     similarities = {}
-    for p in people
-      similarities[p] = {}
+    for v in values
+      similarities[v] = {}
       for action in actions
-        jaccard = @_jaccard_distance(namespace, person, p, action, options.current_datetime)
-        recent_jaccard = @_recent_jaccard_distance(namespace, person, p, action, options.recent_event_days, options.current_datetime)
-        similarities[p][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
+        jaccard = @_jaccard_distance(namespace, column1, column2, value, v, action, options.current_datetime)
+        recent_jaccard = @_recent_jaccard_distance(namespace, column1, column2, value, v, action, options.recent_event_days, options.current_datetime)
+        similarities[v][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
 
     return bb.try(-> similarities)
+
+  calculate_similarities_from_person: (namespace, person, people, actions, options={}) ->
+    @_similarities(namespace, 'person', 'thing', person, people, actions, options)
+
+  calculate_similarities_from_thing: (namespace, person, people, actions, options={}) ->
+    @_similarities(namespace, 'thing', 'person', person, people, actions, options)
+
+
 
   recently_actioned_things_by_people: (namespace, actions, people, options={}) ->
     return bb.try(->[]) if people.length == 0 || actions.length == 0
@@ -254,6 +263,7 @@ class BasicInMemoryESM
 
     if options.thing
       add = false if options.thing != e.thing
+
     add
 
   _find_events: (namespace, options = {}) ->
@@ -263,7 +273,7 @@ class BasicInMemoryESM
       current_datetime: new Date()
     )
     
-    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds') if options.time_until_expiry != undefined
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format() if options.time_until_expiry != undefined
 
     #returns all events fitting the above description
     events = []
@@ -288,6 +298,7 @@ class BasicInMemoryESM
     
     events = (e for e in events when @_filter_event(e, options))
     events = _.sortBy(events, (x) -> - x.created_at.getTime())
+
     events = events[options.size*options.page ... options.size*(options.page+1)]
     return events
 
@@ -330,7 +341,7 @@ class BasicInMemoryESM
     marked_for_deletion = []
     for person, action_store of person_action_store[namespace]
       for action in actions
-        events = @_person_history_for_action(namespace, person, action)
+        events = @_find_events(namespace, person: person, action: action)
         if events.length > limit
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
 
@@ -342,7 +353,7 @@ class BasicInMemoryESM
     marked_for_deletion = []
     for thing, action_store of thing_action_store[namespace]
       for action in actions
-        events = @_thing_history_for_action(namespace, thing, action)
+        events = @_find_events(namespace, thing: thing, action: action)
         if events.length > limit
           
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]

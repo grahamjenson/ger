@@ -309,9 +309,9 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': 1}, recent_event_days: 1) )
       .then((similar_people) ->
-        similar_people.people_weights['p1'].should.equal 1
-        similar_people.people_weights['p2'].should.equal 1
-        similar_people.people_weights['p3'].should.equal .2
+        similar_people.weights['p1'].should.equal 1
+        similar_people.weights['p2'].should.equal 1
+        similar_people.weights['p3'].should.equal .2
       )
 
   it 'should weight actions', ->
@@ -329,9 +329,9 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': .01, 'buy': .99}))
       .then((similar_people) ->
-        similar_people.people_weights['p3'].should.equal 1
-        similar_people.people_weights['p1'].should.equal 1
-        similar_people.people_weights['p2'].should.equal 0.01
+        similar_people.weights['p3'].should.equal 1
+        similar_people.weights['p1'].should.equal 1
+        similar_people.weights['p2'].should.equal 0.01
       )
 
 
@@ -350,10 +350,10 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
-        similar_people.people_weights['p1'].should.equal 1
-        similar_people.people_weights['p3'].should.equal 1
-        similar_people.people_weights['p2'].should.equal 1/2
-        Object.keys(similar_people.people_weights).length.should.equal 3
+        similar_people.weights['p1'].should.equal 1
+        similar_people.weights['p3'].should.equal 1
+        similar_people.weights['p2'].should.equal 1/2
+        Object.keys(similar_people.weights).length.should.equal 3
       )
 
   it 'should handle a non associated event on person', ->
@@ -370,9 +370,9 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
-        people_weights = similar_people.people_weights
-        compare_floats( people_weights['p3'], 2/3).should.equal true
-        compare_floats( people_weights['p2'] ,1/3).should.equal true
-        Object.keys(people_weights).length.should.equal 3
+        weights = similar_people.weights
+        compare_floats( weights['p3'], 2/3).should.equal true
+        compare_floats( weights['p2'] ,1/3).should.equal true
+        Object.keys(weights).length.should.equal 3
       )
 
