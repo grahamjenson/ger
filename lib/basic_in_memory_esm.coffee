@@ -50,8 +50,9 @@ class BasicInMemoryESM
       history_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
-      actions: actions
     )
+    options.actions = actions
+
     options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
     one_degree_away = @_one_degree_away(namespace, column1, column2, value, _.clone(options))
@@ -131,6 +132,7 @@ class BasicInMemoryESM
       recent_event_days: 14
       current_datetime: new Date()
     )
+    options.actions = actions
 
     similarities = {}
     for v in values
@@ -158,6 +160,7 @@ class BasicInMemoryESM
       time_until_expiry: 0
       current_datetime: new Date()
     )
+    options.actions = actions
 
     expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 

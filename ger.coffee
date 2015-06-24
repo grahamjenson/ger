@@ -224,6 +224,7 @@ class GER
     #first a check or two
     @find_events(namespace, person: person, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
+
       return {recommendations: [], confidence: 0} if events.length < configuration.minimum_history_required
 
       return @generate_recommendations_for_person(namespace, person, actions, events.length, configuration)

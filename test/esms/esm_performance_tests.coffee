@@ -1,6 +1,6 @@
 actions = ["buy", "like", "view"]
 people = [1..1000]
-things = [1..100]
+things = [1..1000]
 
 random_created_at = ->
   moment().subtract(_.random(0, 120), 'minutes')
@@ -16,7 +16,7 @@ esm_tests = (ESM) ->
     nfindpeople = 25
     ncalcpeople = 25
     ncompact = 2
-    nrecommendations = 25
+    nrecommendations = 10
     nrecpeople = 25
 
     it "adding #{nevents} events takes so much time", ->
