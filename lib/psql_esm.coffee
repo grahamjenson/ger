@@ -287,25 +287,15 @@ class PSQLEventStoreManager
     for v,i in values
       key = "value_#{i}"
       bindings[key] = v
-      ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where created_at <= :now and action in (#{action_values}) and #{column1} = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{options.related_things_limit})"
+      ql.push "(select person, thing, MAX(created_at) as last_actioned_at, MAX(expires_at) as last_expires_at from \"#{namespace}\".events
+          where created_at <= :now and action in (#{action_values}) and #{column1} = :#{key} and (expires_at > :expires_after ) group by person, thing order by last_actioned_at DESC limit #{options.related_things_limit})"
 
     query = ql.join( " UNION ")
-    query += " order by max_ca DESC" if ql.length > 1
+    query += " order by last_actioned_at DESC" if ql.length > 1
 
     @_knex.raw(query, bindings)
     .then( (ret) ->
-      rows = ret.rows
-      recommendations = []
-      for r in rows
-        recommendations.push {
-          person: r.person
-          thing: r.thing
-          last_actioned_at: r.max_ca
-          last_expires_at: r.max_ea
-        }
-
-      recommendations
+      ret.rows
     )
 
   recent_recommendations_by_people: (namespace, actions, people, options) ->
