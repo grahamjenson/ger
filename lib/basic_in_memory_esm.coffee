@@ -163,7 +163,10 @@ class BasicInMemoryESM
 
     all_events = []
     for v in values
-      events = @_find_events(namespace, _.extend({"#{column1}": v, actions: actions}, options))[...options.related_things_limit]
+      query_hash = {actions: actions}
+      query_hash[column1] = v
+      
+      events = @_find_events(namespace, _.extend(query_hash, options))[...options.related_things_limit]
       all_events = all_events.concat events
 
     group_by_person_thing = {}

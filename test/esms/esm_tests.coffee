@@ -868,19 +868,17 @@ esm_tests = (ESM) ->
       it "should return events in created_at descending order (most recent first)", ->
         init_esm(ESM, ns)
         .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(2, 'days'))
-            esm.add_event(ns,'p1','a','t3', created_at: moment().subtract(10, 'days'))
+          esm.add_events([
+            {namespace: ns, person:'bob', action: 'hates', thing: 'hobbit', created_at: yesterday},
+            {namespace: ns, person:'bob', action: 'likes', thing: 'hobbit', created_at: today},
           ])
           .then( ->
-            esm.find_events(ns, person: 'p1')
+            esm.find_events(ns, person: 'bob', size: 1, current_datetime: undefined)
           )
           .then( (events) ->
-            events.length.should.equal 3
-            events[0].thing.should.equal 't1'
-            events[1].thing.should.equal 't2'
-            events[2].thing.should.equal 't3'
+            events.length.should.equal 1
+            events[0].action.should.equal 'likes'
+
           )
 
       it "should return only the most recent unique events", ->

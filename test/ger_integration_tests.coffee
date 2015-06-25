@@ -253,7 +253,7 @@ describe 'recommendations_for_person', ->
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', {recommendations_limit: 1, actions: {view:1, buy:1}}))
       .then((recommendations) ->
-        console.log JSON.stringify(recommendations, null,2)
+        
         recommendations.recommendations.length.should.equal 1
 
         recommendations.neighbourhood['p2'].should.exist
