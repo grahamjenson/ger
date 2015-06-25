@@ -152,38 +152,53 @@ class BasicInMemoryESM
 
 
 
-  recently_actioned_things_by_people: (namespace, actions, people, options={}) ->
-    return bb.try(->[]) if people.length == 0 || actions.length == 0
-
+  _recent_events: (namespace, column1, actions, values, options = {}) ->
+    return bb.try(->[]) if values.length == 0 || actions.length == 0
+    
     options = _.defaults(options,
       related_things_limit: 10
       time_until_expiry: 0
       current_datetime: new Date()
     )
-    options.actions = actions
 
-    expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
+    all_events = []
+    for v in values
+      events = @_find_events(namespace, _.extend({"#{column1}": v, actions: actions}, options))[...options.related_things_limit]
+      all_events = all_events.concat events
 
     group_by_person_thing = {}
-    for person in people
-      group_by_person_thing[person] = {}
-      for action in actions
-        for event in @_find_events(namespace, _.extend({person: person, action: action}, options))
 
-          group_by_person_thing[person][event.thing] = {} if not group_by_person_thing[person][event.thing]
-          group_by_person_thing[person][event.thing] = {
-            thing: event.thing
-            last_actioned_at: Math.max(event.created_at.getTime(), group_by_person_thing[person][event.thing].last_actioned_at||0)
-            last_expires_at: Math.max(event.expires_at.getTime(), group_by_person_thing[person][event.thing].last_expires_at||0)
-          }
+    for event in all_events
+      group_by_person_thing[event.person] = {} if not group_by_person_thing[event.person]
+      group_by_person_thing[event.person][event.thing] = {} if not group_by_person_thing[event.person][event.thing]
+      
+      last_actioned_at = group_by_person_thing[event.person][event.thing].last_actioned_at || event.created_at
+      last_actioned_at = moment.max(moment(last_actioned_at), moment(event.created_at)).toDate()
 
-    things = {}
-    for person in people
-      things[person] = []
-      for thing, list of group_by_person_thing[person]
-        things[person] = (things[person].concat list)[...options.related_things_limit]
+      last_expires_at = group_by_person_thing[event.person][event.thing].last_expires_at || event.expires_at
+      last_expires_at = moment.max(moment(last_expires_at), moment(event.expires_at)).toDate()
 
-    bb.try(-> things)
+
+      group_by_person_thing[event.person][event.thing] = {
+        person: event.person
+        thing: event.thing
+        last_actioned_at: last_actioned_at
+        last_expires_at: last_expires_at
+      }
+
+    grouped_events = []
+    for person, thing_events of group_by_person_thing
+      for thing, event of thing_events
+        grouped_events = grouped_events.concat event
+
+    grouped_events = _.sortBy(grouped_events, (x) -> - x.last_actioned_at.getTime())
+    bb.try(-> grouped_events)
+
+  recent_recommendations_by_people: (namespace, actions, people, options) ->
+    @_recent_events(namespace, 'person', actions, people, options)
+
+  recent_recommendations_for_things: (namespace, actions, things, options) ->
+    @_recent_events(namespace, 'thing', actions, things, options)
 
   _filter_things_by_previous_action: (namespace, person, things, action) ->
     things.filter((t) => !person_action_store[namespace][person] or !person_action_store[namespace][person][action] or !person_action_store[namespace][person][action][t])

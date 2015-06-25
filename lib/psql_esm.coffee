@@ -259,8 +259,12 @@ class PSQLEventStoreManager
       (r.tthing for r in rows.rows)
     )
 
-  recently_actioned_things_by_people: (namespace, actions, people, options = {}) ->
-    return bb.try(->[]) if people.length == 0 || actions.length == 0
+  ##############################
+  ##### RECENT EVENTS  #########
+  ##############################
+
+  _recent_events: (namespace, column1, actions, values, options = {}) ->
+    return bb.try(->[]) if values.length == 0 || actions.length == 0
 
     options = _.defaults(options,
       related_things_limit: 10
@@ -280,34 +284,35 @@ class PSQLEventStoreManager
 
     action_values = action_values.join(',')
     ql = []
-    for p,i in people
-      key = "person_#{i}"
-      bindings[key] = p
+    for v,i in values
+      key = "value_#{i}"
+      bindings[key] = v
       ql.push "(select person, thing, MAX(created_at) as max_ca, MAX(expires_at) as max_ea from \"#{namespace}\".events
-          where created_at <= :now and action in (#{action_values}) and person = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{options.related_things_limit})"
+          where created_at <= :now and action in (#{action_values}) and #{column1} = :#{key} and (expires_at > :expires_after ) group by person, thing order by max_ca DESC limit #{options.related_things_limit})"
 
     query = ql.join( " UNION ")
+    query += " order by max_ca DESC" if ql.length > 1
 
     @_knex.raw(query, bindings)
     .then( (ret) ->
       rows = ret.rows
-      temp = {}
-      for p in people
-        temp[p] = []
-
+      recommendations = []
       for r in rows
-        t = {
+        recommendations.push {
           person: r.person
           thing: r.thing
-          action: r.action
-          last_actioned_at: r.max_ca.getTime()
-          last_expires_at: r.max_ea.getTime()
+          last_actioned_at: r.max_ca
+          last_expires_at: r.max_ea
         }
 
-        temp[r.person].push t
-
-      temp
+      recommendations
     )
+
+  recent_recommendations_by_people: (namespace, actions, people, options) ->
+    @_recent_events(namespace, 'person', actions, people, options)
+
+  recent_recommendations_for_things: (namespace, actions, things, options) ->
+    @_recent_events(namespace, 'thing', actions, things, options)
 
 
   _history: (namespace, column1, column2, value) ->

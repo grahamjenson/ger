@@ -33,6 +33,7 @@ global.default_namespace = 'default'
 global.yesterday = moment().subtract(1, 'days')
 global.today = moment()
 global.tomorrow = moment().add(1, 'days')
+global.next_week = moment().add(7, 'days')
 
 global.new_esm = (ESM)->
   esm = new ESM({knex: _knex})

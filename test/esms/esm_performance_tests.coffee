@@ -15,8 +15,8 @@ esm_tests = (ESM) ->
     nbevents = 10000
     nfindpeople = 25
     ncalcpeople = 25
-    ncompact = 2
-    nrecommendations = 10
+    ncompact = 3
+    nrecommendations = 20
     nrecpeople = 25
 
     it "adding #{nevents} events takes so much time", ->
@@ -125,14 +125,14 @@ esm_tests = (ESM) ->
           promises = []
           for x in [1..nrecpeople]
             peeps = _.unique((sample(people) for i in [0..25]))
-            promises.push ger.esm.recently_actioned_things_by_people(ns, actions, peeps)
+            promises.push ger.esm.recent_recommendations_by_people(ns, actions, peeps)
           bb.all(promises)
 
           .then(->
             et = new Date().getTime()
             time = et-st
             pe = time/ncalcpeople
-            console.log "#{pe}ms per recently_actioned_things_by_people"
+            console.log "#{pe}ms per recent_recommendations_by_people"
           )
         )
         .then( ->

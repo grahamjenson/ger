@@ -176,8 +176,9 @@ describe 'recommendations_for_person', ->
       )
 
   it 'should return the last_actioned_at date it was actioned at', ->
-    date1 = moment().subtract(50, 'mins').toDate()
-    date2 = moment().subtract(1, 'days').toDate()
+    date1 = moment().subtract(50, 'mins')
+    date2 = moment().subtract(1, 'days')
+
     init_ger()
     .then (ger) ->
       bb.all([
@@ -193,12 +194,12 @@ describe 'recommendations_for_person', ->
         item_weights.length.should.equal 2
         item_weights[0].thing.should.equal "a"
         item_weights[1].thing.should.equal "b"
-        (item_weights[1].last_actioned_at.toString().replace(".","")).should.equal date1.getTime().toString()
+        (item_weights[1].last_actioned_at.replace(".","")).should.equal date1.format()
       )
 
   it 'should return the last_expires_at date it was expires at', ->
-    date1 = moment().add(50, 'mins').toDate()
-    date2 = moment().add(1, 'days').toDate()
+    date1 = moment().add(50, 'mins')
+    date2 = moment().add(1, 'days')
     init_ger()
     .then (ger) ->
       bb.all([
@@ -214,9 +215,9 @@ describe 'recommendations_for_person', ->
         item_weights = recommendations.recommendations
         item_weights.length.should.equal 2
         item_weights[0].thing.should.equal "a"
-        (item_weights[0].last_expires_at.toString().replace(".","")).should.equal date1.getTime().toString()
+        (item_weights[0].last_expires_at.replace(".","")).should.equal date1.format()
         item_weights[1].thing.should.equal "b"
-        (item_weights[1].last_expires_at.toString().replace(".","")).should.equal date2.getTime().toString()
+        (item_weights[1].last_expires_at.replace(".","")).should.equal date2.format()
       )
 
   it 'should people that contributed to recommendation', ->
@@ -236,7 +237,7 @@ describe 'recommendations_for_person', ->
         item_weights[0].people.length.should.equal 1
       )
 
-  it 'should return only similar people who contributed to recommendations', ->
+  it 'should return neighbourhood', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -252,10 +253,10 @@ describe 'recommendations_for_person', ->
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1', {recommendations_limit: 1, actions: {view:1, buy:1}}))
       .then((recommendations) ->
+        console.log JSON.stringify(recommendations, null,2)
         recommendations.recommendations.length.should.equal 1
 
-        recommendations.similar_people['p2'].should.exist
-        Object.keys(recommendations.similar_people).length.should.equal 1
+        recommendations.neighbourhood['p2'].should.exist
       )
 
 describe 'person_neighbourhood', ->
@@ -309,9 +310,9 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': 1}, recent_event_days: 1) )
       .then((similar_people) ->
-        similar_people.weights['p1'].should.equal 1
-        similar_people.weights['p2'].should.equal 1
-        similar_people.weights['p3'].should.equal .2
+        similar_people['p1'].should.equal 1
+        similar_people['p2'].should.equal 1
+        similar_people['p3'].should.equal .2
       )
 
   it 'should weight actions', ->
@@ -329,9 +330,9 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'view': .01, 'buy': .99}))
       .then((similar_people) ->
-        similar_people.weights['p3'].should.equal 1
-        similar_people.weights['p1'].should.equal 1
-        similar_people.weights['p2'].should.equal 0.01
+        similar_people['p3'].should.equal 1
+        similar_people['p1'].should.equal 1
+        similar_people['p2'].should.equal 0.01
       )
 
 
@@ -350,10 +351,10 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
-        similar_people.weights['p1'].should.equal 1
-        similar_people.weights['p3'].should.equal 1
-        similar_people.weights['p2'].should.equal 1/2
-        Object.keys(similar_people.weights).length.should.equal 3
+        similar_people['p1'].should.equal 1
+        similar_people['p3'].should.equal 1
+        similar_people['p2'].should.equal 1/2
+        Object.keys(similar_people).length.should.equal 3
       )
 
   it 'should handle a non associated event on person', ->
@@ -370,7 +371,7 @@ describe 'calculate_similarities_from_person', ->
       ])
       .then(-> ger.calculate_similarities_from_person(ns, 'p1', ['p2','p3'], {'action1': 1}))
       .then((similar_people) ->
-        weights = similar_people.weights
+        weights = similar_people
         compare_floats( weights['p3'], 2/3).should.equal true
         compare_floats( weights['p2'] ,1/3).should.equal true
         Object.keys(weights).length.should.equal 3

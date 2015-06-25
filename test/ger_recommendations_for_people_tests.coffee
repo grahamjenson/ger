@@ -1,5 +1,22 @@
 ns = global.default_namespace
 
+describe 'recommending for a person', ->
+  it 'should recommend similar things', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.event(ns, 'p1','view','a', expires_at: tomorrow),
+        ger.event(ns, 'p2','view','a', expires_at: tomorrow),
+        ger.event(ns, 'p2','view','b', expires_at: tomorrow),
+      ])
+      .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 1}, filter_previous_actions: ['view']))
+      .then((recs) ->
+        console.log recs
+        recs = recs.recommendations
+        recs.length.should.equal 1
+        recs[0].thing.should.equal 'b'
+      )
+
 describe 'time_until_expiry', ->
   it 'should not return recommendations that will expire within time_until_expiry seconds', ->
     one_hour = 60*60

@@ -1,6 +1,6 @@
 ns = global.default_namespace
 
-describe 'recommending', ->
+describe 'recommending for a thing', ->
   it 'should recommend similar things', ->
     init_ger()
     .then (ger) ->
@@ -10,6 +10,7 @@ describe 'recommending', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
+        console.log JSON.stringify(recs, null,2)
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'
@@ -24,6 +25,7 @@ describe 'recommending', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
+        console.log JSON.stringify(recs, null,2)
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'
@@ -39,24 +41,32 @@ describe 'recommending', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
+        console.log JSON.stringify(recs, null,2)
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'
       )
 
-  it 'should recommend things that are coupled', ->
+
+
+  it 'should not just recommend the popular things', ->
     init_ger()
     .then (ger) ->
       bb.all([
         ger.event(ns, 'p1','view','a', expires_at: tomorrow),
         ger.event(ns, 'p1','view','b', expires_at: tomorrow),
         ger.event(ns, 'p2','view','a', expires_at: tomorrow),
-        ger.event(ns, 'p2','view','c', expires_at: tomorrow),
+        ger.event(ns, 'p2','view','b', expires_at: tomorrow),
+        ger.event(ns, 'p3','view','a', expires_at: tomorrow),
         ger.event(ns, 'p3','view','c', expires_at: tomorrow),
+        ger.event(ns, 'p4','view','c', expires_at: tomorrow),
+        ger.event(ns, 'p5','view','c', expires_at: tomorrow),
+        ger.event(ns, 'p6','view','c', expires_at: tomorrow),
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
-        # c is less coupled because people not looking at a are looking at c
+        console.log JSON.stringify(recs, null,2)
+        # a and b are very similar as they have 
         recs = recs.recommendations
         recs.length.should.equal 2
         recs[0].thing.should.equal 'b'
