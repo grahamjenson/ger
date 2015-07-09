@@ -11,7 +11,6 @@ describe 'recommending for a person', ->
       ])
       .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 1}, filter_previous_actions: ['view']))
       .then((recs) ->
-        console.log recs
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'

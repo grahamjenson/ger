@@ -178,7 +178,7 @@ class GER
   default_configuration: (configuration) ->
     _.defaults(configuration,
       minimum_history_required: 1,
-      history_search_size: 500
+      history_search_size: 100
       neighbourhood_size: 25,
       related_things_limit: 10
       recommendations_limit: 20,

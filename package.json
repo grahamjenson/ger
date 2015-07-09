@@ -19,19 +19,19 @@
         "pg-copy-streams": "0.3.0",
         "underscore": "1.7.0",
         "moment": "2.8.3",
-        "split": "0.3.0"
+        "split": "0.3.0",
+        "coffee-script": "1.7.1"
     },
     "devDependencies": {
         "q-io": "1.11.3",
         "mocha": "1.18.2",
-        "chai": "1.9.1",
-        "coffee-script": "1.7.1"
+        "chai": "1.9.1"
     },
     "scripts": {
         "test": "mocha"
     },
-    "main": "ger.coffee",
-    "version": "0.0.82",
+    "main": "ger.js",
+    "version": "0.0.83",
     "license": "MIT",
     "repository": {
         "type": "git",

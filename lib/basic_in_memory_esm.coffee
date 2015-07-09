@@ -93,9 +93,6 @@ class BasicInMemoryESM
 
 
 
-
-
-
   _recent_jaccard_distance: (namespace, column1, column2, v1, v2, action, days, now) ->
     recent_date = moment(now).subtract(days, 'days').toDate()
     search1 = {action: action, current_datetime: now}
@@ -160,6 +157,8 @@ class BasicInMemoryESM
       time_until_expiry: 0
       current_datetime: new Date()
     )
+    options.actions = actions
+
 
     all_events = []
     for v in values
