@@ -19,7 +19,7 @@ npm install ger
 In your javascript code, first require `ger`:
 
 ```javascript
-var g = require('../ger')
+var g = require('ger')
 ```
 
 Initialize an in memory Event Store Manager (ESM) and create a Good Enough Recommender (GER):
@@ -76,6 +76,10 @@ Lets put it all together:
 
 
 ```javascript
+var g = require('ger')
+var esm = new g.MemESM()
+var ger = new g.GER(esm);
+
 ger.initialize_namespace('movies')
 .then( function() {
   return ger.events([
