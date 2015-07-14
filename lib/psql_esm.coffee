@@ -450,14 +450,18 @@ class PSQLEventStoreManager
 
   remove_non_unique_events_for_people: (namespace, people) ->
     return bb.try( -> []) if people.length == 0
-    promises = (@remove_non_unique_events_for_person(namespace, person) for person in people)
-    bb.all(promises)
+    promise = bb.try(->)
+    for person in people
+      do (person) =>
+        promise = promise.then( => @remove_non_unique_events_for_person(namespace, person) )
+    
+    promise
 
   remove_non_unique_events_for_person: (namespace, person, limit=100) ->
-    bb.all([
-      @remove_non_unique_events_for_person_without_expiry(namespace, person, limit),
-      @remove_non_unique_events_for_person_with_expiry(namespace, person, limit),
-    ])
+    @remove_non_unique_events_for_person_without_expiry(namespace, person, limit)
+    .then( =>
+      @remove_non_unique_events_for_person_with_expiry(namespace, person, limit)
+    )
 
   remove_non_unique_events_for_person_with_expiry: (namespace, person, limit) ->
     bindings = {person: person}
@@ -548,10 +552,14 @@ class PSQLEventStoreManager
     return bb.try( -> []) if things.length == 0  
 
     #cut each action down to size
-    promises = (@truncate_thing_actions(namespace, thing, trunc_size, action) for thing in things for action in actions)
-    promises = _.flatten(promises)
-    bb.all(promises)
-    
+    promise = bb.try( ->)
+    for thing in things
+      for action in actions
+        do (thing, action) =>
+          promise = promise.then(=> @truncate_thing_actions(namespace, thing, trunc_size, action) )
+
+    promise
+
 
   truncate_thing_actions: (namespace, thing, trunc_size, action) ->
     bindings = {thing: thing, action: action}
@@ -568,9 +576,13 @@ class PSQLEventStoreManager
     return bb.try( -> []) if people.length == 0  
 
     #cut each action down to size
-    promises = (@truncate_person_actions(namespace, person, trunc_size, action) for person in people for action in actions)
-    promises = _.flatten(promises)
-    bb.all(promises)
+    promise = bb.try( ->)
+    for person in people
+      for action in actions
+        do (person, action) =>
+          promise = promise.then(=> @truncate_person_actions(namespace, person, trunc_size, action) )
+
+    promise
     
     
   truncate_person_actions: (namespace, person, trunc_size, action) ->

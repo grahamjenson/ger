@@ -10,7 +10,7 @@ describe 'recommending for a thing', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
-        console.log JSON.stringify(recs, null,2)
+        
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'
@@ -25,7 +25,7 @@ describe 'recommending for a thing', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
-        console.log JSON.stringify(recs, null,2)
+        
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'
@@ -41,7 +41,7 @@ describe 'recommending for a thing', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
-        console.log JSON.stringify(recs, null,2)
+        
         recs = recs.recommendations
         recs.length.should.equal 1
         recs[0].thing.should.equal 'b'
@@ -65,7 +65,7 @@ describe 'recommending for a thing', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
-        console.log JSON.stringify(recs, null,2)
+        
         # a and b are very similar as they have 
         recs = recs.recommendations
         recs.length.should.equal 2
