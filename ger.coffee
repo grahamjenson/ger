@@ -277,10 +277,10 @@ class GER
 
     @esm.pre_compact(namespace)
     .then( =>
-      promises = []
-      promises.push @esm.compact_people(namespace, options.compact_database_person_action_limit, options.actions)
-      promises.push @esm.compact_things(namespace, options.compact_database_thing_action_limit, options.actions)
-      bb.all(promises)
+      @esm.compact_people(namespace, options.compact_database_person_action_limit, options.actions)
+    )
+    .then( =>
+      @esm.compact_things(namespace, options.compact_database_thing_action_limit, options.actions)
     )
     .then( =>
       @esm.post_compact(namespace)
