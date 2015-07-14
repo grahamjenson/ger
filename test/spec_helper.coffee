@@ -1,7 +1,7 @@
 chai = require 'chai'
 should = chai.should()
 
-global._ = require 'underscore'
+global._ = require 'lodash'
 
 global.bb = require 'bluebird'
 bb.Promise.longStackTraces();

@@ -17,7 +17,7 @@
         "pg": "4.3.0",
         "rethinkdbdash": "neumino/rethinkdbdash#master",
         "pg-copy-streams": "0.3.0",
-        "underscore": "1.8.3",
+        "lodash": "3.9.3",
         "moment": "2.8.3",
         "split": "0.3.0",
         "coffee-script": "1.9.3"
@@ -31,7 +31,7 @@
         "test": "mocha"
     },
     "main": "ger.js",
-    "version": "0.0.85",
+    "version": "0.0.86",
     "license": "MIT",
     "repository": {
         "type": "git",

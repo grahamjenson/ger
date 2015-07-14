@@ -1,5 +1,5 @@
 bb = require 'bluebird'
-_ = require 'underscore'
+_ = require 'lodash'
 split = require 'split'
 
 moment = require 'moment'
@@ -306,16 +306,17 @@ class BasicInMemoryESM
     else if options.thing and options.action
       events = (e for t, e of thing_action_store[namespace]?[options.thing]?[options.action])
     else if options.person
-      events = _.flatten((e for t,e of ats for at, ats of person_action_store[namespace]?[options.person]))
+      events = (e for t,e of ats for at, ats of person_action_store[namespace]?[options.person])
     else if options.thing
-      events = _.flatten((e for t,e of ats for at, ats of thing_action_store[namespace]?[options.thing]))
+      events = (e for t,e of ats for at, ats of thing_action_store[namespace]?[options.thing])
     else if options.people
-      events = _.flatten((e for t,e of ats for at, ats of person_action_store[namespace]?[thth] for thth in options.people))
+      events = (e for t,e of ats for at, ats of person_action_store[namespace]?[thth] for thth in options.people)
     else if options.things
-      events = _.flatten((e for t,e of ats for at, ats of thing_action_store[namespace]?[thth] for thth in options.things))
+      events = (e for t,e of ats for at, ats of thing_action_store[namespace]?[thth] for thth in options.things)
     else
       events = (e for e in event_store[namespace])
     
+    events = _.flatten(events, true)
     events = (e for e in events when @_filter_event(e, options))
     events = _.sortBy(events, (x) -> - x.created_at.getTime())
 

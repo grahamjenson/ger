@@ -2,7 +2,7 @@ bb = require 'bluebird'
 fs = require 'fs'
 pg = require('pg');
 copyFrom = require('pg-copy-streams').from;
-_ = require 'underscore'
+_ = require 'lodash'
 
 Errors = require './errors'
 

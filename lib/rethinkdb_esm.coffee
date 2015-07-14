@@ -4,7 +4,7 @@ crypto = require 'crypto'
 moment = require 'moment'
 shasum = null
 split = require 'split'
-_ = require 'underscore'
+_ = require 'lodash'
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
 Errors = require './errors'

@@ -1,5 +1,5 @@
 bb = require 'bluebird'
-_ = require 'underscore'
+_ = require 'lodash'
 
 moment = require "moment"
 
@@ -46,6 +46,13 @@ class GER
       filtered_recs
     )
 
+  filter_similarities: (similarities) ->
+    ns = {}
+    for pt, weight of similarities
+      if weight != 0
+        ns[pt] = weight
+    ns
+    
   neighbourhood_confidence: (n_values ) ->
     #The more similar people found, the more we trust the recommendations
     #15 is a magic number chosen to make 10 around 50% and 50 around 95%
@@ -132,6 +139,8 @@ class GER
     )
     .spread( (neighbourhood, similarities, recommendations) =>
 
+      similarities = @filter_similarities(similarities)
+
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_recommendations(similarities, 'person', recommendations, configuration)
       recommendations_object.neighbourhood = similarities
@@ -157,6 +166,8 @@ class GER
       ])
     )
     .spread( (neighbourhood, similarities, recommendations) =>
+      
+      similarities = @filter_similarities(similarities)
 
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_recommendations(similarities, 'thing', recommendations, configuration)
