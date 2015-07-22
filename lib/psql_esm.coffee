@@ -397,7 +397,6 @@ class PSQLEventStoreManager
         temp[v] = {}
         for ac in actions
           temp[v][ac] = ((recent_event_weights[v][ac] * 4) + (event_weights[v][ac] * 1))/5.0
-      
       temp
     )
 

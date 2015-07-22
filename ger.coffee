@@ -94,6 +94,7 @@ class GER
 
   calculate_recommendations: (similarities, column, recommendations, configuration) ->
     thing_group = {}
+    
 
     for rec in recommendations
       if thing_group[rec.thing] == undefined
@@ -139,11 +140,9 @@ class GER
     )
     .spread( (neighbourhood, similarities, recommendations) =>
 
-      similarities = @filter_similarities(similarities)
-
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_recommendations(similarities, 'person', recommendations, configuration)
-      recommendations_object.neighbourhood = similarities
+      recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
       history_confidence = @history_confidence(person_history_count)
@@ -167,11 +166,9 @@ class GER
     )
     .spread( (neighbourhood, similarities, recommendations) =>
       
-      similarities = @filter_similarities(similarities)
-
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_recommendations(similarities, 'thing', recommendations, configuration)
-      recommendations_object.neighbourhood = similarities
+      recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
       history_confidence = @history_confidence(thing_history_count)

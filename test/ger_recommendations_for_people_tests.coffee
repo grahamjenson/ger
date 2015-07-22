@@ -16,6 +16,22 @@ describe 'recommending for a person', ->
         recs[0].thing.should.equal 'b'
       )
 
+  it 'should not return a weight of NaN if person similarity is 0', ->
+    init_ger()
+    .then (ger) ->
+      bb.all([
+        ger.event(ns, 'p1','view','a', expires_at: tomorrow),
+        ger.event(ns, 'p2','view','x', created_at: today, expires_at: tomorrow),
+        ger.event(ns, 'p2','view','a', created_at: yesterday, expires_at: tomorrow),
+      ])
+      .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 1}, filter_previous_actions: ['view'], history_search_size: 1))
+      .then((recs) ->
+        for r in recs.recommendations
+          throw "BAD WEIGHT #{r.weight}" if not _.isFinite(r.weight)
+        
+        throw "BAD Confidence #{recommendations_object.confidence}" if not _.isFinite(recs.confidence)
+      )
+
 describe 'time_until_expiry', ->
   it 'should not return recommendations that will expire within time_until_expiry seconds', ->
     one_hour = 60*60
