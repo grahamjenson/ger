@@ -31,7 +31,7 @@
         "test": "mocha"
     },
     "main": "ger.js",
-    "version": "0.0.86",
+    "version": "0.0.87",
     "license": "MIT",
     "repository": {
         "type": "git",
