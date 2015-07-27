@@ -309,110 +309,41 @@ class PSQLEventStoreManager
     @_recent_events(namespace, 'thing', actions, things, options)
 
 
-
-
-  jaccard_query: (s1,s2) ->
-    intersection = "(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float"
-    # case statement is needed for divide by zero problem
-    union = "(select (case count(*) when 0 then 1 else count(*) end) from ((#{s1}) UNION (#{s2})) as uni)::float"
-    
-    # dont put the name of the action in the sql stopping sql injection
-    "(#{intersection} / #{union})"
-
-  jaccard_distance_for_limit: (namespace, column1, column2, limit) ->
-    s1q = @_history(namespace, column1, column2, ':value').toString()
-    s2q = @_history(namespace, column1, column2, 't.cvalue').toString()
-
-    s1 = "select x.#{column2} from (#{s1q}) as x limit #{limit}"
-    s2 = "select x.#{column2} from (#{s2q}) as x limit #{limit}"
-    
-    "#{@jaccard_query(s1, s2)} as limit_distance"
-
-  jaccard_distance_for_recent: (namespace, column1, column2, limit, days_ago) ->
-    #TODO remove now
-    s1q = @_history(namespace, column1, column2, ':value').toString()
-    s2q = @_history(namespace, column1, column2, 't.cvalue').toString()
-
-    s1 = "select x.#{column2} from (#{s1q}) as x where 
-          x.created_at >= Date( :now ) - '#{days_ago} day'::INTERVAL 
-          order by x.created_at DESC limit #{limit}"
-    s2 = "select x.#{column2} from (#{s2q}) as x where 
-          x.created_at >= Date( :now ) - '#{days_ago} day'::INTERVAL 
-          order by x.created_at DESC limit #{limit}"
-
-    "#{@jaccard_query(s1, s2)} as recent_distance"
-  
-  get_jaccard_distances: (namespace, column1, column2, value, values, actions, limit = 500, days_ago=14, now = new Date())->
-    return bb.try(->[]) if values.length == 0
-
-    bindings = {value: value, now: now} 
-
-    limit_distance_query = @jaccard_distance_for_limit(namespace,column1, column2, limit)
-    recent_distance_query = @jaccard_distance_for_recent(namespace, column1, column2, limit, days_ago)
-
-    v_actions = []
-    for a, ai in actions
-      akey = "action_#{ai}"
-      bindings[akey] =  a
-      for v, vi in values
-        vkey = "value_#{vi}"
-        bindings[vkey] =  v
-        v_actions.push("( :#{vkey}, :#{akey} )")
-
-    v_actions = v_actions.join(', ')
-
-    query = "select cvalue, caction, #{limit_distance_query}, #{recent_distance_query} from (VALUES #{v_actions} ) AS t (cvalue, caction)"
-
-    @_knex.raw(query, bindings)
-    .then( (rows) ->
-      limit_distance = {}
-      recent_distance = {}
-      for row in rows.rows
-        recent_distance[row["cvalue"]] ||= {}
-        limit_distance[row["cvalue"]] ||= {}
-
-        limit_distance[row["cvalue"]][row["caction"]] = row["limit_distance"]
-        recent_distance[row["cvalue"]][row["caction"]] = row["recent_distance"]
-
-      [limit_distance, recent_distance]
-    )
-
-
-  _history: (namespace, column1, column2, value) ->
+  _history: (namespace, column1, column2, value, limit) ->
     @_knex("#{namespace}.events")
     .select(column2, "action").max('created_at as created_at')
     .groupBy(column2, "action")
     .orderByRaw("max(created_at) DESC")
     .whereRaw('created_at <= :now')
     .whereRaw("#{column1} = #{value}")
+    .limit(limit)
 
   cosine_query: (namespace, s1, s2) ->
-    numerator_1 = "(select \"#{namespace}\".mul(s1.weight::float) from (#{s1}) as s1)::float"
-    denominator_1 = "(select \"#{namespace}\".mul(s2.weight::float) from (#{s2}) as s2)::float"
+    numerator_1 = "(select (tbl1.weight * tbl2.weight) as weight from (#{s1}) tbl1 join (#{s2}) tbl2 on tbl1.value = tbl2.value)"
+    numerator_2 = "(select SUM(n1.weight) from (#{numerator_1}) as n1)"
+
+    denominator_1 = "(select SUM(power(s1.weight, 2.0)) from (#{s1}) as s1)"
+    denominator_2 = "(select SUM(power(s2.weight, 2.0)) from (#{s2}) as s2)"
     # numerator_2
     # numberator = "(#{numerator_1} * #{numerator_2})"
     # # case statement is needed for divide by zero problem
 
     # denominator = "( (|/ #{denominator_1}) *  )"
     
-    "( #{numerator_1} / #{denominator_1} )"
+    "(#{numerator_2} / ((|/ #{denominator_1}) * (|/ #{denominator_2})) )"
 
-  cosine_distance: (namespace, column1, column2, limit, actions) ->
-    s1q = @_history(namespace, column1, column2, ':value').toString()
-    s2q = @_history(namespace, column1, column2, 't.cvalue').toString()
+  cosine_distance: (namespace, column1, column2, limit, a_values) ->
+    s1q = @_history(namespace, column1, column2, ':value', limit).toString()
+    s2q = @_history(namespace, column1, column2, 't.cvalue', limit).toString()
 
-    a_values = [] 
-    for a, ai in actions
-      akey = "action_#{ai}"
-      wkey = "weight_#{ai}"
-      a_values.push("( :#{akey}, :#{wkey} )")
 
-    a_values = a_values.join(', ')
+    weighted_actions = "select a.weight::float from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
 
-    weighted_actions = "select a.weight from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
+    s1_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x"
+    s2_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x"
 
-    s1 = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x limit #{limit}"
-    s2 = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x limit #{limit}"
+    s1 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s1_weighted}) as ws group by ws.#{column2}"
+    s2 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s2_weighted}) as ws group by ws.#{column2}"
     
     "#{@cosine_query(namespace, s1, s2)} as cosine_distance"
 
@@ -425,13 +356,15 @@ class PSQLEventStoreManager
       #making it easier to work with actions
       action_list.push {action: action, weight, weight}
 
-    cosine_distance = @cosine_distance(namespace, column1, column2, limit, action_list)
-
+    a_values = [] 
     for a, ai in action_list 
       akey = "action_#{ai}"
       wkey = "weight_#{ai}"
       bindings[akey] = a.action
       bindings[wkey] = a.weight
+      a_values.push("( :#{akey}, :#{wkey} )")
+    
+    a_values = a_values.join(', ')
 
     v_values = []
 
@@ -441,6 +374,9 @@ class PSQLEventStoreManager
       v_values.push("( :#{vkey} )")
 
     v_values = v_values.join(', ')
+
+
+    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values)      
 
     query = "select cvalue, #{cosine_distance} from (VALUES #{v_values} ) AS t (cvalue)"
 

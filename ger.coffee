@@ -207,7 +207,7 @@ class GER
 
   recommendations_for_thing: (namespace, thing, configuration = {}) ->
     configuration = @default_configuration(configuration)
-    actions = @normalize_actions(configuration.actions) 
+    actions = configuration.actions
 
     #first a check or two
     #TODO minimum thing history count
@@ -222,7 +222,7 @@ class GER
 
   recommendations_for_person: (namespace, person, configuration = {}) ->
     configuration = @default_configuration(configuration)
-    actions = @normalize_actions(configuration.actions)
+    actions = configuration.actions
 
     #first a check or two
     @find_events(namespace, actions: Object.keys(actions), person: person, current_datetime: configuration.current_datetime, size: 100)
