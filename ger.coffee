@@ -181,14 +181,14 @@ class GER
     )
     # weight people by the action weight
     # find things that those 
-    # @recent_recommendations_by_people(namespace, action, people.concat(person), configuration.related_things_limit)
+    # @recent_recommendations_by_people(namespace, action, people.concat(person), configuration.recommendations_per_neighbour)
 
   default_configuration: (configuration) ->
     _.defaults(configuration,
       minimum_history_required: 1,
       history_search_size: 100
       neighbourhood_size: 25,
-      related_things_limit: 10
+      recommendations_per_neighbour: 10
       recent_event_days: 14,
       filter_previous_actions: [],
       time_until_expiry: 0

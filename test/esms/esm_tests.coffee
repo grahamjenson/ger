@@ -541,7 +541,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t2', expires_at: tomorrow),
             esm.add_event(ns,'p2','a','t2', expires_at: tomorrow)
           ])
-          .then( -> esm.recent_recommendations_by_people(ns, 'a',['p1','p2'], {related_things_limit: 1}))
+          .then( -> esm.recent_recommendations_by_people(ns, 'a',['p1','p2'], {recommendations_per_neighbour: 1}))
           .then( (people_recommendations) ->
             people_recommendations.length.should.equal 2
           )

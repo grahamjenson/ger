@@ -153,7 +153,7 @@ class BasicInMemoryESM
     return bb.try(->[]) if values.length == 0 || actions.length == 0
     
     options = _.defaults(options,
-      related_things_limit: 10
+      recommendations_per_neighbour: 10
       time_until_expiry: 0
       current_datetime: new Date()
     )
@@ -165,7 +165,7 @@ class BasicInMemoryESM
       query_hash = {actions: actions}
       query_hash[column1] = v
       
-      events = @_find_events(namespace, _.extend(query_hash, options))[...options.related_things_limit]
+      events = @_find_events(namespace, _.extend(query_hash, options))[...options.recommendations_per_neighbour]
       all_events = all_events.concat events
 
     group_by_person_thing = {}

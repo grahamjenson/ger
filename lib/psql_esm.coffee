@@ -267,7 +267,7 @@ class PSQLEventStoreManager
     return bb.try(->[]) if values.length == 0 || actions.length == 0
 
     options = _.defaults(options,
-      related_things_limit: 10
+      recommendations_per_neighbour: 10
       time_until_expiry: 0
       current_datetime: new Date()
     )
@@ -288,7 +288,7 @@ class PSQLEventStoreManager
       key = "value_#{i}"
       bindings[key] = v
       ql.push "(select person, thing, MAX(created_at) as last_actioned_at, MAX(expires_at) as last_expires_at from \"#{namespace}\".events
-          where created_at <= :now and action in (#{action_values}) and #{column1} = :#{key} and (expires_at > :expires_after ) group by person, thing order by last_actioned_at DESC limit #{options.related_things_limit})"
+          where created_at <= :now and action in (#{action_values}) and #{column1} = :#{key} and (expires_at > :expires_after ) group by person, thing order by last_actioned_at DESC limit #{options.recommendations_per_neighbour})"
 
     query = ql.join( " UNION ")
     query += " order by last_actioned_at DESC" if ql.length > 1

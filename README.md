@@ -191,7 +191,7 @@ GER lets you set some values to customize recommendations generation using a `co
 | `minimum_history_required`  |    `0` 
 | `history_search_size`       |    `100` 
 | `neighbourhood_size`        |    `25` 
-| `related_things_limit`      |    `10`
+| `recommendations_per_neighbour`      |    `10`
 | `filter_previous_actions`   |    `[]`
 | `recent_event_days`         |    `14` 
 | `time_until_expiry`         |    `0`
@@ -202,7 +202,7 @@ GER lets you set some values to customize recommendations generation using a `co
 3. `minimum_history_required` is the minimum amount of events a person has to have to even bother generating recommendations. It is good to stop low confidence recommendations being generated.
 4. `history_search_size` the amount of events in the past that are used to search for similar people. This value has the highest impact on performance but past a certain point has no (or negative) impact on recommendations.
 5. `neighbourhood_size` the number of similar people (or things) that are searched for. This value has a significant performance impact, and increasing it past a point will also gain diminishing returns.
-6. `related_things_limit` the number of recommendations each similar person can offer. This is to stop a situation where a single highly similar person provides all recommendations.
+6. `recommendations_per_neighbour` the number of recommendations each similar person can offer. This is to stop a situation where a single highly similar person provides all recommendations.
 7. `filter_previous_actions` it removes recommendations that the person being recommended already has in their history. For example, if a person has already liked `xmen`, then if `filter_previous_actions` is `["liked"]` they will not be recommended `xmen`.
 8. `recent_event_days` the number of days that an event is seen as recent. Recent events are treated as more important in determining similarity.
 9. `time_until_expiry` is the number (in seconds) from `now()` where recommendations that expire will be removed. For example, recommendations on a website might be valid for minutes, where in a email you might recommendations valid for days.
@@ -219,7 +219,7 @@ ger.recommendations_for_person('movies', 'alice', {
   "minimum_history_required": 5,
   "history_search_size": 50,
   "neighbourhood_size": 20,
-  "related_things_limit": 10,
+  "recommendations_per_neighbour": 10,
   "filter_previous_actions": ["watch"],
   "recent_event_days": 10,
   "time_until_expiry": 180

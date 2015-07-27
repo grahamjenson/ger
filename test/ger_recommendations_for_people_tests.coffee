@@ -262,7 +262,7 @@ describe "weights", ->
       )
 
 describe "person exploits,", ->
-  it 'related_things_limit should stop one persons recommendations eliminating the other recommendations', ->
+  it 'recommendations_per_neighbour should stop one persons recommendations eliminating the other recommendations', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -278,7 +278,7 @@ describe "person exploits,", ->
         ger.event(ns, 'p3','buy','m', created_at: moment().subtract(2, 'hours').toDate(), expires_at: tomorrow),
         ger.event(ns, 'p3','buy','n', created_at: moment().subtract(1, 'hours').toDate(), expires_at: tomorrow)
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1', related_things_limit: 1, actions: {buy: 5, view: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', recommendations_per_neighbour: 1, actions: {buy: 5, view: 1}))
       .then((recs) ->
         item_weights = recs.recommendations
         item_weights.length.should.equal 2
