@@ -187,7 +187,6 @@ GER lets you set some values to customize recommendations generation using a `co
 
 | Key                         |   Default 
 |---                          |---                
-| `recommendations_limit`     |    `20` 
 | `actions`                   |    `{}` 
 | `minimum_history_required`  |    `0` 
 | `history_search_size`       |    `100` 
@@ -199,7 +198,6 @@ GER lets you set some values to customize recommendations generation using a `co
 | `current_datetime`          |    `now()`
 
 
-1. `recommendations_limit` is the number of wanted recommendations.
 2. `actions` is an object where the keys are actions names, and the values are action weights that represent the importance of the action
 3. `minimum_history_required` is the minimum amount of events a person has to have to even bother generating recommendations. It is good to stop low confidence recommendations being generated.
 4. `history_search_size` the amount of events in the past that are used to search for similar people. This value has the highest impact on performance but past a certain point has no (or negative) impact on recommendations.
@@ -214,7 +212,6 @@ For example, generating recommendations with a configuration from GER:
 
 ```javascript
 ger.recommendations_for_person('movies', 'alice', {
-  "recommendations_limit": 20,
   "actions": {
     "like": 1,
     "watch": 5

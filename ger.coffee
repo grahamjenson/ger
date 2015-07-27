@@ -119,7 +119,7 @@ class GER
       recommendations.push rec
 
     recommendations = recommendations.sort((x, y) -> y.weight - x.weight)
-    recommendations[...configuration.recommendations_limit]
+    recommendations
 
   generate_recommendations_for_person: (namespace, person, actions, person_history_count, configuration) ->
 
@@ -189,7 +189,6 @@ class GER
       history_search_size: 100
       neighbourhood_size: 25,
       related_things_limit: 10
-      recommendations_limit: 20,
       recent_event_days: 14,
       filter_previous_actions: [],
       time_until_expiry: 0

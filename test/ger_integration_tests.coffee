@@ -251,10 +251,8 @@ describe 'recommendations_for_person', ->
         ger.event(ns,'p3','view','a'),
         ger.event(ns,'p3','view','d'),
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1', {recommendations_limit: 1, actions: {view:1, buy:1}}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', {actions: {view:1, buy:1}}))
       .then((recommendations) ->
-        
-        recommendations.recommendations.length.should.equal 1
 
         recommendations.neighbourhood['p2'].should.exist
       )
