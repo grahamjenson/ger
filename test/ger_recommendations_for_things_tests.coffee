@@ -1,20 +1,6 @@
 ns = global.default_namespace
 
 describe 'recommending for a thing', ->
-  it 'should recommend similar things', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.event(ns, 'p1','view','a', expires_at: tomorrow),
-        ger.event(ns, 'p1','view','b', expires_at: tomorrow),
-      ])
-      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
-      .then((recs) ->
-        
-        recs = recs.recommendations
-        recs.length.should.equal 1
-        recs[0].thing.should.equal 'b'
-      )
 
   it 'should not recommend the same thing', ->
     init_ger()
@@ -23,7 +9,7 @@ describe 'recommending for a thing', ->
         ger.event(ns, 'p1','view','a', expires_at: tomorrow),
         ger.event(ns, 'p1','view','b', expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
+      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 2}))
       .then((recs) ->
         
         recs = recs.recommendations

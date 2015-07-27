@@ -33,10 +33,14 @@ init_events_table = (knex, schema) ->
     i2 = knex.raw("create index idx_thing_created_at_#{schema}_events on \"#{schema}\".events (thing, action, created_at DESC)")
     bb.all([i1,i2])
   )
+  .then( ->
+    knex.raw("CREATE AGGREGATE \"#{schema}\".mul(double precision) ( SFUNC = float8mul, STYPE=double precision )")
+  )
 
 #CLASS ACTIONS
 drop_tables = (knex, schema = 'public') ->
   knex.schema.dropTableIfExists("#{schema}.events")
+  .then( -> knex.raw("DROP AGGREGATE \"#{schema}\".mul(double precision)"))
   .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS \"#{schema}\""))
   
 init_tables = (knex, schema = 'public') ->
@@ -97,7 +101,7 @@ class PSQLEventStoreManager
   add_events_to_namespace: (namespace, events) ->
     @_knex("#{namespace}.events").insert(events)
     .catch( (error) ->
-      console.log error.message
+      # console.log error.message
       if error.message.indexOf("relation") > -1 and error.message.indexOf(namespace) > -1 and error.message.indexOf("does not exist") > -1
         throw new Errors.NamespaceDoestNotExist()
     )
@@ -305,14 +309,7 @@ class PSQLEventStoreManager
     @_recent_events(namespace, 'thing', actions, things, options)
 
 
-  _history: (namespace, column1, column2, value) ->
-    @_knex("#{namespace}.events")
-    .select(column2).max('created_at as created_at')
-    .groupBy(column2)
-    .orderByRaw("max(created_at) DESC")
-    .whereRaw('created_at <= :now')
-    .whereRaw("action = t.caction")
-    .whereRaw("#{column1} = #{value}")
+
 
   jaccard_query: (s1,s2) ->
     intersection = "(select count(*) from ((#{s1}) INTERSECT (#{s2})) as inter)::float"
@@ -380,6 +377,86 @@ class PSQLEventStoreManager
       [limit_distance, recent_distance]
     )
 
+
+  _history: (namespace, column1, column2, value) ->
+    @_knex("#{namespace}.events")
+    .select(column2, "action").max('created_at as created_at')
+    .groupBy(column2, "action")
+    .orderByRaw("max(created_at) DESC")
+    .whereRaw('created_at <= :now')
+    .whereRaw("#{column1} = #{value}")
+
+  cosine_query: (namespace, s1, s2) ->
+    numerator_1 = "(select \"#{namespace}\".mul(s1.weight::float) from (#{s1}) as s1)::float"
+    denominator_1 = "(select \"#{namespace}\".mul(s2.weight::float) from (#{s2}) as s2)::float"
+    # numerator_2
+    # numberator = "(#{numerator_1} * #{numerator_2})"
+    # # case statement is needed for divide by zero problem
+
+    # denominator = "( (|/ #{denominator_1}) *  )"
+    
+    "( #{numerator_1} / #{denominator_1} )"
+
+  cosine_distance: (namespace, column1, column2, limit, actions) ->
+    s1q = @_history(namespace, column1, column2, ':value').toString()
+    s2q = @_history(namespace, column1, column2, 't.cvalue').toString()
+
+    a_values = [] 
+    for a, ai in actions
+      akey = "action_#{ai}"
+      wkey = "weight_#{ai}"
+      a_values.push("( :#{akey}, :#{wkey} )")
+
+    a_values = a_values.join(', ')
+
+    weighted_actions = "select a.weight from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
+
+    s1 = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x limit #{limit}"
+    s2 = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x limit #{limit}"
+    
+    "#{@cosine_query(namespace, s1, s2)} as cosine_distance"
+
+  get_cosine_distances: (namespace, column1, column2, value, values, actions, limit, red, now) ->
+    return bb.try(->[]) if values.length == 0
+    bindings = {value: value, now: now} 
+
+    action_list = []
+    for action, weight of actions
+      #making it easier to work with actions
+      action_list.push {action: action, weight, weight}
+
+    cosine_distance = @cosine_distance(namespace, column1, column2, limit, action_list)
+
+    for a, ai in action_list 
+      akey = "action_#{ai}"
+      wkey = "weight_#{ai}"
+      bindings[akey] = a.action
+      bindings[wkey] = a.weight
+
+    v_values = []
+
+    for v, vi in values
+      vkey = "value_#{vi}"
+      bindings[vkey] =  v
+      v_values.push("( :#{vkey} )")
+
+    v_values = v_values.join(', ')
+
+    query = "select cvalue, #{cosine_distance} from (VALUES #{v_values} ) AS t (cvalue)"
+
+    # console.log "WEURY BINDINGS", query, bindings
+    # console.log  @_knex.raw(query, bindings).toString()
+
+    @_knex.raw(query, bindings)
+    .then( (rows) ->
+      # console.log "ROWS", rows
+      similarities = {}
+      for row in rows.rows
+        similarities[row.cvalue] = row.cosine_distance
+      # console.log similarities
+      similarities
+    )
+
   _similarities: (namespace, column1, column2, value, values, actions, options={}) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
     options = _.defaults(options,
@@ -388,17 +465,7 @@ class PSQLEventStoreManager
       current_datetime: new Date()
     )
 
-    #TODO fix this, it double counts newer things [now-recentdate] then [now-limit] should be [now-recentdate] then [recentdate-limit]
-    @get_jaccard_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.recent_event_days, options.current_datetime)
-    .spread( (event_weights, recent_event_weights) =>
-      temp = {}
-      #These weights start at a rate of 2:1 so to get to 80:20 we need 4:1*2:1 this could be wrong -- graham
-      for v in values
-        temp[v] = {}
-        for ac in actions
-          temp[v][ac] = ((recent_event_weights[v][ac] * 4) + (event_weights[v][ac] * 1))/5.0
-      temp
-    )
+    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.recent_event_days, options.current_datetime)
 
   calculate_similarities_from_thing: (namespace, thing, things, actions, options={}) ->
     @_similarities(namespace, 'thing', 'person', thing, things, actions, options)

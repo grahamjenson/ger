@@ -20,16 +20,14 @@ class GER
 
 
   calculate_similarities_from_thing: (namespace, thing, things, actions, configuration) ->
-    @esm.calculate_similarities_from_thing(namespace, thing, things, Object.keys(actions), _.clone(configuration))
+    @esm.calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
     .then( (similarities) =>
-      similarities = @_normalise_similarities(similarities, actions)
       similarities
     )
 
   calculate_similarities_from_person: (namespace, person, people, actions, configuration) ->
-    @esm.calculate_similarities_from_person(namespace, person, people, Object.keys(actions), _.clone(configuration))
+    @esm.calculate_similarities_from_person(namespace, person, people, actions, _.clone(configuration))
     .then( (similarities) =>
-      similarities = @_normalise_similarities(similarities, actions)
       similarities[person] = 1 #manually add person to weights
       similarities
     )
@@ -139,7 +137,6 @@ class GER
       ])
     )
     .spread( (neighbourhood, similarities, recommendations) =>
-
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_recommendations(similarities, 'person', recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
@@ -186,10 +183,9 @@ class GER
   default_configuration: (configuration) ->
     _.defaults(configuration,
       minimum_history_required: 1,
-      history_search_size: 100
+      history_search_sizes: 100
       neighbourhood_size: 25,
       recommendations_per_neighbour: 10
-      recent_event_days: 14,
       filter_previous_actions: [],
       time_until_expiry: 0
       actions: {},

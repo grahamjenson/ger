@@ -1,6 +1,7 @@
 ns = global.default_namespace
 
 describe 'recommending for a person', ->
+
   it 'should recommend similar things', ->
     init_ger()
     .then (ger) ->
@@ -9,7 +10,7 @@ describe 'recommending for a person', ->
         ger.event(ns, 'p2','view','a', expires_at: tomorrow),
         ger.event(ns, 'p2','view','b', expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 1}, filter_previous_actions: ['view']))
+      .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 3, like: 1}, filter_previous_actions: ['view']))
       .then((recs) ->
         recs = recs.recommendations
         recs.length.should.equal 1
