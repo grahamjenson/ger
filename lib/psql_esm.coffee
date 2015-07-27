@@ -40,7 +40,7 @@ init_events_table = (knex, schema) ->
 #CLASS ACTIONS
 drop_tables = (knex, schema = 'public') ->
   knex.schema.dropTableIfExists("#{schema}.events")
-  .then( -> knex.raw("DROP AGGREGATE \"#{schema}\".mul(double precision)"))
+  .then( -> knex.raw("DROP AGGREGATE IF EXISTS \"#{schema}\".mul(double precision)"))
   .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS \"#{schema}\""))
   
 init_tables = (knex, schema = 'public') ->
