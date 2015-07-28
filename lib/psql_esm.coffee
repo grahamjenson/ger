@@ -33,14 +33,10 @@ init_events_table = (knex, schema) ->
     i2 = knex.raw("create index idx_thing_created_at_#{schema}_events on \"#{schema}\".events (thing, action, created_at DESC)")
     bb.all([i1,i2])
   )
-  .then( ->
-    knex.raw("CREATE AGGREGATE \"#{schema}\".mul(double precision) ( SFUNC = float8mul, STYPE=double precision )")
-  )
 
 #CLASS ACTIONS
 drop_tables = (knex, schema = 'public') ->
   knex.schema.dropTableIfExists("#{schema}.events")
-  .then( -> knex.raw("DROP AGGREGATE IF EXISTS \"#{schema}\".mul(double precision)"))
   .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS \"#{schema}\""))
   
 init_tables = (knex, schema = 'public') ->
@@ -329,8 +325,8 @@ class PSQLEventStoreManager
     # # case statement is needed for divide by zero problem
 
     # denominator = "( (|/ #{denominator_1}) *  )"
-    
-    "(#{numerator_2} / ((|/ #{denominator_1}) * (|/ #{denominator_2})) )"
+    # if null return 0
+    "COALESCE( (#{numerator_2} / ((|/ #{denominator_1}) * (|/ #{denominator_2})) ), 0)"
 
   cosine_distance: (namespace, column1, column2, limit, a_values) ->
     s1q = @_history(namespace, column1, column2, ':value', limit).toString()
@@ -341,6 +337,11 @@ class PSQLEventStoreManager
 
     s1_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x"
     s2_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x"
+
+    # There are two options here, either select max value, or select most recent.
+    # This might be a configuration in the future
+    # e.g. if a person purchases a thing, then views it the most recent action is wrong
+    # e.g. if a person gives something a 5 star rating then changes it to 1 star, the max value is wrong
 
     s1 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s1_weighted}) as ws group by ws.#{column2}"
     s2 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s2_weighted}) as ws group by ws.#{column2}"

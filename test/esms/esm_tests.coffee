@@ -105,9 +105,9 @@ esm_tests = (ESM) ->
 
             esm.add_event(ns,'p2','a','t3')
           ])
-          .then( -> esm.calculate_similarities_from_thing(ns, 't1',['t2','t3'],['a']))
+          .then( -> esm.calculate_similarities_from_thing(ns, 't1',['t2','t3'],{a: 1}))
           .then( (similarities) ->
-            similarities['t3']['a'].should.be.lessThan(similarities['t2']['a'])
+            similarities['t3'].should.be.lessThan(similarities['t2'])
           )
 
     describe '#person_neighbourhood' , ->
@@ -251,28 +251,31 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p3','a','t1')
             esm.add_event(ns,'p3','a','t3')
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],['a']))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{a: 1}))
           .then( (similarities) ->
-            similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+            similarities['p3'].should.be.lessThan(similarities['p2'])
           )
 
       it 'should handle multiple actions', ->
+        #example taken from http://infolab.stanford.edu/~ullman/mmds/ch9.pdf
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
-            esm.add_event(ns,'p1','a','t1')
-            esm.add_event(ns,'p1','b','t2')
+            esm.add_event(ns,'A','r4','HP1')
+            esm.add_event(ns,'A','r5','TW')
+            esm.add_event(ns,'A','r1','SW1')
 
-            esm.add_event(ns,'p2','a','t1')
-            esm.add_event(ns,'p2','b','t2')
+            esm.add_event(ns,'B','r5','HP1')
+            esm.add_event(ns,'B','r5','HP2')
+            esm.add_event(ns,'B','r4','HP3')
 
-            esm.add_event(ns,'p3','a','t1')
-            esm.add_event(ns,'p3','b','t3')
+            esm.add_event(ns,'C','r2','TW')
+            esm.add_event(ns,'C','r4','SW1')
+            esm.add_event(ns,'C','r5','SW2')
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],['a','b']))
+          .then( -> esm.calculate_similarities_from_person(ns, 'A',['B','C'], {r1: -2, r2: -1, r3: 0, r4: 1, r5: 2}))
           .then( (similarities) ->
-            similarities['p3']['b'].should.be.lessThan(similarities['p2']['b'])
-            similarities['p3']['a'].should.be.equal(similarities['p2']['a'])
+            similarities['C'].should.be.lessThan(similarities['B'])
           )
 
       it 'should calculate the similarity between a person and a set of people for a list of actions', ->
@@ -282,9 +285,9 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1'),
             esm.add_event(ns,'p2','a','t1')
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'],['a']))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'],{a: 1}))
           .then( (similarities) ->
-            similarities['p2']['a'].should.exist
+            similarities['p2'].should.exist
           )
 
       it 'more should be able to set the current_datetime', ->
@@ -298,14 +301,14 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p3','a','t1')
           ])
           .then( -> 
-            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],['a'], current_datetime: yesterday)
+            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{a: 1}, current_datetime: yesterday)
           ) 
           .then( (similarities) ->
-            similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
-            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],['a'])
+            similarities['p3'].should.be.lessThan(similarities['p2'])
+            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{a: 1})
           )
           .then( (similarities) ->
-            similarities['p3']['a'].should.equal(similarities['p2']['a'])
+            similarities['p3'].should.equal(similarities['p2'])
           )
 
       describe "recent events", ->
@@ -318,9 +321,9 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5 ))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}, recent_event_days: 5 ))
             .then( (similarities) ->
-              similarities['p3']['a'].should.be.lessThan(similarities['p2']['a'])
+              similarities['p3'].should.be.lessThan(similarities['p2'])
             )
 
         it 'should be ale to set current_datetime', ->
@@ -332,9 +335,9 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], recent_event_days: 5, current_datetime: moment().subtract(3, 'days')))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}, recent_event_days: 5, current_datetime: moment().subtract(3, 'days')))
             .then( (similarities) ->
-              similarities['p3']['a'].should.equal(similarities['p2']['a'])
+              similarities['p3'].should.equal(similarities['p2'])
             )
 
       it 'should have a same similarity if histories are inversed', ->
@@ -347,9 +350,9 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(10, 'days')),
             esm.add_event(ns,'p3','a','t2', created_at: new Date())
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a'], { recent_event_days: 5 }))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}, { recent_event_days: 5 }))
           .then( (similarities) ->
-            similarities['p3']['a'].should.equal similarities['p2']['a']
+            similarities['p3'].should.equal similarities['p2']
           )
 
       it 'should not be effected by having same events (through add_event)', ->
@@ -361,9 +364,9 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p3','a','t1')
             esm.add_event(ns,'p3','a','t1')
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a']))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}))
           .then( (similarities) ->
-            similarities['p2']['a'].should.equal similarities['p3']['a']
+            similarities['p2'].should.equal similarities['p3']
           )
 
       it 'should not be effected by having same events (through bootstrap)', ->
@@ -376,9 +379,9 @@ esm_tests = (ESM) ->
           rs.push('p3,a,t1,2013-01-01,\n');
           rs.push(null);
           esm.bootstrap(ns, rs)
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],['a']))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}))
           .then( (similarities) ->
-            similarities['p2']['a'].should.equal similarities['p3']['a']
+            similarities['p2'].should.equal similarities['p3']
           )
 
       it 'should not be effected by having bad names', ->
@@ -388,9 +391,9 @@ esm_tests = (ESM) ->
             esm.add_event(ns,"'p\n,1};","v'i\new","'a\n;"),
             esm.add_event(ns,"'p\n2};","v'i\new","'a\n;")
           ])
-          .then(-> esm.calculate_similarities_from_person(ns, "'p\n,1};",["'p\n2};"], ["v'i\new"]))
+          .then(-> esm.calculate_similarities_from_person(ns, "'p\n,1};",["'p\n2};"], {"v'i\new": 1}))
           .then((similarities) ->
-            similarities["'p\n2};"]["v'i\new"].should.be.greaterThan(0)
+            similarities["'p\n2};"].should.be.greaterThan(0)
           )
 
     describe '#recent_recommendations_for_things', ->
