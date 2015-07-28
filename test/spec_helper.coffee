@@ -30,6 +30,9 @@ global.esms = [{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemo
 
 global.default_namespace = 'default'
 
+global.last_week = moment().subtract(7, 'days')
+global.three_days_ago = moment().subtract(2, 'days')
+global.two_days_ago = moment().subtract(2, 'days')
 global.yesterday = moment().subtract(1, 'days')
 global.today = moment()
 global.tomorrow = moment().add(1, 'days')

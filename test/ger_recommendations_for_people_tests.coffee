@@ -56,7 +56,7 @@ describe 'time_until_expiry', ->
       .then((recs) ->
         recs = recs.recommendations
         recs.length.should.equal 2
-        sorted_recs = [recs[0].thing, recs[1].thing]
+        sorted_recs = [recs[0].thing, recs[1].thing].sort()
         sorted_recs[0].should.equal 'y'
         sorted_recs[1].should.equal 'z'
       )
@@ -117,7 +117,7 @@ describe "confidence", ->
         ger.event(ns, 'p1','action1','a', expires_at: tomorrow),
         ger.event(ns, 'p2','action1','a', expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1', 'action1', actions: {action1: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', actions: {action1: 1}))
       .then((similar_people) ->
         similar_people.confidence.should.exist
       )
@@ -128,7 +128,7 @@ describe "confidence", ->
       bb.all([
         ger.event(ns, 'p1','action1','a', expires_at: tomorrow)
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1', 'action1', actions: {action1: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', actions: {action1: 1}))
       .then((similar_people) ->
         similar_people.confidence.should.equal 0
       )
@@ -243,24 +243,30 @@ describe "weights", ->
         item_weights[1].thing.should.equal 'c'
       )
 
-  it 'should not use actions with 0 or negative weights', ->
+  it 'should negative weights should reduce recommended item', ->
     init_ger()
     .then (ger) ->
       bb.all([
-        ger.event(ns, 'p1','action1','a'),
-        ger.event(ns, 'p2','action1','a'),
-        ger.event(ns, 'p2','buy','x', expires_at: tomorrow),
+        ger.event(ns, 'p1','likes','a'),
+        ger.event(ns, 'p1','likes','b'),
 
-        ger.event(ns, 'p1','neg_action','a'),
-        ger.event(ns, 'p3','neg_action','a'),
-        ger.event(ns, 'p3','buy','y', expires_at: tomorrow),
+        ger.event(ns, 'p2','likes','a'),
+        ger.event(ns, 'p2','hates','b'),
+        ger.event(ns, 'p2','likes','x', expires_at: tomorrow),
+
+        ger.event(ns, 'p3','likes','a'),
+        ger.event(ns, 'p3','likes','b'),
+        ger.event(ns, 'p3','likes','y', expires_at: tomorrow),
 
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1', actions: {action1: 1, neg_action: 0, buy: 1}))
+      .then(-> ger.recommendations_for_person(ns, 'p1', actions: {likes: 1, hates: -1}))
       .then((recs) ->
+
         item_weights = recs.recommendations
-        item_weights.length.should.equal 1
-        item_weights[0].thing.should.equal 'x'
+        item_weights.length.should.equal 2
+        item_weights[0].thing.should.equal 'y'
+        item_weights[1].thing.should.equal 'x'
+        item_weights[1].weight.should.be.lessThan item_weights[0].weight
       )
 
 describe "person exploits,", ->

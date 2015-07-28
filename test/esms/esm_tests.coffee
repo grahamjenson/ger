@@ -238,6 +238,21 @@ esm_tests = (ESM) ->
           )
 
     describe '#calculate_similarities_from_person', ->
+      it 'handle weights of 0 and people with no hisotry, and people with no similar history', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1')
+            esm.add_event(ns,'p2','a','t1')
+            esm.add_event(ns,'p4','a','t2')
+          ])
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3', 'p4'],{a: 0}))
+          .then( (similarities) ->
+            similarities['p2'].should.equal 0
+            similarities['p3'].should.equal 0
+            similarities['p4'].should.equal 0
+          )
+
       it 'more similar histories should be greater', ->
         init_esm(ESM, ns)
         .then (esm) ->
@@ -254,6 +269,23 @@ esm_tests = (ESM) ->
           .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{a: 1}))
           .then( (similarities) ->
             similarities['p3'].should.be.lessThan(similarities['p2'])
+          )
+
+      it 'should weight the actions', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1')
+            esm.add_event(ns,'p1','buy','t2')
+
+            esm.add_event(ns,'p2','view','t1')
+
+            esm.add_event(ns,'p3','buy','t2')
+          ])
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{view: 1, buy: 5}))
+          .then( (similarities) ->
+            console.log similarities
+            similarities['p3'].should.be.greaterThan(similarities['p2'])
           )
 
       it 'should limit based on history_search_size (ordered by created_at)', ->
@@ -322,70 +354,78 @@ esm_tests = (ESM) ->
             similarities['p2'].should.exist
           )
 
-      it 'more should be able to set the current_datetime', ->
+      it 'should be ale to set current_datetime', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: yesterday)
+            esm.add_event(ns,'p1','view','t2', created_at: today),
+            esm.add_event(ns,'p1','view','t1', created_at: three_days_ago),
 
-            esm.add_event(ns,'p2','a','t1', created_at: yesterday)
+            esm.add_event(ns,'p2','view','t2', created_at: today),
+            esm.add_event(ns,'p2','view','t1', created_at: three_days_ago),
 
-            esm.add_event(ns,'p3','a','t1')
+            esm.add_event(ns,'p3','view','t1', created_at: three_days_ago),
           ])
           .then( -> 
-            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{a: 1}, current_datetime: yesterday)
-          ) 
-          .then( (similarities) ->
-            similarities['p3'].should.be.lessThan(similarities['p2'])
-            esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{a: 1})
+            esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], 
+              {view: 1}, { current_datetime: two_days_ago}
+            )
           )
           .then( (similarities) ->
             similarities['p3'].should.equal(similarities['p2'])
+            esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], 
+              {view: 1}
+            )
+          )
+          .then( (similarities) ->
+            similarities['p2'].should.be.greaterThan(similarities['p3'])
           )
 
       describe "recent events", ->
-        it 'should have a higher impact on similarity', ->
+        it 'if p1 viewed a last week and b today, a person closer to b should be more similar', ->
           init_esm(ESM, ns)
           .then (esm) ->
             bb.all([
-              esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days'))
-              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
+              esm.add_event(ns,'p1','view','a', created_at: moment().subtract(7, 'days')),
+              esm.add_event(ns,'p1','view','b', created_at: today),
+
+              esm.add_event(ns,'p2','view','b', created_at: today),
+              esm.add_event(ns,'p3','view','a', created_at: today)
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}, recent_event_days: 5 ))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], {view: 1}, recent_event_decay: 1.05))
             .then( (similarities) ->
+              console.log similarities
               similarities['p3'].should.be.lessThan(similarities['p2'])
             )
 
-        it 'should be ale to set current_datetime', ->
+        it 'should calculate the recent event decay weight relative to current_datetime', ->
           init_esm(ESM, ns)
           .then (esm) ->
             bb.all([
-              esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-              esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(2, 'days'))
-              esm.add_event(ns,'p3','a','t1', created_at: moment().subtract(6, 'days'))
+              esm.add_event(ns,'p1','view','a', created_at: today),
+              esm.add_event(ns,'p1','view','b', created_at: today),
 
+              esm.add_event(ns,'p2','view','b', created_at: yesterday),
+              esm.add_event(ns,'p2','view','a', created_at: today),
+
+              #all actions but one day offset
+              esm.add_event(ns,'p1`','view','a', created_at: yesterday),
+              esm.add_event(ns,'p1`','view','b', created_at: yesterday),
+
+              esm.add_event(ns,'p2`','view','b', created_at: two_days_ago),
+              esm.add_event(ns,'p2`','view','a', created_at: yesterday),
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}, recent_event_days: 5, current_datetime: moment().subtract(3, 'days')))
-            .then( (similarities) ->
-              similarities['p3'].should.equal(similarities['p2'])
+            .then( -> 
+              sim_today = esm.calculate_similarities_from_person(ns, 'p1',['p2'], {view: 1}, 
+                recent_event_decay: 1.2, current_datetime: today)
+              sim_yesterday = esm.calculate_similarities_from_person(ns, 'p1`',['p2`'], {view: 1}, 
+                recent_event_decay: 1.2, current_datetime: yesterday)
+              bb.all([sim_today, sim_yesterday])
             )
-
-      it 'should have a same similarity if histories are inversed', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: new Date()),
-            esm.add_event(ns,'p2','a','t1', created_at: moment().subtract(10, 'days'))
-
-            esm.add_event(ns,'p1','a','t2', created_at: moment().subtract(10, 'days')),
-            esm.add_event(ns,'p3','a','t2', created_at: new Date())
-          ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}, { recent_event_days: 5 }))
-          .then( (similarities) ->
-            similarities['p3'].should.equal similarities['p2']
-          )
+            .spread( (s1, s2) ->
+              s1['p2'].should.equal(s2['p2`'])
+            )
 
       it 'should not be effected by having same events (through add_event)', ->
         init_esm(ESM, ns)

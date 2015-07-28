@@ -9,21 +9,9 @@ class GER
   constructor: (@esm) ->
 
   ####################### Weighted people  #################################
-  _normalise_similarities: (similarities, actions) ->
-
-    temp = {}
-    for v, weights of similarities
-      for ac, weight of weights
-        temp[v] = 0 if v not of temp
-        temp[v] += weight * actions[ac]
-    temp
-
 
   calculate_similarities_from_thing: (namespace, thing, things, actions, configuration) ->
     @esm.calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
-    .then( (similarities) =>
-      similarities
-    )
 
   calculate_similarities_from_person: (namespace, person, people, actions, configuration) ->
     @esm.calculate_similarities_from_person(namespace, person, people, actions, _.clone(configuration))
@@ -223,7 +211,7 @@ class GER
   recommendations_for_person: (namespace, person, configuration = {}) ->
     configuration = @default_configuration(configuration)
     actions = configuration.actions
-
+    
     #first a check or two
     @find_events(namespace, actions: Object.keys(actions), person: person, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>

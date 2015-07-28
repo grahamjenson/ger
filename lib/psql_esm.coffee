@@ -334,7 +334,7 @@ class PSQLEventStoreManager
     s2q = @_history(namespace, column1, column2, 't.cvalue', al_values, limit).toString()
 
 
-    weighted_actions = "select a.weight::float from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
+    weighted_actions = "select a.weight::float * power( :recent_event_decay, - date_part('day', age( :now , x.created_at ))) from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
 
     s1_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x"
     s2_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x"
@@ -344,14 +344,14 @@ class PSQLEventStoreManager
     # e.g. if a person purchases a thing, then views it the most recent action is wrong
     # e.g. if a person gives something a 5 star rating then changes it to 1 star, the max value is wrong
 
-    s1 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s1_weighted}) as ws group by ws.#{column2}"
-    s2 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s2_weighted}) as ws group by ws.#{column2}"
+    s1 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s1_weighted}) as ws where ws.weight != 0 group by ws.#{column2}"
+    s2 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s2_weighted}) as ws where ws.weight != 0 group by ws.#{column2}"
     
     "#{@cosine_query(namespace, s1, s2)} as cosine_distance"
 
-  get_cosine_distances: (namespace, column1, column2, value, values, actions, limit, red, now) ->
+  get_cosine_distances: (namespace, column1, column2, value, values, actions, limit, recent_event_decay, now) ->
     return bb.try(->[]) if values.length == 0
-    bindings = {value: value, now: now} 
+    bindings = {value: value, now: now, recent_event_decay: recent_event_decay} 
 
     action_list = []
     for action, weight of actions
@@ -381,20 +381,17 @@ class PSQLEventStoreManager
     v_values = v_values.join(', ')
 
 
-    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values)      
+    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values, recent_event_decay)      
 
     query = "select cvalue, #{cosine_distance} from (VALUES #{v_values} ) AS t (cvalue)"
 
-    # console.log "WEURY BINDINGS", query, bindings
-    # console.log  @_knex.raw(query, bindings).toString()
-
     @_knex.raw(query, bindings)
     .then( (rows) ->
-      # console.log "ROWS", rows
+      
       similarities = {}
       for row in rows.rows
         similarities[row.cvalue] = row.cosine_distance
-      # console.log similarities
+
       similarities
     )
 
@@ -402,11 +399,11 @@ class PSQLEventStoreManager
     return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
     options = _.defaults(options,
       history_search_size: 500
-      recent_event_days: 14
+      recent_event_decay: 1
       current_datetime: new Date()
     )
 
-    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.recent_event_days, options.current_datetime)
+    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.recent_event_decay, options.current_datetime)
 
   calculate_similarities_from_thing: (namespace, thing, things, actions, options={}) ->
     @_similarities(namespace, 'thing', 'person', thing, things, actions, options)

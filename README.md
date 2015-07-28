@@ -193,7 +193,7 @@ GER lets you set some values to customize recommendations generation using a `co
 | `neighbourhood_size`        |    `25` 
 | `recommendations_per_neighbour`      |    `10`
 | `filter_previous_actions`   |    `[]`
-| `recent_event_days`         |    `14` 
+| `recent_event_decay`        |    `1` 
 | `time_until_expiry`         |    `0`
 | `current_datetime`          |    `now()`
 
@@ -204,7 +204,7 @@ GER lets you set some values to customize recommendations generation using a `co
 5. `neighbourhood_size` the number of similar people (or things) that are searched for. This value has a significant performance impact, and increasing it past a point will also gain diminishing returns.
 6. `recommendations_per_neighbour` the number of recommendations each similar person can offer. This is to stop a situation where a single highly similar person provides all recommendations.
 7. `filter_previous_actions` it removes recommendations that the person being recommended already has in their history. For example, if a person has already liked `xmen`, then if `filter_previous_actions` is `["liked"]` they will not be recommended `xmen`.
-8. `recent_event_days` the number of days that an event is seen as recent. Recent events are treated as more important in determining similarity.
+8. `recent_event_decay` the rate at which event weight will decay over time, `weight * recent_event_decay ^ (- days since event)`
 9. `time_until_expiry` is the number (in seconds) from `now()` where recommendations that expire will be removed. For example, recommendations on a website might be valid for minutes, where in a email you might recommendations valid for days.
 10. `current_datetime` defines a "simulated" current time that will not use any events that are performed after `current_datetime` when generating recommendations.
 
@@ -221,7 +221,7 @@ ger.recommendations_for_person('movies', 'alice', {
   "neighbourhood_size": 20,
   "recommendations_per_neighbour": 10,
   "filter_previous_actions": ["watch"],
-  "recent_event_days": 10,
+  "recent_event_decay": 1.05,
   "time_until_expiry": 180
 })
 ```

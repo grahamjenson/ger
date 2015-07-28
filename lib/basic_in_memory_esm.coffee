@@ -91,7 +91,7 @@ class BasicInMemoryESM
   ####  END OF NEIGHBOURHOOD  ######
   ##################################
 
-  _cosine_distance: (namespace, column1, column2, v1, v2, actions, now, limit) ->
+  _cosine_distance: (namespace, column1, column2, v1, v2, actions, now, limit, recent_event_decay) ->
 
     search1 = {current_datetime: now}
     search2 = {current_datetime: now}
@@ -99,14 +99,20 @@ class BasicInMemoryESM
     search2[column1] = v2
     search1.actions = Object.keys(actions)
     search2.actions = Object.keys(actions)
-    
+
     p1_values = {}
     for e in @_find_events(namespace, search1)[...limit]
-      p1_values[e[column2]] = actions[e.action]
+      weight = actions[e.action]
+      days = Math.round(moment.duration(moment(now).diff(e.created_at)).asDays())
+      n_weight = weight * Math.pow(recent_event_decay,-days)
+      p1_values[e[column2]] = n_weight
 
     p2_values = {}
     for e in @_find_events(namespace, search2)[...limit]
-      p2_values[e[column2]] = actions[e.action]
+      weight = actions[e.action]
+      days = Math.round(moment.duration(moment(now).diff(e.created_at)).asDays())
+      n_weight = weight * Math.pow(recent_event_decay,-days)
+      p2_values[e[column2]] = n_weight
     
     numerator = 0
     for value, weight of p1_values
@@ -121,7 +127,9 @@ class BasicInMemoryESM
     for value, weight of p2_values
       denominator_2 += Math.pow(weight,2)
 
-    return numerator/(Math.sqrt(denominator_1)*Math.sqrt(denominator_2))
+    cosinse_similarity = numerator/(Math.sqrt(denominator_1)*Math.sqrt(denominator_2))
+
+    return cosinse_similarity
 
   _similarities: (namespace, column1, column2, value, values, actions, options={}) ->
     return bb.try(-> {}) if values.length == 0
@@ -129,11 +137,12 @@ class BasicInMemoryESM
     options = _.defaults(options,
       history_search_size: 500
       current_datetime: new Date()
+      recent_event_decay: 1
     )
 
     similarities = {}
     for v in values
-      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.history_search_size)
+      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.history_search_size, options.recent_event_decay)
       similarities[v] = similarities[v] || 0
 
     return bb.try(-> similarities)
