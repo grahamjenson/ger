@@ -305,10 +305,11 @@ class PSQLEventStoreManager
     @_recent_events(namespace, 'thing', actions, things, options)
 
 
-  _history: (namespace, column1, column2, value, limit) ->
+  _history: (namespace, column1, column2, value, al_values, limit) ->
     @_knex("#{namespace}.events")
     .select(column2, "action").max('created_at as created_at')
     .groupBy(column2, "action")
+    .whereRaw("action in ( #{al_values} )")
     .orderByRaw("max(created_at) DESC")
     .whereRaw('created_at <= :now')
     .whereRaw("#{column1} = #{value}")
@@ -328,9 +329,9 @@ class PSQLEventStoreManager
     # if null return 0
     "COALESCE( (#{numerator_2} / ((|/ #{denominator_1}) * (|/ #{denominator_2})) ), 0)"
 
-  cosine_distance: (namespace, column1, column2, limit, a_values) ->
-    s1q = @_history(namespace, column1, column2, ':value', limit).toString()
-    s2q = @_history(namespace, column1, column2, 't.cvalue', limit).toString()
+  cosine_distance: (namespace, column1, column2, limit, a_values, al_values) ->
+    s1q = @_history(namespace, column1, column2, ':value', al_values, limit).toString()
+    s2q = @_history(namespace, column1, column2, 't.cvalue', al_values, limit).toString()
 
 
     weighted_actions = "select a.weight::float from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
@@ -358,14 +359,17 @@ class PSQLEventStoreManager
       action_list.push {action: action, weight, weight}
 
     a_values = [] 
+    al_values = []
     for a, ai in action_list 
       akey = "action_#{ai}"
       wkey = "weight_#{ai}"
       bindings[akey] = a.action
       bindings[wkey] = a.weight
       a_values.push("( :#{akey}, :#{wkey} )")
-    
+      al_values.push(":#{akey}")
+
     a_values = a_values.join(', ')
+    al_values = al_values.join(' , ')
 
     v_values = []
 
@@ -377,7 +381,7 @@ class PSQLEventStoreManager
     v_values = v_values.join(', ')
 
 
-    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values)      
+    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values)      
 
     query = "select cvalue, #{cosine_distance} from (VALUES #{v_values} ) AS t (cvalue)"
 

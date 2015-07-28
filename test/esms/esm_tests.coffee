@@ -256,6 +256,38 @@ esm_tests = (ESM) ->
             similarities['p3'].should.be.lessThan(similarities['p2'])
           )
 
+      it 'should limit based on history_search_size (ordered by created_at)', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: today)
+
+            esm.add_event(ns,'p2','a','t3', created_at: today)
+            esm.add_event(ns,'p2','a','t1', created_at: yesterday)
+          ])
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {history_search_size: 1}))
+          .then( (similarities) ->
+            similarities['p2'].should.equal 0
+          )
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {history_search_size: 2}))
+          .then( (similarities) ->
+            similarities['p2'].should.not.equal 0
+          )
+
+      it 'should not limit history_search_size for non selected actions', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','a','t1', created_at: today)
+
+            esm.add_event(ns,'p2','b','t3', created_at: today)
+            esm.add_event(ns,'p2','a','t1', created_at: yesterday)
+          ])
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {history_search_size: 1}))
+          .then( (similarities) ->
+            similarities['p2'].should.not.equal 0
+          )
+
       it 'should handle multiple actions', ->
         #example taken from http://infolab.stanford.edu/~ullman/mmds/ch9.pdf
         init_esm(ESM, ns)

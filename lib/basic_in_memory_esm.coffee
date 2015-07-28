@@ -91,53 +91,50 @@ class BasicInMemoryESM
   ####  END OF NEIGHBOURHOOD  ######
   ##################################
 
+  _cosine_distance: (namespace, column1, column2, v1, v2, actions, now, limit) ->
 
-
-  _recent_jaccard_distance: (namespace, column1, column2, v1, v2, action, days, now) ->
-    recent_date = moment(now).subtract(days, 'days').toDate()
-    search1 = {action: action, current_datetime: now}
-    search2 = {action: action, current_datetime: now}
+    search1 = {current_datetime: now}
+    search2 = {current_datetime: now}
     search1[column1] = v1
     search2[column1] = v2
+    search1.actions = Object.keys(actions)
+    search2.actions = Object.keys(actions)
+    
+    p1_values = {}
+    for e in @_find_events(namespace, search1)[...limit]
+      p1_values[e[column2]] = actions[e.action]
 
-    p1_values = @_find_events(namespace, search1).filter((e) -> e.created_at > recent_date).map((e) -> e[column2])
-    p2_values = @_find_events(namespace, search2).filter((e) -> e.created_at > recent_date).map((e) -> e[column2])
+    p2_values = {}
+    for e in @_find_events(namespace, search2)[...limit]
+      p2_values[e[column2]] = actions[e.action]
+    
+    numerator = 0
+    for value, weight of p1_values
+      if p2_values[value]
+        numerator += weight * p2_values[value]
 
-    jaccard = (_.intersection(p1_values, p2_values).length)/(_.union(p1_values, p2_values).length)
-    jaccard = 0 if isNaN(jaccard)
-    return jaccard
+    denominator_1 = 0
+    for value, weight of p1_values
+      denominator_1 += Math.pow(weight,2)
 
-  _jaccard_distance: (namespace, column1, column2, v1, v2, action, now) ->
+    denominator_2 = 0
+    for value, weight of p2_values
+      denominator_2 += Math.pow(weight,2)
 
-    search1 = {action: action, current_datetime: now}
-    search2 = {action: action, current_datetime: now}
-    search1[column1] = v1
-    search2[column1] = v2
-
-    p1_values = @_find_events(namespace, search1).map((e) -> e[column2])
-    p2_values = @_find_events(namespace, search2).map((e) -> e[column2])
-
-    jaccard = (_.intersection(p1_values, p2_values).length)/(_.union(p1_values, p2_values).length)
-    jaccard = 0 if isNaN(jaccard)
-    return jaccard
+    return numerator/(Math.sqrt(denominator_1)*Math.sqrt(denominator_2))
 
   _similarities: (namespace, column1, column2, value, values, actions, options={}) ->
-    return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
+    return bb.try(-> {}) if values.length == 0
 
     options = _.defaults(options,
       history_search_size: 500
-      recent_event_days: 14
       current_datetime: new Date()
     )
-    options.actions = actions
 
     similarities = {}
     for v in values
-      similarities[v] = {}
-      for action in actions
-        jaccard = @_jaccard_distance(namespace, column1, column2, value, v, action, options.current_datetime)
-        recent_jaccard = @_recent_jaccard_distance(namespace, column1, column2, value, v, action, options.recent_event_days, options.current_datetime)
-        similarities[v][action] = ((recent_jaccard * 4) + (jaccard * 1))/5.0
+      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.history_search_size)
+      similarities[v] = similarities[v] || 0
 
     return bb.try(-> similarities)
 
