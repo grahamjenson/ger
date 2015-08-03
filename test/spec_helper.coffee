@@ -34,7 +34,9 @@ global.last_week = moment().subtract(7, 'days')
 global.three_days_ago = moment().subtract(2, 'days')
 global.two_days_ago = moment().subtract(2, 'days')
 global.yesterday = moment().subtract(1, 'days')
+global.soon = moment().add(50, 'mins')
 global.today = moment()
+global.now = today
 global.tomorrow = moment().add(1, 'days')
 global.next_week = moment().add(7, 'days')
 

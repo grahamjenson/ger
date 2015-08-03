@@ -199,7 +199,7 @@ class PSQLEventStoreManager
 
   _one_degree_away: (namespace, column1, column2, value, actions, options) ->
     query_hash = {}
-    query_hash[column1] = value #e.g. {person: person}
+    query_hash[column1] = value #e.g. {person: person} or {thing: thing}
 
     recent_events = @_knex("#{namespace}.events")
     .select("person", "action", "thing", "created_at")
@@ -209,7 +209,7 @@ class PSQLEventStoreManager
     .limit(options.history_search_size)
 
     @_knex(recent_events.as('e'))
-    .innerJoin("#{namespace}.events as f", -> @on("e.#{column2}", "f.#{column2}").on('e.action','f.action').on("f.#{column1}",'!=', "e.#{column1}"))
+    .innerJoin("#{namespace}.events as f", -> @on("e.#{column2}", "f.#{column2}").on("f.#{column1}",'!=', "e.#{column1}"))
     .where("e.#{column1}", value)
     .whereIn('f.action', actions)
     .where('f.created_at', '<=', options.current_datetime)
@@ -333,8 +333,8 @@ class PSQLEventStoreManager
     s1q = @_history(namespace, column1, column2, ':value', al_values, limit).toString()
     s2q = @_history(namespace, column1, column2, 't.cvalue', al_values, limit).toString()
 
-
-    weighted_actions = "select a.weight::float * power( :recent_event_decay, - date_part('day', age( :now , x.created_at ))) from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
+    #decay is weight * days 
+    weighted_actions = "select a.weight::float * power( :event_decay_rate, - date_part('day', age( :now , x.created_at ))) from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
 
     s1_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x"
     s2_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x"
@@ -349,9 +349,9 @@ class PSQLEventStoreManager
     
     "#{@cosine_query(namespace, s1, s2)} as cosine_distance"
 
-  get_cosine_distances: (namespace, column1, column2, value, values, actions, limit, recent_event_decay, now) ->
+  get_cosine_distances: (namespace, column1, column2, value, values, actions, limit, event_decay_rate, now) ->
     return bb.try(->[]) if values.length == 0
-    bindings = {value: value, now: now, recent_event_decay: recent_event_decay} 
+    bindings = {value: value, now: now, event_decay_rate: event_decay_rate} 
 
     action_list = []
     for action, weight of actions
@@ -381,7 +381,7 @@ class PSQLEventStoreManager
     v_values = v_values.join(', ')
 
 
-    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values, recent_event_decay)      
+    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values, event_decay_rate)      
 
     query = "select cvalue, #{cosine_distance} from (VALUES #{v_values} ) AS t (cvalue)"
 
@@ -399,11 +399,11 @@ class PSQLEventStoreManager
     return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
     options = _.defaults(options,
       history_search_size: 500
-      recent_event_decay: 1
+      event_decay_rate: 1
       current_datetime: new Date()
     )
 
-    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.recent_event_decay, options.current_datetime)
+    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.event_decay_rate, options.current_datetime)
 
   calculate_similarities_from_thing: (namespace, thing, things, actions, options={}) ->
     @_similarities(namespace, 'thing', 'person', thing, things, actions, options)

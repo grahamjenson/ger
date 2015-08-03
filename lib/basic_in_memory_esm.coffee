@@ -91,7 +91,7 @@ class BasicInMemoryESM
   ####  END OF NEIGHBOURHOOD  ######
   ##################################
 
-  _cosine_distance: (namespace, column1, column2, v1, v2, actions, now, limit, recent_event_decay) ->
+  _cosine_distance: (namespace, column1, column2, v1, v2, actions, now, limit, event_decay_rate) ->
 
     search1 = {current_datetime: now}
     search2 = {current_datetime: now}
@@ -104,14 +104,14 @@ class BasicInMemoryESM
     for e in @_find_events(namespace, search1)[...limit]
       weight = actions[e.action]
       days = Math.round(moment.duration(moment(now).diff(e.created_at)).asDays())
-      n_weight = weight * Math.pow(recent_event_decay,-days)
+      n_weight = weight * Math.pow(event_decay_rate,-days)
       p1_values[e[column2]] = n_weight
 
     p2_values = {}
     for e in @_find_events(namespace, search2)[...limit]
       weight = actions[e.action]
       days = Math.round(moment.duration(moment(now).diff(e.created_at)).asDays())
-      n_weight = weight * Math.pow(recent_event_decay,-days)
+      n_weight = weight * Math.pow(event_decay_rate,-days)
       p2_values[e[column2]] = n_weight
     
     numerator = 0
@@ -137,12 +137,12 @@ class BasicInMemoryESM
     options = _.defaults(options,
       history_search_size: 500
       current_datetime: new Date()
-      recent_event_decay: 1
+      event_decay_rate: 1
     )
 
     similarities = {}
     for v in values
-      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.history_search_size, options.recent_event_decay)
+      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.history_search_size, options.event_decay_rate)
       similarities[v] = similarities[v] || 0
 
     return bb.try(-> similarities)

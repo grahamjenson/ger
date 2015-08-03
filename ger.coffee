@@ -172,7 +172,7 @@ class GER
     _.defaults(configuration,
       minimum_history_required: 1,
       history_search_sizes: 100
-      recent_event_decay: 1
+      event_decay_rate: 1
       neighbourhood_size: 25,
       recommendations_per_neighbour: 10
       filter_previous_actions: [],

@@ -184,7 +184,6 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
-            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
             esm.add_event(ns,'p2','buy','t1', expires_at: tomorrow)
           ])
           .then( ->
@@ -192,6 +191,46 @@ esm_tests = (ESM) ->
           )
           .then( (people) ->
             people.length.should.equal 0
+          )
+          .then( ->
+            esm.person_neighbourhood(ns, 'p1', ['view'])
+          )
+          .then( (people) ->
+            people.length.should.equal 0
+          )
+
+      it 'should return people with different actions on the same item', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', created_at: yesterday, expires_at: tomorrow)
+            esm.add_event(ns,'p1','view','t2', created_at: today, expires_at: tomorrow)
+
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p3', 'buy','t2', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.person_neighbourhood(ns, 'p1', ['view', 'buy'])
+          )
+          .then( (people) ->
+            people.length.should.equal 2
+            people[0].should.equal 'p3'
+            people[1].should.equal 'p2'
+          )
+
+      it 'should return people ordered by the similar persons most recent date', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.person_neighbourhood(ns, 'p1', ['view','buy'])
+          )
+          .then( (people) ->
+            people.length.should.equal 1
+            people[0].should.equal 'p2'
           )
 
       it 'should find similar people across actions', ->
@@ -284,7 +323,6 @@ esm_tests = (ESM) ->
           ])
           .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2','p3'],{view: 1, buy: 5}))
           .then( (similarities) ->
-            console.log similarities
             similarities['p3'].should.be.greaterThan(similarities['p2'])
           )
 
@@ -393,9 +431,8 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p3','view','a', created_at: today)
 
             ])
-            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], {view: 1}, recent_event_decay: 1.05))
+            .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], {view: 1}, event_decay_rate: 1.05))
             .then( (similarities) ->
-              console.log similarities
               similarities['p3'].should.be.lessThan(similarities['p2'])
             )
 
@@ -418,9 +455,9 @@ esm_tests = (ESM) ->
             ])
             .then( -> 
               sim_today = esm.calculate_similarities_from_person(ns, 'p1',['p2'], {view: 1}, 
-                recent_event_decay: 1.2, current_datetime: today)
+                event_decay_rate: 1.2, current_datetime: today)
               sim_yesterday = esm.calculate_similarities_from_person(ns, 'p1`',['p2`'], {view: 1}, 
-                recent_event_decay: 1.2, current_datetime: yesterday)
+                event_decay_rate: 1.2, current_datetime: yesterday)
               bb.all([sim_today, sim_yesterday])
             )
             .spread( (s1, s2) ->
