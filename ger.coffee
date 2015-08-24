@@ -69,7 +69,12 @@ class GER
     @esm.person_neighbourhood(namespace, person, Object.keys(actions), _.clone(configuration))
 
   thing_neighbourhood: (namespace, thing, actions, configuration) ->
-    @esm.thing_neighbourhood(namespace, thing, Object.keys(actions), _.clone(configuration))
+    @esm.find_events(namespace, {
+      thing: thing, 
+      actions: Object.keys(actions),
+      size: configuration.history_search_size,
+      current_datetime: configuration.current_datetime
+    })
 
   recent_recommendations_by_people: (namespace, actions, people, configuration) ->
     @esm.recent_recommendations_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
@@ -142,17 +147,29 @@ class GER
     #"People who Actioned this Thing also Actioned"
 
     @thing_neighbourhood(namespace, thing, actions, configuration)
-    .then( (things) =>
-      bb.all([ 
-        things,
-        @calculate_similarities_from_thing(namespace, thing  , things, actions, _.clone(configuration))
-        @recent_recommendations_for_things(namespace, actions, things , _.clone(configuration))
+    .then( (people_actions) =>
+      
+      similarities = {}
+      for p in people_actions
+        days_ago = Math.round(moment.duration(moment(configuration.current_datetime).diff(p.created_at)).asDays())
+        a1w = actions[p.action] * Math.pow(configuration.event_decay_rate,-days_ago)
+
+        a2w = similarities[p.person] || 0
+        similarities[p.person] = a1w if a1w > a2w
+
+      neighbourhood = _.uniq(people_actions.map((x) -> x.person))
+
+      bb.all([
+        neighbourhood,
+        similarities,
+        @recent_recommendations_by_people(namespace, actions, neighbourhood , _.clone(configuration))
       ])
     )
     .spread( (neighbourhood, similarities, recommendations) =>
-      
+
+      recommendations = recommendations.filter( (x) -> x.thing != thing)
       recommendations_object = {}
-      recommendations_object.recommendations = @calculate_recommendations(similarities, 'thing', recommendations, configuration)
+      recommendations_object.recommendations = @calculate_recommendations(similarities, 'person', recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
@@ -171,7 +188,7 @@ class GER
   default_configuration: (configuration) ->
     _.defaults(configuration,
       minimum_history_required: 1,
-      history_search_sizes: 100
+      history_search_size: 100
       event_decay_rate: 1
       neighbourhood_size: 25,
       recommendations_per_neighbour: 10
