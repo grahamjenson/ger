@@ -77,7 +77,7 @@ esm_tests = (ESM) ->
   describe 'recommendation methods', ->
 
     describe '#thing_neighbourhood', ->
-      it 'should return a list of similar things', ->
+      it 'should return a list of people who have actioned thing', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -89,7 +89,51 @@ esm_tests = (ESM) ->
           )
           .then( (things) ->
             things.length.should.equal 1
-            things[0].should.equal 't2'
+            things[0].should.equal 'p1'
+          )
+
+      it 'should not list people twice', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','v','a', expires_at: tomorrow),
+            esm.add_event(ns,'p1','b','a', expires_at: tomorrow),
+            esm.add_event(ns,'p1','v','b', expires_at: tomorrow),
+          ])
+          .then(-> esm.thing_neighbourhood(ns, 'a', ['v','b']))
+          .then((neighbourhood) ->
+            neighbourhood.length.should.equal 1
+            neighbourhood.should.include 'p1'
+          )
+
+      it 'should list people who can recommend something else', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','v','a', expires_at: tomorrow),
+            esm.add_event(ns,'p2','v','a', expires_at: tomorrow),
+            esm.add_event(ns,'p1','v','b', expires_at: tomorrow)
+          ])
+          .then(-> esm.thing_neighbourhood(ns, 'a', 'v'))
+          .then((neighbourhood) ->
+            neighbourhood.length.should.equal 1
+            neighbourhood.should.include 'p1'
+          )
+
+      it 'should order the people by when they actioned the thing', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','v','a', created_at: last_week, expires_at: tomorrow),
+            esm.add_event(ns,'p2','v','a', created_at: yesterday, expires_at: tomorrow),
+            esm.add_event(ns,'p1','v','b', expires_at: tomorrow),
+            esm.add_event(ns,'p2','v','b', expires_at: tomorrow)
+          ])
+          .then(-> esm.thing_neighbourhood(ns, 'a', 'v'))
+          .then((neighbourhood) ->
+            neighbourhood.length.should.equal 2
+            neighbourhood[0].should.equal 'p2'
+            neighbourhood[1].should.equal 'p1'
           )
 
     describe '#calculate_similarities_from_thing', ->

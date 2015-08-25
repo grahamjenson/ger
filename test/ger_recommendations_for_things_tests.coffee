@@ -51,7 +51,6 @@ describe 'recommending for a thing', ->
       ])
       .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
-        
         # a and b are very similar as they have 
         recs = recs.recommendations
         recs.length.should.equal 2
