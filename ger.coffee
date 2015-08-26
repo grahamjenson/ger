@@ -142,15 +142,34 @@ class GER
     #"People who Actioned this Thing also Actioned"
 
     @thing_neighbourhood(namespace, thing, actions, configuration)
-    .then( (things) =>
-      bb.all([ 
-        things,
-        @calculate_similarities_from_thing(namespace, thing  , things, actions, _.clone(configuration))
-        @recent_recommendations_for_things(namespace, actions, things , _.clone(configuration))
+    .then( (people) =>
+      bb.all([
+        people,
+        @recent_recommendations_by_people(namespace, actions, people , _.clone(configuration))
       ])
     )
-    .spread( (neighbourhood, similarities, recommendations) =>
+    .spread( (neighbourhood, recommendations) =>
+
+      recs = recommendations.filter( (rec) -> rec.thing != thing)
       
+      #sort things by how many times they it is recommended
+      things =  _.chain(recs).countBy( (x) -> x.thing)
+      .pairs()
+      .sortBy( (x) -> - x[1] )
+      .pluck(0)
+      .value()
+
+      #TODO limit things with something like
+      #things = things[...configuration.max_recommendations] which atm is recommendations per person * neighbourhood size
+      things = things[...100] #hard limit for the moment
+      bb.all([
+        neighbourhood, 
+        @calculate_similarities_from_thing(namespace, thing  , things, actions, _.clone(configuration)),
+        recs
+      ])
+      
+    )
+    .spread( (neighbourhood, similarities, recommendations) =>
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_recommendations(similarities, 'thing', recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
@@ -162,7 +181,6 @@ class GER
       recommendations_object.confidence = neighbourhood_confidence * history_confidence * recommendations_confidence
 
       recommendations_object
-      
     )
     # weight people by the action weight
     # find things that those 
