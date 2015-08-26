@@ -1,5 +1,6 @@
 chai = require 'chai'
 should = chai.should()
+global.assert = chai.assert
 
 global._ = require 'lodash'
 

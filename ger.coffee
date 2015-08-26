@@ -78,7 +78,7 @@ class GER
     @esm.recent_recommendations_for_things(namespace, Object.keys(actions), things, _.clone(configuration))
 
 
-  calculate_recommendations: (similarities, column, recommendations, configuration) ->
+  calculate_people_recommendations: (similarities, recommendations, configuration) ->
     thing_group = {}
     
 
@@ -95,10 +95,9 @@ class GER
       thing_group[rec.thing].last_actioned_at = moment.max(moment(thing_group[rec.thing].last_actioned_at), moment(rec.last_actioned_at)).format()
       thing_group[rec.thing].last_expires_at = moment.max(moment(thing_group[rec.thing].last_expires_at), moment(rec.last_expires_at)).format()
 
-      thing_group[rec.thing].weight += similarities[rec[column]]
+      thing_group[rec.thing].weight += similarities[rec.person]
 
       thing_group[rec.thing].people.push rec.person
-
 
     recommendations = []
     for thing, rec of thing_group
@@ -106,6 +105,35 @@ class GER
 
     recommendations = recommendations.sort((x, y) -> y.weight - x.weight)
     recommendations
+
+
+  calculate_thing_recommendations: (thing, similarities, recommendations, configuration) ->
+    thing_group = {}
+    
+    for rec in recommendations
+      if thing_group[rec.thing] == undefined
+        thing_group[rec.thing] = {
+          thing: rec.thing
+          weight: 0
+          last_actioned_at: rec.last_actioned_at
+          last_expires_at: rec.last_expires_at
+          people: []
+        } 
+
+      thing_group[rec.thing].last_actioned_at = moment.max(moment(thing_group[rec.thing].last_actioned_at), moment(rec.last_actioned_at)).format()
+      thing_group[rec.thing].last_expires_at = moment.max(moment(thing_group[rec.thing].last_expires_at), moment(rec.last_expires_at)).format()
+
+      thing_group[rec.thing].people.push rec.person
+
+    recommendations = []
+    for thing, weight of similarities
+      rec = thing_group[thing]
+      rec.weight = weight
+      recommendations.push rec
+
+    recommendations = recommendations.sort((x, y) -> y.weight - x.weight)
+    recommendations
+
 
   generate_recommendations_for_person: (namespace, person, actions, person_history_count, configuration) ->
 
@@ -126,7 +154,7 @@ class GER
     )
     .spread( (neighbourhood, similarities, recommendations) =>
       recommendations_object = {}
-      recommendations_object.recommendations = @calculate_recommendations(similarities, 'person', recommendations, configuration)
+      recommendations_object.recommendations = @calculate_people_recommendations(similarities, recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
@@ -148,30 +176,26 @@ class GER
         @recent_recommendations_by_people(namespace, actions, people , _.clone(configuration))
       ])
     )
-    .spread( (neighbourhood, recommendations) =>
-
-      recs = recommendations.filter( (rec) -> rec.thing != thing)
-      
+    .spread( (neighbourhood, recommendations) =>      
       #sort things by how many times they it is recommended
-      things =  _.chain(recs).countBy( (x) -> x.thing)
+      things =  _.chain(recommendations).countBy( (x) -> x.thing)
       .pairs()
       .sortBy( (x) -> - x[1] )
       .pluck(0)
+      .filter((x) -> "#{x}" != "#{thing}")
       .value()
 
-      #TODO limit things with something like
-      #things = things[...configuration.max_recommendations] which atm is recommendations per person * neighbourhood size
-      things = things[...100] #hard limit for the moment
+      things = things[...configuration.max_thing_recommendations]
       bb.all([
         neighbourhood, 
-        @calculate_similarities_from_thing(namespace, thing  , things, actions, _.clone(configuration)),
-        recs
+        @calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration)),
+        recommendations
       ])
       
     )
     .spread( (neighbourhood, similarities, recommendations) =>
       recommendations_object = {}
-      recommendations_object.recommendations = @calculate_recommendations(similarities, 'thing', recommendations, configuration)
+      recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
@@ -189,14 +213,15 @@ class GER
   default_configuration: (configuration) ->
     _.defaults(configuration,
       minimum_history_required: 1,
-      history_search_size: 100
+      history_search_size: 200
       event_decay_rate: 1
       neighbourhood_size: 25,
       recommendations_per_neighbour: 10
       filter_previous_actions: [],
       time_until_expiry: 0
       actions: {},
-      current_datetime: new Date() #set the current datetime, useful for testing and ML
+      current_datetime: new Date() #set the current datetime, useful for testing and ML,
+      max_thing_recommendations: 100
     )
 
   normalize_actions: (in_actions) ->
