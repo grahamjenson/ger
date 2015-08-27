@@ -152,7 +152,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..nrecommendations]
-            promises.push ger.recommendations_for_thing(ns, sample(things), actions: {buy:5, like:3, view:1}, neighbourhood_size: 50)
+            promises.push ger.recommendations_for_thing(ns, sample(things), actions: {buy:5, like:3, view:1}, neighbourhood_size: 50, recommendations_per_neighbour: 3)
           bb.all(promises)
           .then(->
             et = new Date().getTime()

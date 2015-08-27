@@ -75,6 +75,7 @@ class GER
     @esm.recent_recommendations_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
 
   recent_recommendations_for_things: (namespace, actions, things, configuration) ->
+    #TODO pretty slow
     @esm.recent_recommendations_for_things(namespace, Object.keys(actions), things, _.clone(configuration))
 
 
@@ -107,20 +108,34 @@ class GER
     recommendations
 
 
-  calculate_thing_recommendations: (thing, similarities, configuration) ->
+  calculate_thing_recommendations: (thing, similarities, recommendations, configuration) ->
+    thing_group = {}
+    
+
+    for rec in recommendations
+      if thing_group[rec.thing] == undefined
+        thing_group[rec.thing] = {
+          thing: rec.thing
+          weight: 0
+          last_actioned_at: rec.last_actioned_at
+          last_expires_at: rec.last_expires_at
+          people: []
+        } 
+
+      thing_group[rec.thing].last_actioned_at = moment.max(moment(thing_group[rec.thing].last_actioned_at), moment(rec.last_actioned_at)).format()
+      thing_group[rec.thing].last_expires_at = moment.max(moment(thing_group[rec.thing].last_expires_at), moment(rec.last_expires_at)).format()
+
+      #TODO should be more subtle rather than n_people * similarity
+      thing_group[rec.thing].weight += similarities[rec.thing]
+
+      thing_group[rec.thing].people.push rec.person
+
     recommendations = []
-    for thing, weight of similarities
-      recommendations.push {
-        thing: thing
-        weight: weight
-        last_actioned_at: moment().format()
-        last_expires_at: moment().add(1, 'day').format()
-        people: []
-      }
+    for thing, rec of thing_group
+      recommendations.push rec
 
     recommendations = recommendations.sort((x, y) -> y.weight - x.weight)
     recommendations
-
 
   generate_recommendations_for_person: (namespace, person, actions, person_history_count, configuration) ->
 
@@ -158,14 +173,15 @@ class GER
 
     @thing_neighbourhood(namespace, thing, actions, configuration)
     .then( (things) =>
-      bb.all([
-        things, 
-        @calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
+      bb.all([ 
+        things,
+        @calculate_similarities_from_thing(namespace, thing  , things, actions, _.clone(configuration))
+        @recent_recommendations_for_things(namespace, actions, things , _.clone(configuration))
       ])
     )
-    .spread( (neighbourhood, similarities) =>
+    .spread( (neighbourhood, similarities, recommendations) =>
       recommendations_object = {}
-      recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, configuration)
+      recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
@@ -188,7 +204,7 @@ class GER
       history_search_size: 200
       event_decay_rate: 1
       neighbourhood_size: 25,
-      recommendations_per_neighbour: 10
+      recommendations_per_neighbour: 5
       filter_previous_actions: [],
       time_until_expiry: 0
       actions: {},
