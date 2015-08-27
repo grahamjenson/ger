@@ -77,7 +77,7 @@ esm_tests = (ESM) ->
   describe 'recommendation methods', ->
 
     describe '#thing_neighbourhood', ->
-      it 'should return a list of people who have actioned thing', ->
+      it 'should return a list of things', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -89,51 +89,52 @@ esm_tests = (ESM) ->
           )
           .then( (things) ->
             things.length.should.equal 1
-            things[0].should.equal 'p1'
+            things[0].should.equal 't2'
           )
 
-      it 'should not list people twice', ->
+      it 'should not list things twice', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','v','a', expires_at: tomorrow),
-            esm.add_event(ns,'p1','b','a', expires_at: tomorrow),
+            esm.add_event(ns,'p1','b','b', expires_at: tomorrow),
             esm.add_event(ns,'p1','v','b', expires_at: tomorrow),
           ])
           .then(-> esm.thing_neighbourhood(ns, 'a', ['v','b']))
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 1
-            neighbourhood.should.include 'p1'
+            neighbourhood.should.include 'b'
           )
 
-      it 'should list people who can recommend something else', ->
+      it 'should list recommendable things', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','v','a', expires_at: tomorrow),
-            esm.add_event(ns,'p2','v','a', expires_at: tomorrow),
-            esm.add_event(ns,'p1','v','b', expires_at: tomorrow)
+            esm.add_event(ns,'p1','v','b', expires_at: yesterday)
+            esm.add_event(ns,'p1','v','c', expires_at: tomorrow)
           ])
           .then(-> esm.thing_neighbourhood(ns, 'a', 'v'))
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 1
-            neighbourhood.should.include 'p1'
+            neighbourhood.should.include 'c'
           )
 
-      it 'should order the people by when they actioned the thing', ->
+      it 'should order the things by how many people actioned it', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','v','a', created_at: last_week, expires_at: tomorrow),
             esm.add_event(ns,'p2','v','a', created_at: yesterday, expires_at: tomorrow),
             esm.add_event(ns,'p1','v','b', expires_at: tomorrow),
-            esm.add_event(ns,'p2','v','b', expires_at: tomorrow)
+            esm.add_event(ns,'p2','v','c', expires_at: tomorrow)
+            esm.add_event(ns,'p3','v','c', expires_at: tomorrow)
           ])
           .then(-> esm.thing_neighbourhood(ns, 'a', 'v'))
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 2
-            neighbourhood[0].should.equal 'p2'
-            neighbourhood[1].should.equal 'p1'
+            neighbourhood[0].should.equal 'c'
+            neighbourhood[1].should.equal 'b'
           )
 
     describe '#calculate_similarities_from_thing', ->

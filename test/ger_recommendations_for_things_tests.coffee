@@ -1,7 +1,7 @@
 ns = global.default_namespace
 
 describe 'recommending for a thing', ->
-  it 'max_thing_recommendations works never returns null weight', ->
+  it 'works never returns null weight', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -9,7 +9,7 @@ describe 'recommending for a thing', ->
         ger.event(ns, 'p1','view','b', expires_at: tomorrow),
         ger.event(ns, 'p1','view','c', expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}, max_thing_recommendations: 1))
+      .then(-> ger.recommendations_for_thing(ns, 'a',  actions: {view: 1}))
       .then((recs) ->
 
         recs = recs.recommendations

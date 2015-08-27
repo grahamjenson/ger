@@ -178,35 +178,25 @@ class PSQLEventStoreManager
     one_degree_away = @_one_degree_away(namespace, column1, column2, value, actions, options)
     unexpired_events = @_unexpired_events(namespace, column1, column2, value, actions, options)
 
-
     @_knex(one_degree_away.as('x'))
-    .select("x.person", 'x.created_at_day', 'x.count')
+    .select("x.#{column1}", 'x.created_at_day', 'x.count')
     .whereExists(unexpired_events)
     .orderByRaw("x.created_at_day DESC, x.count DESC")
     .limit(options.neighbourhood_size)
     .then( (rows) ->
-      (r.person for r in rows)
+      (r[column1] for r in rows)
     )
 
-  _people_who_actioned: () ->
-    @_knex("#{namespace}.events")
-    .select("person", "action", "thing", "created_at")
-    .where(query_hash)
-    .whereIn('action', actions)
-    .orderByRaw('created_at DESC')
-    .limit(options.history_search_size)
-
   _unexpired_events: (namespace, column1, column2, value, actions, options) ->
-    ret = @_knex("#{namespace}.events")
-    .select('person')
+    @_knex("#{namespace}.events")
+    .select(column1)
     .whereRaw('expires_at IS NOT NULL')
     .where('expires_at', '>', options.expires_after)
     .where('created_at', '<=', options.current_datetime)
     .whereIn('action', actions)
-    .whereRaw("person = x.person")
-    if column1 == 'thing'
-      ret = ret.where('thing', '!=', value)
-    ret
+    .whereRaw("#{column1} = x.#{column1}")
+
+
   _one_degree_away: (namespace, column1, column2, value, actions, options) ->
     query_hash = {}
     query_hash[column1] = value #e.g. {person: person} or {thing: thing}
@@ -214,26 +204,19 @@ class PSQLEventStoreManager
     recent_events = @_knex("#{namespace}.events")
     .select("person", "action", "thing", "created_at")
     .where(query_hash)
-    .where('created_at', '<=', options.current_datetime)
     .whereIn('action', actions)
     .orderByRaw('created_at DESC')
     .limit(options.history_search_size)
-    
 
-    if column1 == 'person'
-      @_knex(recent_events.as('e'))
-      .innerJoin("#{namespace}.events as f", -> @on("e.thing", "f.thing").on("f.person",'!=', "e.person"))
-      .where("e.person", value)
-      .whereIn('f.action', actions)
-      .where('f.created_at', '<=', options.current_datetime)
-      .select(@_knex.raw("f.person, date_trunc('day', max(e.created_at)) as created_at_day, count(f.person) as count"))
-      .groupBy("f.person")
-      .orderByRaw("created_at_day DESC, count(f.person) DESC")
-    else
-      @_knex(recent_events.as('e'))
-      .select(@_knex.raw("e.person, max(e.created_at) as created_at_day, 1 as count"))
-      .groupBy("e.person")
-      .orderByRaw("max(e.created_at) DESC")
+    @_knex(recent_events.as('e'))
+    .innerJoin("#{namespace}.events as f", -> @on("e.#{column2}", "f.#{column2}").on("f.#{column1}",'!=', "e.#{column1}"))
+    .where("e.#{column1}", value)
+    .whereIn('f.action', actions)
+    .where('f.created_at', '<=', options.current_datetime)
+    .where('e.created_at', '<=', options.current_datetime)
+    .select(@_knex.raw("f.#{column1}, date_trunc('day', max(e.created_at)) as created_at_day, count(f.#{column1}) as count"))
+    .groupBy("f.#{column1}")
+    .orderByRaw("created_at_day DESC, count(f.#{column1}) DESC")
 
   ##################################
   ####  END OF NEIGHBOURHOOD  ######
@@ -404,7 +387,6 @@ class PSQLEventStoreManager
 
     @_knex.raw(query, bindings)
     .then( (rows) ->
-      
       similarities = {}
       for row in rows.rows
         similarities[row.cvalue] = row.cosine_distance

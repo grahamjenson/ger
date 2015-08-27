@@ -16,7 +16,7 @@ esm_tests = (ESM) ->
     nfindpeople = 25
     ncalcpeople = 25
     ncompact = 3
-    nrecommendations = 20
+    nrecommendations = 40
     nrecpeople = 25
 
     it "adding #{nevents} events takes so much time", ->
@@ -152,7 +152,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..nrecommendations]
-            promises.push ger.recommendations_for_thing(ns, sample(things), actions: {buy:5, like:3, view:1})
+            promises.push ger.recommendations_for_thing(ns, sample(things), actions: {buy:5, like:3, view:1}, neighbourhood_size: 50)
           bb.all(promises)
           .then(->
             et = new Date().getTime()

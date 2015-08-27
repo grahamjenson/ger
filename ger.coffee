@@ -107,29 +107,16 @@ class GER
     recommendations
 
 
-  calculate_thing_recommendations: (thing, similarities, recommendations, configuration) ->
-    thing_group = {}
-    
-    for rec in recommendations
-      if thing_group[rec.thing] == undefined
-        thing_group[rec.thing] = {
-          thing: rec.thing
-          weight: 0
-          last_actioned_at: rec.last_actioned_at
-          last_expires_at: rec.last_expires_at
-          people: []
-        } 
-
-      thing_group[rec.thing].last_actioned_at = moment.max(moment(thing_group[rec.thing].last_actioned_at), moment(rec.last_actioned_at)).format()
-      thing_group[rec.thing].last_expires_at = moment.max(moment(thing_group[rec.thing].last_expires_at), moment(rec.last_expires_at)).format()
-
-      thing_group[rec.thing].people.push rec.person
-
+  calculate_thing_recommendations: (thing, similarities, configuration) ->
     recommendations = []
     for thing, weight of similarities
-      rec = thing_group[thing]
-      rec.weight = weight
-      recommendations.push rec
+      recommendations.push {
+        thing: thing
+        weight: weight
+        last_actioned_at: moment().format()
+        last_expires_at: moment().add(1, 'day').format()
+        people: []
+      }
 
     recommendations = recommendations.sort((x, y) -> y.weight - x.weight)
     recommendations
@@ -170,32 +157,15 @@ class GER
     #"People who Actioned this Thing also Actioned"
 
     @thing_neighbourhood(namespace, thing, actions, configuration)
-    .then( (people) =>
+    .then( (things) =>
       bb.all([
-        people,
-        @recent_recommendations_by_people(namespace, actions, people , _.clone(configuration))
+        things, 
+        @calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration))
       ])
     )
-    .spread( (neighbourhood, recommendations) =>      
-      #sort things by how many times they it is recommended
-      things =  _.chain(recommendations).countBy( (x) -> x.thing)
-      .pairs()
-      .sortBy( (x) -> - x[1] )
-      .pluck(0)
-      .filter((x) -> "#{x}" != "#{thing}")
-      .value()
-
-      things = things[...configuration.max_thing_recommendations]
-      bb.all([
-        neighbourhood, 
-        @calculate_similarities_from_thing(namespace, thing, things, actions, _.clone(configuration)),
-        recommendations
-      ])
-      
-    )
-    .spread( (neighbourhood, similarities, recommendations) =>
+    .spread( (neighbourhood, similarities) =>
       recommendations_object = {}
-      recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, recommendations, configuration)
+      recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
       
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
@@ -203,6 +173,8 @@ class GER
       recommendations_confidence = @recommendations_confidence(recommendations_object.recommendations)
 
       recommendations_object.confidence = neighbourhood_confidence * history_confidence * recommendations_confidence
+
+      #console.log JSON.stringify(recommendations_object,null,2)
 
       recommendations_object
     )

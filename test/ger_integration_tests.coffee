@@ -256,7 +256,7 @@ describe 'recommendations_for_person', ->
       )
 
 describe 'thing_neighbourhood', ->
-  it 'should list people who actioned a thing', ->
+  it 'should list things of people who actioned a thing', ->
     init_ger()
     .then (ger) ->
       bb.all([
@@ -266,51 +266,35 @@ describe 'thing_neighbourhood', ->
       .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1}))
       .then((neighbourhood) ->
         neighbourhood.length.should.equal 1
-        neighbourhood.should.include 'p1'
+        neighbourhood.should.include 'b'
       )
 
-  it 'should not list people twice', ->
+  it 'should not list things twice', ->
     init_ger()
     .then (ger) ->
       bb.all([
         ger.event(ns,'p1','v','a', expires_at: tomorrow),
-        ger.event(ns,'p1','b','a', expires_at: tomorrow),
+        ger.event(ns,'p1','b','b', expires_at: tomorrow),
         ger.event(ns,'p1','v','b', expires_at: tomorrow),
       ])
       .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1, 'b': 1}))
       .then((neighbourhood) ->
         neighbourhood.length.should.equal 1
-        neighbourhood.should.include 'p1'
+        neighbourhood.should.include 'b'
       )
 
-  it 'should list people who can recommend something else', ->
+  it 'should list things which cannot be recommended', ->
     init_ger()
     .then (ger) ->
       bb.all([
         ger.event(ns,'p1','v','a', expires_at: tomorrow),
-        ger.event(ns,'p2','v','a', expires_at: tomorrow),
-        ger.event(ns,'p1','v','b', expires_at: tomorrow)
+        ger.event(ns,'p1','v','b', expires_at: yesterday),
+        ger.event(ns,'p1','v','c', expires_at: tomorrow)
       ])
       .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1}))
       .then((neighbourhood) ->
         neighbourhood.length.should.equal 1
-        neighbourhood.should.include 'p1'
-      )
-
-  it 'should order the people by when they actioned the thing', ->
-    init_ger()
-    .then (ger) ->
-      bb.all([
-        ger.event(ns,'p1','v','a', created_at: yesterday, expires_at: tomorrow),
-        ger.event(ns,'p2','v','a', created_at: last_week, expires_at: tomorrow),
-        ger.event(ns,'p1','v','b', expires_at: tomorrow),
-        ger.event(ns,'p2','v','b', expires_at: tomorrow)
-      ])
-      .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1}))
-      .then((neighbourhood) ->
-        neighbourhood.length.should.equal 2
-        neighbourhood[0].should.equal 'p1'
-        neighbourhood[1].should.equal 'p2'
+        neighbourhood.should.include 'c'
       )
 
 

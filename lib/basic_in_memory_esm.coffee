@@ -56,12 +56,16 @@ class BasicInMemoryESM
     options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
     one_degree_away = @_one_degree_away(namespace, column1, column2, value, _.clone(options))
-    
+
     query_hash = _.clone(options)
+    plural = ""
+    if column1 == "person"      
+      plural = "people"
+    else
+      plural = "things"
 
-    query_hash.people = one_degree_away
-    unexpired_events = (x.person for x in @_find_events(namespace, query_hash) when value != x[column1])
-
+    query_hash[plural] = one_degree_away
+    unexpired_events = (x[column1] for x in @_find_events(namespace, query_hash) when value != x[column1])
     bb.try(-> _.uniq(unexpired_events)[...options.neighbourhood_size])
 
 
@@ -75,17 +79,12 @@ class BasicInMemoryESM
     search_hash_1[column1] = value
 
     ret = []
-    if column1 == 'person'
-      for x in @_find_events(namespace, search_hash_1)
-        
-        search_hash_2 = _.clone(search_hash)
-        search_hash_2.thing = x.thing
-        for y in @_find_events(namespace, search_hash_2)
-          ret.push y.person if value != y.person
-    else
-      for x in @_find_events(namespace, search_hash_1)
-        ret.push x.person
-
+    for x in @_find_events(namespace, search_hash_1)
+      
+      search_hash_2 = _.clone(search_hash)
+      search_hash_2[column2] = x[column2]
+      for y in @_find_events(namespace, search_hash_2)
+        ret.push y[column1] if value != y[column1]
     ret
 
   ##################################
