@@ -77,7 +77,7 @@ esm_tests = (ESM) ->
   describe 'recommendation methods', ->
 
     describe '#thing_neighbourhood', ->
-      it 'should return a list of things', ->
+      it 'should return a list of objects with thing, max_created_at, max_expires_at', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -89,9 +89,48 @@ esm_tests = (ESM) ->
           )
           .then( (things) ->
             things.length.should.equal 1
-            things[0].should.equal 't2'
+            things[0].thing.should.equal 't2'
           )
 
+      it 'should return a list of people who actioned thing', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p1','view','t2', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t2', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t3', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.thing_neighbourhood(ns, 't1', ['view'])
+          )
+          .then( (things) ->
+            things.length.should.equal 2
+            things[0].person.length.should.equal 2
+            things[0].person.should.include 'p1'
+            things[0].person.should.include 'p2'
+          )
+
+      it 'should return a list of unique people', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p1','view','t2', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t1', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t2', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t3', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.thing_neighbourhood(ns, 't1', ['view'])
+          )
+          .then( (things) ->
+            things.length.should.equal 2
+            things[0].person.length.should.equal 2
+            things[0].person.should.include 'p1'
+            things[0].person.should.include 'p2'
+          )
       it 'should not list things twice', ->
         init_esm(ESM, ns)
         .then (esm) ->
@@ -103,7 +142,7 @@ esm_tests = (ESM) ->
           .then(-> esm.thing_neighbourhood(ns, 'a', ['v','b']))
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 1
-            neighbourhood.should.include 'b'
+            neighbourhood[0].thing.should.equal 'b'
           )
 
       it 'should list recommendable things', ->
@@ -111,13 +150,14 @@ esm_tests = (ESM) ->
         .then (esm) ->
           bb.all([
             esm.add_event(ns,'p1','v','a', expires_at: tomorrow),
-            esm.add_event(ns,'p1','v','b', expires_at: yesterday)
-            esm.add_event(ns,'p1','v','c', expires_at: tomorrow)
+            esm.add_event(ns,'p1','v','b', expires_at: tomorrow)
+            esm.add_event(ns,'p1','v','c', expires_at: yesterday)
+            esm.add_event(ns,'p1','v','d')
           ])
-          .then(-> esm.thing_neighbourhood(ns, 'a', 'v'))
+          .then(-> esm.thing_neighbourhood(ns, 'a', ['v']))
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 1
-            neighbourhood.should.include 'c'
+            neighbourhood[0].thing.should.equal 'b'
           )
 
       it 'should order the things by how many people actioned it', ->
@@ -130,12 +170,58 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p2','v','c', expires_at: tomorrow)
             esm.add_event(ns,'p3','v','c', expires_at: tomorrow)
           ])
-          .then(-> esm.thing_neighbourhood(ns, 'a', 'v'))
+          .then(-> esm.thing_neighbourhood(ns, 'a', ['v']))
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 2
-            neighbourhood[0].should.equal 'c'
-            neighbourhood[1].should.equal 'b'
+            neighbourhood[0].thing.should.equal 'c'
+            neighbourhood[1].thing.should.equal 'b'
           )
+
+      it 'should return the last_expires_at and last_actioned_at', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','v','a')
+            esm.add_event(ns,'p2','v','a')
+            esm.add_event(ns,'p3','v','a')
+            esm.add_event(ns,'p1','v','b', created_at: yesterday, expires_at: tomorrow),
+            esm.add_event(ns,'p2','v','b', created_at: today, expires_at: yesterday),
+            esm.add_event(ns,'p3','v','b', created_at: last_week)
+          ])
+          .then(-> esm.thing_neighbourhood(ns, 'a', ['v']))
+          .then((neighbourhood) ->
+            neighbourhood.length.should.equal 1
+            neighbourhood[0].thing.should.equal 'b'
+            neighbourhood[0].last_actioned_at.getTime().should.equal today.toDate().getTime()
+            neighbourhood[0].last_expires_at.getTime().should.equal tomorrow.toDate().getTime()
+          )
+
+      it 'should return a unique list of the people that actioned the things (and ordered by number of people)', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','v','a')
+            esm.add_event(ns,'p2','v','a')
+            esm.add_event(ns,'p1','v','b', expires_at: tomorrow),
+            esm.add_event(ns,'p1','x','b', expires_at: tomorrow),
+            esm.add_event(ns,'p2','v','b', expires_at: tomorrow),
+            esm.add_event(ns,'p1','v','c', expires_at: tomorrow),
+            esm.add_event(ns,'p3','v','c')
+          ])
+          .then(-> esm.thing_neighbourhood(ns, 'a', ['v', 'x']))
+          .then((neighbourhood) ->
+            neighbourhood.length.should.equal 2
+            neighbourhood[0].thing.should.equal 'b'
+            neighbourhood[1].thing.should.equal 'c'
+
+            neighbourhood[0].people.length.should.equal 2
+            neighbourhood[0].people.should.include 'p1'
+            neighbourhood[0].people.should.include 'p2'
+
+            neighbourhood[1].people.length.should.equal 1
+            neighbourhood[1].people.should.include 'p1'         
+          )
+
 
     describe '#calculate_similarities_from_thing', ->
       it 'more similar histories should be greater', ->

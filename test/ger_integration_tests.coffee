@@ -266,7 +266,7 @@ describe 'thing_neighbourhood', ->
       .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1}))
       .then((neighbourhood) ->
         neighbourhood.length.should.equal 1
-        neighbourhood.should.include 'b'
+        neighbourhood.map( (x) -> x.thing).should.include 'b'
       )
 
   it 'should not list things twice', ->
@@ -280,7 +280,7 @@ describe 'thing_neighbourhood', ->
       .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1, 'b': 1}))
       .then((neighbourhood) ->
         neighbourhood.length.should.equal 1
-        neighbourhood.should.include 'b'
+        neighbourhood.map( (x) -> x.thing).should.include 'b'
       )
 
   it 'should list things which cannot be recommended', ->
@@ -294,7 +294,7 @@ describe 'thing_neighbourhood', ->
       .then(-> ger.thing_neighbourhood(ns, 'a', {'v': 1}))
       .then((neighbourhood) ->
         neighbourhood.length.should.equal 1
-        neighbourhood.should.include 'c'
+        neighbourhood.map( (x) -> x.thing).should.include 'c'
       )
 
 

@@ -159,12 +159,6 @@ class PSQLEventStoreManager
   ###########################
 
   thing_neighbourhood: (namespace, thing, actions, options = {}) ->
-    @_neighbourhood(namespace, "thing", "person", thing, actions, options)
-
-  person_neighbourhood: (namespace, person, actions, options = {}) ->
-    @_neighbourhood(namespace, "person", "thing", person, actions, options)
-
-  _neighbourhood: (namespace, column1, column2, value, actions, options) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
     options = _.defaults(options,
@@ -175,34 +169,59 @@ class PSQLEventStoreManager
     )
     options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
-    one_degree_away = @_one_degree_away(namespace, column1, column2, value, actions, options)
-    unexpired_events = @_unexpired_events(namespace, column1, column2, value, actions, options)
+    one_degree_away = @_one_degree_away(namespace, 'thing', 'person', thing, actions, options)
+    .orderByRaw("action_count DESC")
 
     @_knex(one_degree_away.as('x'))
-    .select("x.#{column1}", 'x.created_at_day', 'x.count')
-    .whereExists(unexpired_events)
-    .orderByRaw("x.created_at_day DESC, x.count DESC")
+    .where('x.last_expires_at', '>', options.expires_after)
+    .where('x.last_actioned_at', '<=', options.current_datetime)
+    .orderByRaw("x.action_count DESC")
     .limit(options.neighbourhood_size)
     .then( (rows) ->
-      (r[column1] for r in rows)
+      for row in rows 
+        row.people = _.uniq(row.person) # difficult in postgres
+      rows
     )
 
-  _unexpired_events: (namespace, column1, column2, value, actions, options) ->
+  person_neighbourhood: (namespace, person, actions, options = {}) ->
+    return bb.try(-> []) if !actions or actions.length == 0
+
+    options = _.defaults(options,
+      neighbourhood_size: 100
+      history_search_size: 500
+      time_until_expiry: 0
+      current_datetime: new Date()
+    )
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
+
+    one_degree_away = @_one_degree_away(namespace, 'person', 'thing', person, actions, options)
+    .orderByRaw("created_at_day DESC, action_count DESC")
+
+    unexpired_events = @_unexpired_events(namespace, actions, options)
+
+    @_knex(one_degree_away.as('x'))
+    .whereExists(unexpired_events)
+    .orderByRaw("x.created_at_day DESC, x.action_count DESC")
+    .limit(options.neighbourhood_size)
+    .then( (rows) ->
+      (row.person for row in rows)
+    )
+
+
+  _unexpired_events: (namespace, actions, options) ->
     @_knex("#{namespace}.events")
-    .select(column1)
+    .select('person')
     .whereRaw('expires_at IS NOT NULL')
     .where('expires_at', '>', options.expires_after)
     .where('created_at', '<=', options.current_datetime)
     .whereIn('action', actions)
-    .whereRaw("#{column1} = x.#{column1}")
-
+    .whereRaw("person = x.person")
 
   _one_degree_away: (namespace, column1, column2, value, actions, options) ->
     query_hash = {}
     query_hash[column1] = value #e.g. {person: person} or {thing: thing}
 
     recent_events = @_knex("#{namespace}.events")
-    .select("person", "action", "thing", "created_at")
     .where(query_hash)
     .whereIn('action', actions)
     .orderByRaw('created_at DESC')
@@ -214,9 +233,8 @@ class PSQLEventStoreManager
     .whereIn('f.action', actions)
     .where('f.created_at', '<=', options.current_datetime)
     .where('e.created_at', '<=', options.current_datetime)
-    .select(@_knex.raw("f.#{column1}, date_trunc('day', max(e.created_at)) as created_at_day, count(f.#{column1}) as count"))
+    .select(@_knex.raw("f.#{column1}, MAX(f.created_at) as last_actioned_at, MAX(f.expires_at) as last_expires_at, array_agg(f.#{column2}) as #{column2}, date_trunc('day', max(e.created_at)) as created_at_day, count(f.#{column1}) as action_count"))
     .groupBy("f.#{column1}")
-    .orderByRaw("created_at_day DESC, count(f.#{column1}) DESC")
 
   ##################################
   ####  END OF NEIGHBOURHOOD  ######

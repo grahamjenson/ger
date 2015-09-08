@@ -36,13 +36,6 @@ class BasicInMemoryESM
   ###########################
 
   thing_neighbourhood: (namespace, thing, actions, options = {}) ->
-    @_neighbourhood(namespace, "thing", "person", thing, actions, options)
-
-  person_neighbourhood: (namespace, person, actions, options = {}) ->
-    @_neighbourhood(namespace, "person", "thing", person, actions, options)
-
-
-  _neighbourhood: (namespace, column1, column2, value, actions, options) ->
     return bb.try(-> []) if !actions or actions.length == 0
 
     options = _.defaults(options,
@@ -52,21 +45,35 @@ class BasicInMemoryESM
       current_datetime: new Date()
     )
     options.actions = actions
-
     options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
 
-    one_degree_away = @_one_degree_away(namespace, column1, column2, value, _.clone(options))
+    one_degree_away = @_one_degree_away(namespace, 'thing', 'person', thing, _.clone(options))
+
+    one_degree_away = one_degree_away.filter( (x) -> x.thing != thing && !!x.last_expires_at && !moment(x.last_expires_at).isBefore(options.expires_after))
+    one_degree_away.map( (x) -> x.people = _.uniq(x.person))
+    one_degree_away = _.sortBy(one_degree_away, (x) -> - x.people.length)
+    bb.try(-> one_degree_away[...options.neighbourhood_size])
+
+  person_neighbourhood: (namespace, person, actions, options = {}) ->
+    return bb.try(-> []) if !actions or actions.length == 0
+
+    options = _.defaults(options,
+      neighbourhood_size: 100
+      history_search_size: 500
+      time_until_expiry: 0
+      current_datetime: new Date()
+    )
+    options.actions = actions
+    options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format()
+
+    one_degree_away = @_one_degree_away(namespace, 'person', 'thing', person, _.clone(options))
 
     query_hash = _.clone(options)
-    plural = ""
-    if column1 == "person"      
-      plural = "people"
-    else
-      plural = "things"
+    query_hash.people = one_degree_away.map((x) -> x.person)
+    unexpired_events = (x.person for x in @_find_events(namespace, query_hash) when person != x.person)
 
-    query_hash[plural] = one_degree_away
-    unexpired_events = (x[column1] for x in @_find_events(namespace, query_hash) when value != x[column1])
     bb.try(-> _.uniq(unexpired_events)[...options.neighbourhood_size])
+
 
 
   _one_degree_away: (namespace, column1, column2, value, options) ->
@@ -78,14 +85,26 @@ class BasicInMemoryESM
     search_hash_1 = _.clone(search_hash)
     search_hash_1[column1] = value
 
-    ret = []
+    ret = {}
     for x in @_find_events(namespace, search_hash_1)
       
       search_hash_2 = _.clone(search_hash)
       search_hash_2[column2] = x[column2]
       for y in @_find_events(namespace, search_hash_2)
-        ret.push y[column1] if value != y[column1]
-    ret
+
+        if ret[y[column1]] == undefined
+          ret[y[column1]] = {
+            "#{column1}": y[column1]
+            "#{column2}": [y[column2]]
+            last_actioned_at: y.created_at
+            last_expires_at: y.expires_at
+          }
+        else
+          ret[y[column1]][column2].push(y[column2])
+          ret[y[column1]].last_actioned_at = moment.max(moment(ret[y[column1]].last_actioned_at), moment(y.created_at)).toDate()
+          ret[y[column1]].last_expires_at = moment.max(moment(ret[y[column1]].last_expires_at), moment(y.expires_at)).toDate()
+
+    _.values(ret)
 
   ##################################
   ####  END OF NEIGHBOURHOOD  ######
