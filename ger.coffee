@@ -167,7 +167,6 @@ class GER
       ])
     )
     .spread( (neighbourhood, similarities) =>
-
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, neighbourhood, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
