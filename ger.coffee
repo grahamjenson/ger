@@ -188,7 +188,8 @@ class GER
   default_configuration: (configuration) ->
     _.defaults(configuration,
       minimum_history_required: 1,
-      history_search_size: 200
+      neighbourhood_search_size: 100
+      similarity_search_size: 100
       event_decay_rate: 1
       neighbourhood_size: 25,
       recommendations_per_neighbour: 5

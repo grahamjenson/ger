@@ -40,7 +40,7 @@ class BasicInMemoryESM
 
     options = _.defaults(options,
       neighbourhood_size: 100
-      history_search_size: 500
+      neighbourhood_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
     )
@@ -59,7 +59,7 @@ class BasicInMemoryESM
 
     options = _.defaults(options,
       neighbourhood_size: 100
-      history_search_size: 500
+      neighbourhood_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
     )
@@ -80,6 +80,7 @@ class BasicInMemoryESM
     search_hash = {
       current_datetime: options.current_datetime
       actions: options.actions
+      size: options.neighbourhood_search_size 
     }
 
     search_hash_1 = _.clone(search_hash)
@@ -154,14 +155,14 @@ class BasicInMemoryESM
     return bb.try(-> {}) if values.length == 0
 
     options = _.defaults(options,
-      history_search_size: 500
+      similarity_search_size: 500
       current_datetime: new Date()
       event_decay_rate: 1
     )
 
     similarities = {}
     for v in values
-      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.history_search_size, options.event_decay_rate)
+      similarities[v] =  @_cosine_distance(namespace, column1, column2, value, v, actions, options.current_datetime, options.similarity_search_size, options.event_decay_rate)
       similarities[v] = similarities[v] || 0
 
     return bb.try(-> similarities)

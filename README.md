@@ -189,7 +189,8 @@ GER lets you set some values to customize recommendations generation using a `co
 |---                          |---                
 | `actions`                   |    `{}` 
 | `minimum_history_required`  |    `0` 
-| `history_search_size`       |    `100` 
+| `neighbourhood_search_size` |    `100`
+| `similarity_search_size`    |    `100` 
 | `neighbourhood_size`        |    `25` 
 | `recommendations_per_neighbour`      |    `10`
 | `filter_previous_actions`   |    `[]`
@@ -200,7 +201,8 @@ GER lets you set some values to customize recommendations generation using a `co
 
 2. `actions` is an object where the keys are actions names, and the values are action weights that represent the importance of the action
 3. `minimum_history_required` is the minimum amount of events a person has to have to even bother generating recommendations. It is good to stop low confidence recommendations being generated.
-4. `history_search_size` the amount of events in the past that are used to search for similar people. This value has the highest impact on performance but past a certain point has no (or negative) impact on recommendations.
+4. `neighbourhood_search_size` the amount of events in the past that are used to search for the neighborhood. This value has the highest impact on performance but past a certain point has no (or negative) impact on recommendations.
+5. `similarity_search_size` is the amount of events in the history used to calculate the similarity between things or people.
 5. `neighbourhood_size` the number of similar people (or things) that are searched for. This value has a significant performance impact, and increasing it past a point will also gain diminishing returns.
 6. `recommendations_per_neighbour` the number of recommendations each similar person can offer. This is to stop a situation where a single highly similar person provides all recommendations.
 7. `filter_previous_actions` it removes recommendations that the person being recommended already has in their history. For example, if a person has already liked `xmen`, then if `filter_previous_actions` is `["liked"]` they will not be recommended `xmen`.
@@ -217,7 +219,7 @@ ger.recommendations_for_person('movies', 'alice', {
     "watch": 5
   },
   "minimum_history_required": 5,
-  "history_search_size": 50,
+  "similarity_search_size": 50,
   "neighbourhood_size": 20,
   "recommendations_per_neighbour": 10,
   "filter_previous_actions": ["watch"],

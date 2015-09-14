@@ -163,7 +163,7 @@ class PSQLEventStoreManager
 
     options = _.defaults(options,
       neighbourhood_size: 100
-      history_search_size: 500
+      neighbourhood_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
     )
@@ -188,7 +188,7 @@ class PSQLEventStoreManager
 
     options = _.defaults(options,
       neighbourhood_size: 100
-      history_search_size: 500
+      neighbourhood_search_size: 500
       time_until_expiry: 0
       current_datetime: new Date()
     )
@@ -225,7 +225,7 @@ class PSQLEventStoreManager
     .where(query_hash)
     .whereIn('action', actions)
     .orderByRaw('created_at DESC')
-    .limit(options.history_search_size)
+    .limit(options.neighbourhood_search_size)
 
     @_knex(recent_events.as('e'))
     .innerJoin("#{namespace}.events as f", -> @on("e.#{column2}", "f.#{column2}").on("f.#{column1}",'!=', "e.#{column1}"))
@@ -415,12 +415,12 @@ class PSQLEventStoreManager
   _similarities: (namespace, column1, column2, value, values, actions, options={}) ->
     return bb.try(-> {}) if !actions or actions.length == 0 or values.length == 0
     options = _.defaults(options,
-      history_search_size: 500
+      similarity_search_size: 500
       event_decay_rate: 1
       current_datetime: new Date()
     )
-
-    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.history_search_size, options.event_decay_rate, options.current_datetime)
+    #TODO history search size should be more [similarity history search size]
+    @get_cosine_distances(namespace, column1, column2, value, values, actions, options.similarity_search_size, options.event_decay_rate, options.current_datetime)
 
   calculate_similarities_from_thing: (namespace, thing, things, actions, options={}) ->
     @_similarities(namespace, 'thing', 'person', thing, things, actions, options)

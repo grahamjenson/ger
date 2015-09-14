@@ -26,7 +26,7 @@ describe 'recommending for a person', ->
         ger.event(ns, 'p2','view','x', created_at: today, expires_at: tomorrow),
         ger.event(ns, 'p2','view','a', created_at: yesterday, expires_at: tomorrow),
       ])
-      .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 1}, filter_previous_actions: ['view'], history_search_size: 1))
+      .then(-> ger.recommendations_for_person(ns, 'p1',  actions: {view: 1}, filter_previous_actions: ['view'], neighbourhood_search_size: 1))
       .then((recs) ->
         for r in recs.recommendations
           throw "BAD WEIGHT #{r.weight}" if not _.isFinite(r.weight)
@@ -99,8 +99,8 @@ describe "joining multiple gers", ->
         ger2.event(ns2, 'p2','buy','b', expires_at: tomorrow),
       ])
       .then( -> bb.all([
-          ger1.recommendations_for_person(ns1, 'p1', {neighbourhood_size: 2, history_search_size: 4, actions: {view: 1}}),
-          ger2.recommendations_for_person(ns2, 'p1', {neighbourhood_size: 4, history_search_size: 8, actions: {view: 1}})
+          ger1.recommendations_for_person(ns1, 'p1', {neighbourhood_size: 2, neighbourhood_search_size: 4, actions: {view: 1}}),
+          ger2.recommendations_for_person(ns2, 'p1', {neighbourhood_size: 4, neighbourhood_search_size: 8, actions: {view: 1}})
         ])
       )
       .spread((recs1, recs2) ->

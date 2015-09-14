@@ -77,6 +77,31 @@ esm_tests = (ESM) ->
   describe 'recommendation methods', ->
 
     describe '#thing_neighbourhood', ->
+
+      it 'should limit its search to event number of neighbourhood_search_size', ->
+        init_esm(ESM, ns)
+        .then (esm) ->
+          bb.all([
+            esm.add_event(ns,'p1','view','t1', created_at: today)
+            esm.add_event(ns,'p2','view','t1', created_at: yesterday)
+
+            esm.add_event(ns,'p1','view','t2', expires_at: tomorrow)
+            esm.add_event(ns,'p2','view','t3', expires_at: tomorrow)
+          ])
+          .then( ->
+            esm.thing_neighbourhood(ns, 't1', ['view'], {neighbourhood_search_size: 1})
+          )
+          .then( (things) ->
+            things.length.should.equal 1
+            things[0].thing.should.equal 't2'
+          )
+          .then( ->
+            esm.thing_neighbourhood(ns, 't1', ['view'], {neighbourhood_search_size: 2})
+          )
+          .then( (things) ->
+            things.length.should.equal 2
+          )
+
       it 'should return a list of objects with thing, max_created_at, max_expires_at', ->
         init_esm(ESM, ns)
         .then (esm) ->
@@ -457,7 +482,7 @@ esm_tests = (ESM) ->
             similarities['p3'].should.be.greaterThan(similarities['p2'])
           )
 
-      it 'should limit based on history_search_size (ordered by created_at)', ->
+      it 'should limit similarity measure on similarity_search_size (ordered by created_at)', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -466,16 +491,16 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p2','a','t3', created_at: today)
             esm.add_event(ns,'p2','a','t1', created_at: yesterday)
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {history_search_size: 1}))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {similarity_search_size: 1}))
           .then( (similarities) ->
             similarities['p2'].should.equal 0
           )
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {history_search_size: 2}))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {similarity_search_size: 2}))
           .then( (similarities) ->
             similarities['p2'].should.not.equal 0
           )
 
-      it 'should not limit history_search_size for non selected actions', ->
+      it 'should not limit similarity measure similarity_search_size for non selected actions', ->
         init_esm(ESM, ns)
         .then (esm) ->
           bb.all([
@@ -484,7 +509,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p2','b','t3', created_at: today)
             esm.add_event(ns,'p2','a','t1', created_at: yesterday)
           ])
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {history_search_size: 1}))
+          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2'], {a: 1}, {similarity_search_size: 1}))
           .then( (similarities) ->
             similarities['p2'].should.not.equal 0
           )
