@@ -468,55 +468,6 @@ class PSQLEventStoreManager
   post_compact: (namespace) ->
     @analyze(namespace)
 
-
-  remove_non_unique_events_for_people: (namespace, people) ->
-    return bb.try( -> []) if people.length == 0
-    promise = bb.try(->)
-    for person in people
-      do (person) =>
-        promise = promise.then( => @remove_non_unique_events_for_person(namespace, person) )
-    
-    promise
-
-  remove_non_unique_events_for_person: (namespace, person, limit=100) ->
-    @remove_non_unique_events_for_person_without_expiry(namespace, person, limit)
-    .then( =>
-      @remove_non_unique_events_for_person_with_expiry(namespace, person, limit)
-    )
-
-  remove_non_unique_events_for_person_with_expiry: (namespace, person, limit) ->
-    bindings = {person: person}
-    query = "DELETE FROM \"#{namespace}\".events as e where e.id IN 
-    (SELECT e2.id FROM \"#{namespace}\".events e1, \"#{namespace}\".events e2 
-    WHERE e1.person = :person 
-    AND e1.expires_at is NOT NULL AND e2.expires_at is NOT NULL
-    AND e1.id <> e2.id 
-    AND e1.person = e2.person 
-    AND e1.action = e2.action 
-    AND e1.thing = e2.thing 
-    AND (e1.expires_at > e2.expires_at OR (e1.expires_at = e2.expires_at AND e1.id < e2.id))
-    order by e1.id 
-    LIMIT #{limit})"
-    #LEXICOGRAPHIC ORDERING for expires at then id
-    @_knex.raw(query, bindings)
-
-  remove_non_unique_events_for_person_without_expiry: (namespace, person, limit) ->
-    # http://stackoverflow.com/questions/1746213/how-to-delete-duplicate-entries
-    bindings = {person: person}
-    query = "DELETE FROM \"#{namespace}\".events as e where e.id IN 
-    (SELECT e2.id FROM \"#{namespace}\".events e1, \"#{namespace}\".events e2 
-    WHERE e1.person = :person
-    AND e1.expires_at is NULL AND e2.expires_at is NULL
-    AND e1.id <> e2.id 
-    AND e1.person = e2.person 
-    AND e1.action = e2.action 
-    AND e1.thing = e2.thing 
-    AND (e1.created_at > e2.created_at OR (e1.created_at = e2.created_at AND e1.id < e2.id))
-    order by e1.id 
-    LIMIT #{limit})"
-    #LEXICOGRAPHIC ORDERING for created at then id
-    @_knex.raw(query, bindings)
-
   vacuum_analyze: (namespace) ->
     @_knex.raw("VACUUM ANALYZE \"#{namespace}\".events")
 
@@ -554,11 +505,7 @@ class PSQLEventStoreManager
   compact_people : (namespace, compact_database_person_action_limit, actions) ->
     @get_active_people(namespace)
     .then( (people) =>
-      @remove_non_unique_events_for_people(namespace, people)
-      .then( =>
-        #remove events per (active) person action that exceed some number
-        @truncate_people_per_action(namespace, people, compact_database_person_action_limit, actions)
-      )
+      @truncate_people_per_action(namespace, people, compact_database_person_action_limit, actions)
     )
 
   compact_things :  (namespace, compact_database_thing_action_limit, actions) ->

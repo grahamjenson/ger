@@ -59,52 +59,6 @@ esm_tests = (ESM) ->
             es2.length.should.equal 1
           )
 
-      it 'should have no duplicate events after and take the latest creation', ->
-        init_ger(ESM, ns)
-        .then (ger) ->
-          rs = new Readable();
-          rs.push('person,action,thing,2012-02-02,\n');
-          rs.push('person,action,thing,2013-02-02,\n');
-          rs.push(null);
-
-          ger.bootstrap(ns, rs)
-          .then( ->
-            ger.compact_database(ns, actions: ['action'])
-          )
-          .then( ->
-            ger.count_events(ns)
-          )
-          .then( (count) ->
-            count.should.equal 1
-            ger.find_events(ns, person: 'person', action: 'action', thing: 'thing')
-          )
-          .then( (events) ->
-            events[0].created_at.getFullYear().should.equal 2013
-          )
-
-      it 'should have no duplicate expires_at events after and take the latest expiry', ->
-        init_ger(ESM, ns)
-        .then (ger) ->
-          rs = new Readable();
-          rs.push('person,action,thing,2014-01-01,2100-02-02\n');
-          rs.push('person,action,thing,2014-01-01,2105-02-02\n');
-          rs.push(null);
-
-          ger.bootstrap(ns, rs)
-          .then( ->
-            ger.compact_database(ns, actions: ['action'])
-          )
-          .then( ->
-            ger.count_events(ns)
-          )
-          .then( (count) ->
-            count.should.equal 1
-            ger.find_events(ns, person: 'person', action: 'action', thing: 'thing')
-          )
-          .then( (events) ->
-            events[0].expires_at.getFullYear().should.equal 2105
-          )
-
 
     describe '#compact_things', ->
       it 'should truncate the events of things history', ->
