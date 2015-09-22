@@ -63,9 +63,17 @@ class PSQLEventStoreManager
     )
 
   exists: (namespace) ->
-    @_knex.raw("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '#{namespace}'")
-    .then((result) =>
-      result.rows.length >= 1
+    @list_namespaces()
+    .then((namespaces) =>
+      _.contains(namespaces, namespace)
+    )
+
+  list_namespaces: () ->
+    @_knex.raw("SELECT table_schema FROM information_schema.tables WHERE table_name = 'events'")
+    .then( (res) ->
+      ret = _.uniq(res.rows.map( (row) -> row.table_schema))
+      ret = ret.filter((x) -> x != 'default')
+      ret
     )
 
   add_events: (events) ->

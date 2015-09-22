@@ -2,7 +2,28 @@ esm_tests = (ESM) ->
   ns = "default"
 
   describe 'construction', ->
-    describe '#initialize #exists #destroy', ->
+    describe '#initialize #exists #destroy #list_namespaces', ->
+      it 'should list all namespaces', ->
+        ns1 = "namespace1"
+        ns2 = "namespace2"
+        esm = new_esm(ESM) #pass knex as it might be needed
+        bb.all([esm.destroy(ns1), esm.destroy(ns2)])
+        .then( ->
+          esm.list_namespaces()
+        )
+        .then( (list) ->
+          list.should.not.include ns1
+          list.should.not.include ns2 
+        )
+        .then( -> bb.all([esm.initialize(ns1), esm.initialize(ns2)]) )
+        .then( ->
+          esm.list_namespaces()
+        )
+        .then( (list) ->
+          list.should.include ns1
+          list.should.include ns2 
+        )
+
       it 'should initialize namespace', ->
         namespace = "namespace"
         esm = new_esm(ESM)
@@ -15,7 +36,7 @@ esm_tests = (ESM) ->
 
       it 'should sucessfully initialize namespace with default', ->
         #based on an error where default is a reserved name in postgres
-        namespace = "default"
+        namespace = "new_namespace"
         esm = new_esm(ESM)
         esm.destroy(namespace)
         .then( -> esm.exists(namespace))

@@ -30,7 +30,8 @@ class BasicInMemoryESM
   exists: (namespace) ->
     bb.try(=> !!event_store[namespace])
 
-
+  list_namespaces: ->
+    Object.keys(event_store)
   ###########################
   ####  NEIGHBOURHOOD  ######
   ###########################
