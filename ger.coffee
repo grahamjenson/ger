@@ -265,6 +265,9 @@ class GER
   namespace_exists: (namespace) ->
     @esm.exists(namespace)
 
+  list_namespaces: () ->
+    @esm.list_namespaces()
+
   initialize_namespace: (namespace) ->
     @esm.initialize(namespace)
 

@@ -1,5 +1,14 @@
 ns = global.default_namespace
 
+describe '#list_namespaces', ->
+  it 'should work', ->
+    init_ger()
+    .then (ger) ->
+      ger.list_namespaces()
+      .then((list) ->
+        _.isArray(list).should.be.true
+      ) 
+
 describe '#event', ->
   it 'should add events', ->
     init_ger()
