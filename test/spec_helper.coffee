@@ -26,7 +26,7 @@ global._knex = g.knex({client: 'pg', pool: {min: 5, max: 20}, connection: {host:
 #global.default_esm = PsqlESM
 global.default_esm = PsqlESM
 
-global.esms = [{esm: PsqlESM, name: 'PSQLESM'}, {esm: MemESM, name: 'BasicInMemoryESM'}]
+
 
 global.default_namespace = 'default'
 
@@ -58,3 +58,9 @@ global.compare_floats = (f1,f2) ->
   Math.abs(f1 - f2) < 0.00001
 
 global.sample = _.sample
+
+
+global.esm_tests = require './esms/esm_tests'
+
+
+

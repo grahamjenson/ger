@@ -396,9 +396,5 @@ class BasicInMemoryESM
   post_compact: ->
     bb.try(-> true)
 
-#AMD
-if (typeof define != 'undefined' && define.amd)
-  define([], -> return BasicInMemoryESM)
-#Node
-else if (typeof module != 'undefined' && module.exports)
-    module.exports = BasicInMemoryESM;
+
+module.exports = BasicInMemoryESM;

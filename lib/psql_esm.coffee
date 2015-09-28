@@ -34,7 +34,6 @@ init_tables = (knex, schema = 'public') ->
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
 class PSQLEventStoreManager
-
   #INSTANCE ACTIONS
   constructor: (options = {}) ->
     @_knex = options.knex

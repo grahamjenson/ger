@@ -156,9 +156,5 @@ esm_tests = (ESM) ->
         console.log ""
       )
 
-for esm_name in esms
-  name = esm_name.name
-  esm = esm_name.esm
-  describe "TESTING #{name}", ->
-    esm_tests(esm)
 
+module.exports = esm_tests;

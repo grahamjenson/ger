@@ -216,9 +216,6 @@ class GER
     configuration = @default_configuration(configuration)
     actions = configuration.actions
 
-    #first a check or two
-    #TODO minimum thing history count
-    #first a check or two
     @find_events(namespace, actions: Object.keys(actions), thing: thing, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
       return {recommendations: [], confidence: 0} if events.length < configuration.minimum_history_required

@@ -12,8 +12,4 @@ esm_tests = (ESM) ->
         e.message.should.equal "namespace does not exist"
       )
 
-for esm_name in esms
-  name = esm_name.name
-  esm = esm_name.esm
-  describe "TESTING #{name}", ->
-    esm_tests(esm)
+module.exports = esm_tests;
