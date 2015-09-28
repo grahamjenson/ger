@@ -305,13 +305,10 @@ RET = {}
 RET.GER = GER
 
 knex = require 'knex'
-r = require 'rethinkdbdash'
 RET.knex = knex
-RET.r = r
 
 RET.PsqlESM = require('./lib/psql_esm')
 RET.MemESM = require('./lib/basic_in_memory_esm')
-RET.RethinkDBESM = require('./lib/rethinkdb_esm')
 
 Errors = require './lib/errors'
 

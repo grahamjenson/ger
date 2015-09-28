@@ -14,7 +14,6 @@ global.target_db = process.env.TARGET_DB || "pg"
 
 global.PsqlESM = g.PsqlESM
 global.MemESM = g.MemESM
-global.RethinkDBESM = g.RethinkDBESM
 
 global.fs = require('fs');
 global.path = require('path')
