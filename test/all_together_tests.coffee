@@ -7,11 +7,11 @@ ns = global.default_namespace
 random_created_at = ->
   moment().subtract(_.random(0, 120), 'minutes')
 
-compact= (ger) ->   
-    
+compact= (ger) ->
+
   ger.compact_database(ns, {
-    compact_database_person_action_limit: 10, 
-    compact_database_thing_action_limit: 10, 
+    compact_database_person_action_limit: 10,
+    compact_database_thing_action_limit: 10,
     actions: actions
   })
 
@@ -45,7 +45,7 @@ describe 'all together tests', ->
     init_ger()
     .then((ger) ->
       #10 seconds of thrashing
-      
+
       promises = []
 
       for n in [1..ncompacts]

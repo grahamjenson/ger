@@ -5,7 +5,7 @@ esm_tests = (ESM) ->
     it 'should initialize namespace', ->
       esm = new_esm(ESM)
       esm.add_event('not_a_namespace', 'p','a','t')
-      .then( -> 
+      .then( ->
         throw "SHOULD NOT GET HERE"
       )
       .catch( GER.NamespaceDoestNotExist, (e) ->

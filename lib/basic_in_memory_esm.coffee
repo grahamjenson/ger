@@ -1,6 +1,5 @@
 bb = require 'bluebird'
 _ = require 'lodash'
-split = require 'split'
 
 moment = require 'moment'
 
@@ -81,7 +80,7 @@ class BasicInMemoryESM
     search_hash = {
       current_datetime: options.current_datetime
       actions: options.actions
-      size: options.neighbourhood_search_size 
+      size: options.neighbourhood_search_size
     }
 
     search_hash_1 = _.clone(search_hash)
@@ -89,7 +88,7 @@ class BasicInMemoryESM
 
     ret = {}
     for x in @_find_events(namespace, search_hash_1)
-      
+
       search_hash_2 = _.clone(search_hash)
       search_hash_2[column2] = x[column2]
       for y in @_find_events(namespace, search_hash_2)
@@ -134,7 +133,7 @@ class BasicInMemoryESM
       days = Math.round(moment.duration(moment(now).diff(e.created_at)).asDays())
       n_weight = weight * Math.pow(event_decay_rate,-days)
       p2_values[e[column2]] = n_weight
-    
+
     numerator = 0
     for value, weight of p1_values
       if p2_values[value]
@@ -178,7 +177,7 @@ class BasicInMemoryESM
 
   _recent_events: (namespace, column1, actions, values, options = {}) ->
     return bb.try(->[]) if values.length == 0 || actions.length == 0
-    
+
     options = _.defaults(options,
       recommendations_per_neighbour: 10
       time_until_expiry: 0
@@ -191,7 +190,7 @@ class BasicInMemoryESM
     for v in values
       query_hash = {actions: actions}
       query_hash[column1] = v
-      
+
       events = @_find_events(namespace, _.extend(query_hash, options))[...options.recommendations_per_neighbour]
       all_events = all_events.concat events
 
@@ -200,7 +199,7 @@ class BasicInMemoryESM
     for event in all_events
       group_by_person_thing[event.person] = {} if not group_by_person_thing[event.person]
       group_by_person_thing[event.person][event.thing] = {} if not group_by_person_thing[event.person][event.thing]
-      
+
       last_actioned_at = group_by_person_thing[event.person][event.thing].last_actioned_at || event.created_at
       last_actioned_at = moment.max(moment(last_actioned_at), moment(event.created_at)).toDate()
 
@@ -319,7 +318,7 @@ class BasicInMemoryESM
       page: 0
       current_datetime: new Date()
     )
-    
+
     options.expires_after = moment(options.current_datetime).add(options.time_until_expiry, 'seconds').format() if options.time_until_expiry != undefined
 
     #returns all events fitting the above description
@@ -342,7 +341,7 @@ class BasicInMemoryESM
       events = (e for t,e of ats for at, ats of thing_action_store[namespace]?[thth] for thth in options.things)
     else
       events = (e for e in event_store[namespace])
-    
+
     events = _.flatten(events, true)
     events = (e for e in events when @_filter_event(e, options))
     events = _.sortBy(events, (x) -> - x.created_at.getTime())
@@ -354,21 +353,6 @@ class BasicInMemoryESM
     return bb.try(=> @_find_events(namespace, options))
 
 
-  bootstrap: (namespace, stream) ->
-    deferred = bb.defer()
-    stream = stream.pipe(split(/^/gm))
-    count = 0
-    stream.on('data', (chunk) => 
-      return if chunk == ''
-      e = chunk.split(',')
-      expires_at = if e[4] != '' then new Date(e[4]) else null
-      @add_event(namespace, e[0], e[1], e[2], {created_at: new Date(e[3]), expires_at: expires_at})
-      count += 1
-    )
-    stream.on('end', -> deferred.resolve(count))
-    stream.on('error', (error) -> deferred.reject(error))
-    deferred.promise
-
   pre_compact: ->
     bb.try(-> true)
 
@@ -379,13 +363,13 @@ class BasicInMemoryESM
       delete thing_action_store[namespace][e.thing][e.action][e.person]
 
   delete_events: (namespace, options = {}) ->
-    events = @_find_events(namespace, person: options.person, action: options.action, thing: options.thing) 
+    events = @_find_events(namespace, person: options.person, action: options.action, thing: options.thing)
     @_delete_events(namespace, events)
     bb.try(=> {deleted: events.length})
 
-  
+
   compact_people: (namespace, limit, actions) ->
-    #remove all 
+    #remove all
     marked_for_deletion = []
     for person, action_store of person_action_store[namespace]
       for action in actions
@@ -403,7 +387,7 @@ class BasicInMemoryESM
       for action in actions
         events = @_find_events(namespace, thing: thing, action: action)
         if events.length > limit
-          
+
           marked_for_deletion = marked_for_deletion.concat events[limit..-1]
 
     @_delete_events(namespace, marked_for_deletion)
@@ -411,7 +395,7 @@ class BasicInMemoryESM
 
   post_compact: ->
     bb.try(-> true)
-    
+
 #AMD
 if (typeof define != 'undefined' && define.amd)
   define([], -> return BasicInMemoryESM)

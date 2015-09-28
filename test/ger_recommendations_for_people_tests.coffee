@@ -30,7 +30,7 @@ describe 'recommending for a person', ->
       .then((recs) ->
         for r in recs.recommendations
           throw "BAD WEIGHT #{r.weight}" if not _.isFinite(r.weight)
-        
+
         throw "BAD Confidence #{recommendations_object.confidence}" if not _.isFinite(recs.confidence)
       )
 
@@ -40,7 +40,7 @@ describe 'time_until_expiry', ->
     one_day = 24*one_hour
     a1day = moment().add(1, 'days').format()
     a2days = moment().add(2, 'days').format()
-    a3days = moment().add(3, 'days').format() 
+    a3days = moment().add(3, 'days').format()
 
     init_ger()
     .then (ger) ->
@@ -298,12 +298,12 @@ describe "person exploits,", ->
   it "a single persons mass interaction should not outweigh 'real' interations", ->
     init_ger()
     .then (ger) ->
-      rs = new Readable();
+      events = []
       for x in [1..100]
-        rs.push("bad_person,view,t1,#{new Date().toISOString()},#{tomorrow.format()}\n");
-        rs.push("bad_person,buy,t1,#{new Date().toISOString()},#{tomorrow.format()}\n");
-      rs.push(null);
-      ger.bootstrap(ns,rs)
+        events.push ger.event(ns, "bad_person",'view','t1', expires_at: tomorrow)
+        events.push ger.event(ns, "bad_person",'buy','t1', expires_at: tomorrow)
+
+      bb.all(events)
       .then( ->
         bb.all([
           ger.event(ns, 'real_person', 'view', 't2', expires_at: tomorrow)

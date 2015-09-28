@@ -1,23 +1,10 @@
 bb = require 'bluebird'
 fs = require 'fs'
-pg = require('pg');
-copyFrom = require('pg-copy-streams').from;
 _ = require 'lodash'
 
 Errors = require './errors'
 
-Transform = require('stream').Transform;
 moment = require 'moment'
-
-
-class CounterStream extends Transform
-  _transform: (chunk, encoding, done) ->
-    @count |= 0
-    for ch in chunk
-      @count += 1 if ch == 10
-    @push(chunk)
-    done()
-
 
 init_events_table = (knex, schema) ->
   knex.schema.createTable("#{schema}.events",(table) ->
@@ -38,7 +25,7 @@ init_events_table = (knex, schema) ->
 drop_tables = (knex, schema = 'public') ->
   knex.schema.dropTableIfExists("#{schema}.events")
   .then( -> knex.schema.raw("DROP SCHEMA IF EXISTS \"#{schema}\""))
-  
+
 init_tables = (knex, schema = 'public') ->
   knex.schema.raw("CREATE SCHEMA IF NOT EXISTS \"#{schema}\"")
   .then( => init_events_table(knex, schema))
@@ -47,7 +34,7 @@ init_tables = (knex, schema = 'public') ->
 #The only stateful thing in this ESM is the UUID (schema), it should not be changed
 
 class PSQLEventStoreManager
-  
+
   #INSTANCE ACTIONS
   constructor: (options = {}) ->
     @_knex = options.knex
@@ -91,7 +78,7 @@ class PSQLEventStoreManager
 
     bb.all(promises)
 
-    
+
   add_event: (namespace, person, action, thing, dates = {}) ->
     @add_events([{
       namespace: namespace
@@ -186,7 +173,7 @@ class PSQLEventStoreManager
     .orderByRaw("x.action_count DESC")
     .limit(options.neighbourhood_size)
     .then( (rows) ->
-      for row in rows 
+      for row in rows
         row.people = _.uniq(row.person) # difficult in postgres
       rows
     )
@@ -359,7 +346,7 @@ class PSQLEventStoreManager
     s1q = @_history(namespace, column1, column2, ':value', al_values, limit).toString()
     s2q = @_history(namespace, column1, column2, 't.cvalue', al_values, limit).toString()
 
-    #decay is weight * days 
+    #decay is weight * days
     weighted_actions = "select a.weight::float * power( :event_decay_rate, - date_part('day', age( :now , x.created_at ))) from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
 
     s1_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x"
@@ -372,21 +359,21 @@ class PSQLEventStoreManager
 
     s1 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s1_weighted}) as ws where ws.weight != 0 group by ws.#{column2}"
     s2 = "select ws.#{column2} as value, max(ws.weight) as weight from (#{s2_weighted}) as ws where ws.weight != 0 group by ws.#{column2}"
-    
+
     "#{@cosine_query(namespace, s1, s2)} as cosine_distance"
 
   get_cosine_distances: (namespace, column1, column2, value, values, actions, limit, event_decay_rate, now) ->
     return bb.try(->[]) if values.length == 0
-    bindings = {value: value, now: now, event_decay_rate: event_decay_rate} 
+    bindings = {value: value, now: now, event_decay_rate: event_decay_rate}
 
     action_list = []
     for action, weight of actions
       #making it easier to work with actions
       action_list.push {action: action, weight, weight}
 
-    a_values = [] 
+    a_values = []
     al_values = []
-    for a, ai in action_list 
+    for a, ai in action_list
       akey = "action_#{ai}"
       wkey = "weight_#{ai}"
       bindings[akey] = a.action
@@ -407,7 +394,7 @@ class PSQLEventStoreManager
     v_values = v_values.join(', ')
 
 
-    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values, event_decay_rate)      
+    cosine_distance = @cosine_distance(namespace, column1, column2, limit, a_values, al_values, event_decay_rate)
 
     query = "select cvalue, #{cosine_distance} from (VALUES #{v_values} ) AS t (cvalue)"
 
@@ -444,9 +431,9 @@ class PSQLEventStoreManager
     .then (count) -> parseInt(count[0].count)
 
   estimate_event_count: (namespace) ->
-    @_knex.raw("SELECT reltuples::bigint 
-      AS estimate 
-      FROM pg_class 
+    @_knex.raw("SELECT reltuples::bigint
+      AS estimate
+      FROM pg_class
       WHERE  oid = :ns ::regclass;"
       ,{ns: "#{namespace}.events"})
     .then( (rows) ->
@@ -454,20 +441,6 @@ class PSQLEventStoreManager
       return parseInt(rows.rows[0].estimate)
     )
 
-  bootstrap: (namespace, stream) ->
-    #stream of  person, action, thing, created_at, expires_at CSV
-    #this will require manually adding the actions
-    @_knex.client.acquireConnection()
-    .then( (connection) =>
-      deferred = bb.defer()
-      pg_stream = connection.query(copyFrom("COPY \"#{namespace}\".events (person, action, thing, created_at, expires_at) FROM STDIN CSV"));
-      counter = new CounterStream()
-      stream.pipe(counter).pipe(pg_stream)
-      .on('end', -> deferred.resolve(counter.count))
-      .on('error', (error) -> deferred.reject(error))
-      deferred.promise.finally( => @_knex.client.releaseConnection(connection))
-    )
-    
   # DATABASE CLEANING METHODS
 
   pre_compact: (namespace) ->
@@ -525,7 +498,7 @@ class PSQLEventStoreManager
   truncate_things_per_action: (namespace, things, trunc_size, actions) ->
 
     #TODO do the same thing for things
-    return bb.try( -> []) if things.length == 0  
+    return bb.try( -> []) if things.length == 0
 
     #cut each action down to size
     promise = bb.try( ->)
@@ -540,8 +513,8 @@ class PSQLEventStoreManager
   truncate_thing_actions: (namespace, thing, trunc_size, action) ->
     bindings = {thing: thing, action: action}
 
-    q = "delete from \"#{namespace}\".events as e 
-         where e.id in 
+    q = "delete from \"#{namespace}\".events as e
+         where e.id in
          (select id from \"#{namespace}\".events where action = :action and thing = :thing
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
@@ -549,7 +522,7 @@ class PSQLEventStoreManager
 
   truncate_people_per_action: (namespace, people, trunc_size, actions) ->
     #TODO do the same thing for things
-    return bb.try( -> []) if people.length == 0  
+    return bb.try( -> []) if people.length == 0
 
     #cut each action down to size
     promise = bb.try( ->)
@@ -559,16 +532,16 @@ class PSQLEventStoreManager
           promise = promise.then(=> @truncate_person_actions(namespace, person, trunc_size, action) )
 
     promise
-    
-    
+
+
   truncate_person_actions: (namespace, person, trunc_size, action) ->
     bindings = {person: person, action: action}
-    q = "delete from \"#{namespace}\".events as e 
-         where e.id in 
+    q = "delete from \"#{namespace}\".events as e
+         where e.id in
          (select id from \"#{namespace}\".events where action = :action and person = :person
          order by created_at DESC offset #{trunc_size});"
     @_knex.raw(q ,bindings)
-    
+
   remove_events_till_size: (namespace, number_of_events) ->
     #TODO move too offset method
     #removes old events till there is only number_of_events left

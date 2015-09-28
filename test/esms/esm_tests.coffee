@@ -13,7 +13,7 @@ esm_tests = (ESM) ->
         )
         .then( (list) ->
           list.should.not.include ns1
-          list.should.not.include ns2 
+          list.should.not.include ns2
         )
         .then( -> bb.all([esm.initialize(ns1), esm.initialize(ns2)]) )
         .then( ->
@@ -21,7 +21,7 @@ esm_tests = (ESM) ->
         )
         .then( (list) ->
           list.should.include ns1
-          list.should.include ns2 
+          list.should.include ns2
         )
 
       it 'should initialize namespace', ->
@@ -32,7 +32,7 @@ esm_tests = (ESM) ->
         .then( (exist) -> exist.should.equal false)
         .then( -> esm.initialize(namespace))
         .then( -> esm.exists(namespace))
-        .then( (exist) -> exist.should.equal true)    
+        .then( (exist) -> exist.should.equal true)
 
       it 'should sucessfully initialize namespace with default', ->
         #based on an error where default is a reserved name in postgres
@@ -51,10 +51,10 @@ esm_tests = (ESM) ->
         esm.destroy(namespace)
         .then( -> esm.initialize(namespace))
         .then( -> esm.count_events(namespace))
-        .then( (count) -> 
+        .then( (count) ->
           count.should.equal 0
         )
-        
+
       it 'should not error out or remove events if re-initialized', ->
         namespace = "namespace"
         esm = new_esm(ESM)
@@ -77,7 +77,7 @@ esm_tests = (ESM) ->
           bb.all([
             esm.add_event(ns1, 'p','a','t')
             esm.add_event(ns1, 'p1','a','t')
-            
+
             esm.add_event(ns2, 'p2','a','t')
           ])
         )
@@ -265,7 +265,7 @@ esm_tests = (ESM) ->
             neighbourhood[0].people.should.include 'p2'
 
             neighbourhood[1].people.length.should.equal 1
-            neighbourhood[1].people.should.include 'p1'         
+            neighbourhood[1].people.should.include 'p1'
           )
 
 
@@ -442,7 +442,7 @@ esm_tests = (ESM) ->
 
             esm.add_event(ns, 'p3','view','b', created_at: moment().subtract(3, 'days'), expires_at: tomorrow)
           ])
-          .then(-> 
+          .then(->
             esm.person_neighbourhood(ns, 'p1', ['view'])
           )
           .then((people) ->
@@ -581,14 +581,14 @@ esm_tests = (ESM) ->
 
             esm.add_event(ns,'p3','view','t1', created_at: three_days_ago),
           ])
-          .then( -> 
-            esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], 
+          .then( ->
+            esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],
               {view: 1}, { current_datetime: two_days_ago}
             )
           )
           .then( (similarities) ->
             similarities['p3'].should.equal(similarities['p2'])
-            esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'], 
+            esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],
               {view: 1}
             )
           )
@@ -630,10 +630,10 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p2`','view','b', created_at: two_days_ago),
               esm.add_event(ns,'p2`','view','a', created_at: yesterday),
             ])
-            .then( -> 
-              sim_today = esm.calculate_similarities_from_person(ns, 'p1',['p2'], {view: 1}, 
+            .then( ->
+              sim_today = esm.calculate_similarities_from_person(ns, 'p1',['p2'], {view: 1},
                 event_decay_rate: 1.2, current_datetime: today)
-              sim_yesterday = esm.calculate_similarities_from_person(ns, 'p1`',['p2`'], {view: 1}, 
+              sim_yesterday = esm.calculate_similarities_from_person(ns, 'p1`',['p2`'], {view: 1},
                 event_decay_rate: 1.2, current_datetime: yesterday)
               bb.all([sim_today, sim_yesterday])
             )
@@ -655,20 +655,6 @@ esm_tests = (ESM) ->
             similarities['p2'].should.equal similarities['p3']
           )
 
-      it 'should not be effected by having same events (through bootstrap)', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          rs = new Readable();
-          rs.push('p1,a,t1,2013-01-01,\n');
-          rs.push('p2,a,t1,2013-01-01,\n');
-          rs.push('p3,a,t1,2013-01-01,\n');
-          rs.push('p3,a,t1,2013-01-01,\n');
-          rs.push(null);
-          esm.bootstrap(ns, rs)
-          .then( -> esm.calculate_similarities_from_person(ns, 'p1',['p2', 'p3'],{a: 1}))
-          .then( (similarities) ->
-            similarities['p2'].should.equal similarities['p3']
-          )
 
       it 'should not be effected by having bad names', ->
         init_esm(ESM, ns)
@@ -699,7 +685,7 @@ esm_tests = (ESM) ->
 
     describe '#recent_recommendations_by_people', ->
 
-      # TODO multiple returned things 
+      # TODO multiple returned things
       # it 'should return multiple things for multiple actions', ->
       #   init_esm(ESM, ns)
       #   .then (esm) ->
@@ -834,7 +820,7 @@ esm_tests = (ESM) ->
           .then( (people_recommendations) ->
             people_recommendations.length.should.equal 2
           )
-      
+
 
 
       it 'should return the last_actioned_at last_expires_at', ->
@@ -854,7 +840,7 @@ esm_tests = (ESM) ->
       describe 'time_until_expiry', ->
 
         it 'should not return things that expire before the date passed', ->
-          
+
           a1day = moment().add(1, 'days').format()
           a2days = moment().add(2, 'days').format()
           a3days = moment().add(3, 'days').format()
@@ -1287,55 +1273,6 @@ esm_tests = (ESM) ->
             events.length.should.equal 1
           )
 
-    describe '#bootstrap', ->
-      it 'should add a stream of events (person,action,thing,created_at,expires_at)', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          rs = new Readable();
-          rs.push('person,action,thing,2014-01-01,\n');
-          rs.push('person,action,thing1,2014-01-01,\n');
-          rs.push('person,action,thing2,2014-01-01,\n');
-          rs.push(null);
-
-          esm.bootstrap(ns, rs)
-          .then( (returned_count) -> bb.all([returned_count, esm.count_events(ns)]))
-          .spread( (returned_count, count) ->
-            count.should.equal 3
-            returned_count.should.equal 3
-          )
-
-      it 'should select the most recent created_at date for any duplicate events', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          rs = new Readable();
-          rs.push('person,action,thing,2013-01-02,\n');
-          rs.push('person,action,thing,2014-01-02,\n');
-          rs.push(null);
-          esm.bootstrap(ns, rs)
-          .then( ->
-            esm.pre_compact(ns)
-          )
-          .then( ->
-            esm.compact_people(ns, 1, ['action'])
-          )
-          .then( -> esm.count_events(ns))
-          .then( (count) ->
-            count.should.equal 1
-            esm.find_events(ns, person: 'person', action: 'action', thing: 'thing')
-          )
-          .then( (events) ->
-            event = events[0]
-            expected_created_at = new Date('2014-01-01')
-            event.created_at.getFullYear().should.equal expected_created_at.getFullYear()
-          )
-
-      it 'should load a set of events from a file into the database', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          fileStream = fs.createReadStream(path.resolve('./test/test_events.csv'))
-          esm.bootstrap(ns, fileStream)
-          .then( (count) -> count.should.equal 3; esm.count_events(ns))
-          .then( (count) -> count.should.equal 3)
 
 
 for esm_name in esms

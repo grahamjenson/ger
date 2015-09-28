@@ -11,7 +11,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns, 'p1','view','t2')
             esm.add_event(ns, 'p1','view','t3')
           ])
-          .then( -> 
+          .then( ->
             esm.pre_compact(ns)
           )
           .then( ->
@@ -21,7 +21,7 @@ esm_tests = (ESM) ->
             count.should.equal 3
             esm.compact_people(ns, 2, ['view'])
           )
-          .then( -> 
+          .then( ->
             esm.count_events(ns)
           )
           .then( (count) ->
@@ -69,7 +69,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns, 'p2','view','t1')
             esm.add_event(ns, 'p3','view','t1')
           ])
-          .then( -> 
+          .then( ->
             esm.pre_compact(ns)
           )
           .then( ->
@@ -79,7 +79,7 @@ esm_tests = (ESM) ->
             count.should.equal 3
             esm.compact_things(ns, 2, ['view'])
           )
-          .then( -> 
+          .then( ->
             esm.count_events(ns)
           )
           .then( (count) ->

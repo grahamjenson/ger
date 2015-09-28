@@ -3,7 +3,7 @@ _ = require 'lodash'
 
 moment = require "moment"
 
-#The only stateful things in GER are the ESM and the options 
+#The only stateful things in GER are the ESM and the options
 class GER
 
   constructor: (@esm) ->
@@ -19,7 +19,7 @@ class GER
       similarities[person] = 1 #manually add person to weights
       similarities
     )
-  
+
   filter_recommendations: (namespace, person, recommendations, filter_previous_actions) ->
     recommended_things = _.uniq( (x.thing for x in recommendations) )
     @esm.filter_things_by_previous_actions(namespace, person, recommended_things, filter_previous_actions)
@@ -38,7 +38,7 @@ class GER
       if weight != 0
         ns[pt] = weight
     ns
-    
+
   neighbourhood_confidence: (n_values ) ->
     #The more similar people found, the more we trust the recommendations
     #15 is a magic number chosen to make 10 around 50% and 50 around 95%
@@ -81,7 +81,7 @@ class GER
 
   calculate_people_recommendations: (similarities, recommendations, configuration) ->
     thing_group = {}
-    
+
 
     for rec in recommendations
       if thing_group[rec.thing] == undefined
@@ -91,7 +91,7 @@ class GER
           last_actioned_at: rec.last_actioned_at
           last_expires_at: rec.last_expires_at
           people: []
-        } 
+        }
 
       thing_group[rec.thing].last_actioned_at = moment.max(moment(thing_group[rec.thing].last_actioned_at), moment(rec.last_actioned_at)).format()
       thing_group[rec.thing].last_expires_at = moment.max(moment(thing_group[rec.thing].last_expires_at), moment(rec.last_expires_at)).format()
@@ -110,7 +110,7 @@ class GER
 
   calculate_thing_recommendations: (thing, similarities, neighbourhood, configuration) ->
     recommendations = []
-    
+
     for rec in neighbourhood
       recommendations.push {
         thing: rec.thing
@@ -118,7 +118,7 @@ class GER
         last_actioned_at: rec.last_actioned_at
         last_expires_at: rec.last_expires_at
         people: rec.people
-      } 
+      }
 
     recommendations = recommendations.sort((x, y) -> y.weight - x.weight)
     recommendations
@@ -136,7 +136,7 @@ class GER
     )
     .spread( ( neighbourhood, similarities, recommendations ) =>
       bb.all([
-        neighbourhood, 
+        neighbourhood,
         similarities,
         @filter_recommendations(namespace, person, recommendations, configuration.filter_previous_actions)
       ])
@@ -145,7 +145,7 @@ class GER
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_people_recommendations(similarities, recommendations, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
-      
+
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
       history_confidence = @history_confidence(person_history_count)
       recommendations_confidence = @recommendations_confidence(recommendations_object.recommendations)
@@ -161,7 +161,7 @@ class GER
     @thing_neighbourhood(namespace, thing, actions, configuration)
     .then( (thing_neighbours) =>
       things = (nei.thing for nei in thing_neighbours)
-      bb.all([ 
+      bb.all([
         thing_neighbours,
         @calculate_similarities_from_thing(namespace, thing , things, actions, _.clone(configuration))
       ])
@@ -170,7 +170,7 @@ class GER
       recommendations_object = {}
       recommendations_object.recommendations = @calculate_thing_recommendations(thing, similarities, neighbourhood, configuration)
       recommendations_object.neighbourhood = @filter_similarities(similarities)
-      
+
       neighbourhood_confidence = @neighbourhood_confidence(neighbourhood.length)
       history_confidence = @history_confidence(thing_history_count)
       recommendations_confidence = @recommendations_confidence(recommendations_object.recommendations)
@@ -182,7 +182,7 @@ class GER
       recommendations_object
     )
     # weight people by the action weight
-    # find things that those 
+    # find things that those
     # @recent_recommendations_by_people(namespace, action, people.concat(person), configuration.recommendations_per_neighbour)
 
   default_configuration: (configuration) ->
@@ -230,7 +230,7 @@ class GER
   recommendations_for_person: (namespace, person, configuration = {}) ->
     configuration = @default_configuration(configuration)
     actions = configuration.actions
-    
+
     #first a check or two
     @find_events(namespace, actions: Object.keys(actions), person: person, current_datetime: configuration.current_datetime, size: 100)
     .then( (events) =>
@@ -251,7 +251,7 @@ class GER
   events: (events) ->
     @esm.add_events(events)
     .then( -> events)
-    
+
   event: (namespace, person, action, thing, dates = {}) ->
     @esm.add_event(namespace, person,action, thing, dates)
     .then( -> {person: person, action: action, thing: thing})
@@ -274,14 +274,9 @@ class GER
   destroy_namespace: (namespace) ->
     @esm.destroy(namespace)
 
-  bootstrap: (namespace, stream) ->
-    #filename should be person, action, thing, created_at, expires_at
-    #this will require manually adding the actions
-    @esm.bootstrap(namespace, stream)
-    
   #  DATABASE CLEANING #
   compact_database: ( namespace, options = {}) ->
-    
+
     options = _.defaults(options,
       compact_database_person_action_limit: 1500
       compact_database_thing_action_limit: 1500

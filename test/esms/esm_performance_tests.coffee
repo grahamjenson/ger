@@ -60,22 +60,6 @@ esm_tests = (ESM) ->
         )
         .then( ->
           st = new Date().getTime()
-
-          rs = new Readable();
-          for x in [1..nbevents]
-            rs.push("#{sample(people)},#{sample(actions)},#{sample(things)},#{random_created_at().format()},#{tomorrow.format()}\n")
-          rs.push(null);
-
-          ger.bootstrap(ns, rs)
-          .then(->
-            et = new Date().getTime()
-            time = et-st
-            pe = time/nbevents
-            console.log "#{pe}ms per bootstrapped event"
-          )
-        )
-        .then( ->
-          st = new Date().getTime()
           promises = []
           for x in [1..ncompact]
             promises.push ger.compact_database(ns, actions: actions)

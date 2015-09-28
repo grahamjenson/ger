@@ -48,7 +48,7 @@ class EventStoreMapper
     @_r.tableList().run().then( (list) =>
       "#{namespace}_events" in list and "#{namespace}_schema" in list
     )
-    
+
   initialize: (namespace) ->
     @_r.tableList().run().then( (list) =>
       bb.all([
@@ -101,7 +101,7 @@ class EventStoreMapper
     for e in events
       promises.push @add_event(e.namespace, e.person, e.action, e.thing, {created_at: e.created_at, expires_at: e.expires_at})
     bb.all(promises)
-      
+
   add_event: (namespace, person, action, thing, dates = {}) ->
     created_at = @convert_date(dates.created_at) || @_r.ISO8601(new Date().toISOString())
     expires_at =  @convert_date(dates.expires_at)
@@ -162,16 +162,16 @@ class EventStoreMapper
       #Fast single look up
       @_event_selection(namespace, person, action, thing)
       .run({useOutdated: true})
-      .then( (e) -> 
+      .then( (e) ->
         return [] if !e
         [e] # have to put it into a list
-      ) 
+      )
     else
       #slower multi-event lookup
       @_event_selection(namespace, person, action, thing)
       .slice(page*size, size*(page + 1))
       .run({useOutdated: true})
-  
+
   delete_events: (namespace, person, action, thing) ->
     @_event_selection(namespace, person, action, thing)
     .delete()
@@ -441,7 +441,7 @@ class EventStoreMapper
         promises.push @_r.table("#{namespace}_events").getAll([action,thing], {index: "action_thing"}).orderBy(@_r.desc("created_at")).skip(trunc_size).delete().run({useOutdated: true, durability: "soft"})
 
     bb.all(promises)
-    
+
 
   truncate_people_per_action: (namespace, people, trunc_size, actions) ->
     #TODO do the same thing for things
