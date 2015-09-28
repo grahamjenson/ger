@@ -225,9 +225,6 @@ class BasicInMemoryESM
   recent_recommendations_by_people: (namespace, actions, people, options) ->
     @_recent_events(namespace, 'person', actions, people, options)
 
-  recent_recommendations_for_things: (namespace, actions, things, options) ->
-    @_recent_events(namespace, 'thing', actions, things, options)
-
   _filter_things_by_previous_action: (namespace, person, things, action) ->
     things.filter((t) => !person_action_store[namespace][person] or !person_action_store[namespace][person][action] or !person_action_store[namespace][person][action][t])
 

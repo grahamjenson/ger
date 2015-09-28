@@ -74,11 +74,6 @@ class GER
   recent_recommendations_by_people: (namespace, actions, people, configuration) ->
     @esm.recent_recommendations_by_people(namespace, Object.keys(actions), people, _.clone(configuration))
 
-  recent_recommendations_for_things: (namespace, actions, things, configuration) ->
-    #TODO pretty slow
-    @esm.recent_recommendations_for_things(namespace, Object.keys(actions), things, _.clone(configuration))
-
-
   calculate_people_recommendations: (similarities, recommendations, configuration) ->
     thing_group = {}
 

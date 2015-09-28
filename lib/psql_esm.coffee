@@ -313,9 +313,6 @@ class PSQLEventStoreManager
   recent_recommendations_by_people: (namespace, actions, people, options) ->
     @_recent_events(namespace, 'person', actions, people, options)
 
-  recent_recommendations_for_things: (namespace, actions, things, options) ->
-    @_recent_events(namespace, 'thing', actions, things, options)
-
 
   _history: (namespace, column1, column2, value, al_values, limit) ->
     @_knex("#{namespace}.events")

@@ -668,21 +668,6 @@ esm_tests = (ESM) ->
             similarities["'p\n2};"].should.be.greaterThan(0)
           )
 
-    describe '#recent_recommendations_for_things', ->
-      it 'should return multiple things for multiple actions', ->
-        init_esm(ESM, ns)
-        .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a1','t1', created_at: yesterday, expires_at: tomorrow),
-            esm.add_event(ns,'p2','a2','t1', created_at: today, expires_at: tomorrow)
-          ])
-          .then( -> esm.recent_recommendations_for_things(ns, ['a1', 'a2'], ['t1']))
-          .then( (things_recommendations) ->
-            things_recommendations.length.should.equal 2
-            things_recommendations[0].person.should.equal 'p2'
-            things_recommendations[1].person.should.equal 'p1'
-          )
-
     describe '#recent_recommendations_by_people', ->
 
       # TODO multiple returned things

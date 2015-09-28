@@ -249,8 +249,8 @@ The API for an ESM is:
 1. `esm = new ESM(options)` where options is used to setup connections and such.
 2. `initialize(namespace)` will create a `namespace` for events.
 3. `destroy(namespace)` will destroy all resources for ESM in namespace
-4, `exists(namespace)` will check if the namespace exists
-
+4. `exists(namespace)` will check if the namespace exists
+5. `list_namespaces` returns a list of namespaces
 *Events*:
 
 1. `add_events`
@@ -258,15 +258,17 @@ The API for an ESM is:
 3. `find_events`
 4. `delete_events`
 
-*Recommendations*:
+*Thing Recommendations*:
 
-1. `person_neighbourhood`
 1. `thing_neighbourhood`
 1. `calculate_similarities_from_thing`
+
+*Person Recommendations*
+
+1. `person_neighbourhood`
 1. `calculate_similarities_from_person`
 1. `filter_things_by_previous_actions`
 1. `recent_recommendations_by_people`
-1. `recent_recommendations_for_things`
 
 *Compacting*:
 
