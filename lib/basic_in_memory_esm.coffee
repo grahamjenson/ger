@@ -50,7 +50,7 @@ class BasicInMemoryESM
     one_degree_away = @_one_degree_away(namespace, 'thing', 'person', thing, _.clone(options))
 
     one_degree_away = one_degree_away.filter( (x) -> x.thing != thing && !!x.last_expires_at && !moment(x.last_expires_at).isBefore(options.expires_after))
-    one_degree_away.map( (x) -> x.people = _.uniq(x.person))
+    one_degree_away.map( (x) -> x.people = _.uniq(x.person); delete x.person)
     one_degree_away = _.sortBy(one_degree_away, (x) -> - x.people.length)
     bb.try(-> one_degree_away[...options.neighbourhood_size])
 

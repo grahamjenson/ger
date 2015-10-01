@@ -153,9 +153,9 @@ esm_tests = (ESM) ->
           )
           .then( (things) ->
             things.length.should.equal 2
-            things[0].person.length.should.equal 2
-            things[0].person.should.include 'p1'
-            things[0].person.should.include 'p2'
+            things[0].people.length.should.equal 2
+            things[0].people.should.include 'p1'
+            things[0].people.should.include 'p2'
           )
 
       it 'should return a list of unique people', ->
@@ -173,9 +173,9 @@ esm_tests = (ESM) ->
           )
           .then( (things) ->
             things.length.should.equal 2
-            things[0].person.length.should.equal 2
-            things[0].person.should.include 'p1'
-            things[0].person.should.include 'p2'
+            things[0].people.length.should.equal 2
+            things[0].people.should.include 'p1'
+            things[0].people.should.include 'p2'
           )
       it 'should not list things twice', ->
         init_esm(ESM, ns)
