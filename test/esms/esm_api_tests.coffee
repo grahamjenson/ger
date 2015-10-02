@@ -1147,10 +1147,10 @@ esm_tests = (ESM) ->
       it "should return only the most recent unique events", ->
         init_esm(ESM, ns)
         .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: today),
-            esm.add_event(ns,'p1','a','t1', created_at: yesterday)
-          ])
+          esm.add_event(ns,'p1','a','t1', created_at: yesterday)
+          .then( ->
+            esm.add_event(ns,'p1','a','t1', created_at: today)
+          )
           .then( ->
             esm.find_events(ns, person: 'p1')
           )
