@@ -982,7 +982,7 @@ esm_tests = (ESM) ->
       it "should return 0 if no events are deleted", ->
         init_esm(ESM, ns)
         .then (esm) ->
-          esm.delete_events(ns, 'p','a','t')
+          esm.delete_events(ns,  person: 'p1', action: 'view', thing: 't1')
           .then( (ret) ->
             ret.deleted.should.equal 0
           )
@@ -1014,7 +1014,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','like','t1')
           ])
           .then( ->
-            esm.delete_events(ns, 'p1')
+            esm.delete_events(ns,  person: 'p1')
           )
           .then( (ret) ->
             ret.deleted.should.equal 3
