@@ -2,8 +2,8 @@ esm_tests = (ESM) ->
   ns = "default"
 
   describe 'construction', ->
-    describe '#initialize #exists #destroy #list_namespaces', ->
-      it 'should list all namespaces', ->
+    describe 'namespace operations', ->
+      it '#list_namespaces should list all namespaces', ->
         ns1 = "namespace1"
         ns2 = "namespace2"
         esm = new_esm(ESM) #pass knex as it might be needed
@@ -804,7 +804,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t2', expires_at: tomorrow),
             esm.add_event(ns,'p2','a','t2', expires_at: tomorrow)
           ])
-          .then( -> esm.recent_recommendations_by_people(ns, 'a',['p1','p2'], {recommendations_per_neighbour: 1}))
+          .then( -> esm.recent_recommendations_by_people(ns, ['a'],['p1','p2'], {recommendations_per_neighbour: 1}))
           .then( (people_recommendations) ->
             people_recommendations.length.should.equal 2
           )
@@ -818,7 +818,7 @@ esm_tests = (ESM) ->
             esm.add_event(ns,'p1','a','t1', created_at: yesterday, expires_at: tomorrow),
             esm.add_event(ns,'p1','a','t1', created_at: today, expires_at: next_week)
           ])
-          .then( -> esm.recent_recommendations_by_people(ns, 'a', ['p1', 'p2']))
+          .then( -> esm.recent_recommendations_by_people(ns, ['a'], ['p1', 'p2']))
           .then( (people_recommendations) ->
             people_recommendations.length.should.equal 1
             people_recommendations[0].last_expires_at.getTime().should.equal next_week.toDate().getTime()
@@ -839,7 +839,7 @@ esm_tests = (ESM) ->
               esm.add_event(ns,'p1','a','t1', expires_at: a3days),
               esm.add_event(ns,'p2','a','t2', expires_at: a1day)
             ])
-            .then( -> esm.recent_recommendations_by_people(ns, 'a',['p1','p2'], { time_until_expiry: 48*60*60}))
+            .then( -> esm.recent_recommendations_by_people(ns, ['a'],['p1','p2'], { time_until_expiry: 48*60*60}))
             .then( (people_recommendations) ->
               people_recommendations.length.should.equal 1
             )
