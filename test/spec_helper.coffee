@@ -23,10 +23,6 @@ global.moment = require "moment"
 
 global._knex = g.knex({client: 'pg', pool: {min: 5, max: 20}, connection: {host: '127.0.0.1', user : 'postgres', password : 'postgres', database : 'ger_test'}})
 
-#global.default_esm = PsqlESM
-global.default_esm = PsqlESM
-
-
 
 global.default_namespace = 'default'
 
@@ -43,7 +39,7 @@ global.next_week = moment().add(7, 'days')
 global.new_esm = (ESM)->
   esm = new ESM({knex: _knex})
 
-global.init_esm = (ESM = global.default_esm, namespace = global.default_namespace) ->
+global.init_esm = (ESM, namespace = global.default_namespace) ->
   #in
   esm = new_esm(ESM)
   #drop the current tables, reinit the tables, return the esm
@@ -51,7 +47,7 @@ global.init_esm = (ESM = global.default_esm, namespace = global.default_namespac
   .then( -> esm.initialize(namespace))
   .then( -> esm)
 
-global.init_ger = (ESM = global.default_esm, namespace = global.default_namespace) ->
+global.init_ger = (ESM, namespace = global.default_namespace) ->
   init_esm(ESM, namespace).then( (esm) -> new GER(esm))
 
 global.compare_floats = (f1,f2) ->
@@ -60,7 +56,9 @@ global.compare_floats = (f1,f2) ->
 global.sample = _.sample
 
 
-global.esm_tests = require './esms/esm_tests'
+global.all_tests = require './all_tests'
+
+
 
 
 
