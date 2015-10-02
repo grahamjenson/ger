@@ -212,6 +212,7 @@ esm_tests = (ESM) ->
           bb.all([
             esm.add_event(ns,'p1','v','a', created_at: last_week, expires_at: tomorrow),
             esm.add_event(ns,'p2','v','a', created_at: yesterday, expires_at: tomorrow),
+            esm.add_event(ns,'p3','v','a', created_at: yesterday, expires_at: tomorrow),
             esm.add_event(ns,'p1','v','b', expires_at: tomorrow),
             esm.add_event(ns,'p2','v','c', expires_at: tomorrow)
             esm.add_event(ns,'p3','v','c', expires_at: tomorrow)
@@ -220,7 +221,9 @@ esm_tests = (ESM) ->
           .then((neighbourhood) ->
             neighbourhood.length.should.equal 2
             neighbourhood[0].thing.should.equal 'c'
+            neighbourhood[0].people.length.should.equal 2
             neighbourhood[1].thing.should.equal 'b'
+            neighbourhood[1].people.length.should.equal 1
           )
 
       it 'should return the last_expires_at and last_actioned_at', ->
