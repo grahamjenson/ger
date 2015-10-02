@@ -34,7 +34,7 @@ esm_tests = (ESM) ->
         st = new Date().getTime()
         promises = []
         for x in [1..nevents]
-          promises.push ger.event(ns, sample(people), sample(actions) , sample(things), created_at: random_created_at(), expires_at: tomorrow)
+          promises.push ger.event(ns, _.sample(people), _.sample(actions) , _.sample(things), created_at: random_created_at(), expires_at: tomorrow)
         bb.all(promises)
         .then(->
           et = new Date().getTime()
@@ -48,7 +48,7 @@ esm_tests = (ESM) ->
           for x in [1..nevents/nevents_diff]
             events = []
             for y in [1..nevents_diff]
-              events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things),created_at: random_created_at(), expires_at: tomorrow}
+              events.push {namespace: ns, person: _.sample(people), action: _.sample(actions), thing: _.sample(things),created_at: random_created_at(), expires_at: tomorrow}
             promises.push ger.events(events)
           bb.all(promises)
           .then(->
@@ -77,7 +77,7 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..nfindpeople]
-            promises.push ger.esm.person_neighbourhood(ns, sample(people), actions)
+            promises.push ger.esm.person_neighbourhood(ns, _.sample(people), actions)
           bb.all(promises)
 
           .then(->
@@ -92,8 +92,8 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..ncalcpeople]
-            peeps = _.unique((sample(people) for i in [0..25]))
-            promises.push ger.esm.calculate_similarities_from_person(ns, sample(people), peeps , actions)
+            peeps = _.unique((_.sample(people) for i in [0..25]))
+            promises.push ger.esm.calculate_similarities_from_person(ns, _.sample(people), peeps , actions)
           bb.all(promises)
 
           .then(->
@@ -108,7 +108,7 @@ esm_tests = (ESM) ->
 
           promises = []
           for x in [1..nrecpeople]
-            peeps = _.unique((sample(people) for i in [0..25]))
+            peeps = _.unique((_.sample(people) for i in [0..25]))
             promises.push ger.esm.recent_recommendations_by_people(ns, actions, peeps)
           bb.all(promises)
 
@@ -123,7 +123,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..nrecommendations]
-            promises.push ger.recommendations_for_person(ns, sample(people), actions: {buy:5, like:3, view:1})
+            promises.push ger.recommendations_for_person(ns, _.sample(people), actions: {buy:5, like:3, view:1})
           bb.all(promises)
           .then(->
             et = new Date().getTime()
@@ -136,7 +136,7 @@ esm_tests = (ESM) ->
           st = new Date().getTime()
           promises = []
           for x in [1..nrecommendations]
-            promises.push ger.recommendations_for_thing(ns, sample(things), actions: {buy:5, like:3, view:1}, neighbourhood_size: 50, recommendations_per_neighbour: 3)
+            promises.push ger.recommendations_for_thing(ns, _.sample(things), actions: {buy:5, like:3, view:1}, neighbourhood_size: 50, recommendations_per_neighbour: 3)
           bb.all(promises)
           .then(->
             et = new Date().getTime()

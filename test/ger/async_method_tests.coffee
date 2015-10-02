@@ -19,11 +19,11 @@ ger_tests = (ESM) ->
   add_events= (ger, n=100) ->
     events = []
     for y in [1..n]
-      events.push {namespace: ns, person: sample(people), action: sample(actions), thing: sample(things),created_at: random_created_at(), expires_at: tomorrow}
+      events.push {namespace: ns, person: _.sample(people), action: _.sample(actions), thing: _.sample(things),created_at: random_created_at(), expires_at: tomorrow}
     ger.events(events).then( -> console.log 'finish events' if log)
 
   recommend = (ger) ->
-    ger.recommendations_for_person(ns, sample(people), actions: {buy:5, like:3, view:1}).then( -> console.log 'finish recs' if log)
+    ger.recommendations_for_person(ns, _.sample(people), actions: {buy:5, like:3, view:1}).then( -> console.log 'finish recs' if log)
 
   describe 'Async Method Tests', ->
 

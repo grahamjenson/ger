@@ -53,9 +53,6 @@ global.init_ger = (ESM, namespace = global.default_namespace) ->
 global.compare_floats = (f1,f2) ->
   Math.abs(f1 - f2) < 0.00001
 
-global.sample = _.sample
-
-
 global.all_tests = require './all_tests'
 
 

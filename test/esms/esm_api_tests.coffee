@@ -394,8 +394,8 @@ esm_tests = (ESM) ->
           )
           .then( (people) ->
             people.length.should.equal 2
-            people[0].should.equal 'p3'
-            people[1].should.equal 'p2'
+            people.should.contain 'p3'
+            people.should.contain 'p2'
           )
 
       it 'should return people ordered by the similar persons most recent date', ->
