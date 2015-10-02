@@ -814,10 +814,10 @@ esm_tests = (ESM) ->
       it 'should return the last_actioned_at last_expires_at', ->
         init_esm(ESM, ns)
         .then (esm) ->
-          bb.all([
-            esm.add_event(ns,'p1','a','t1', created_at: yesterday, expires_at: tomorrow),
+          esm.add_event(ns,'p1','a','t1', created_at: yesterday, expires_at: tomorrow)
+          .then( ->
             esm.add_event(ns,'p1','a','t1', created_at: today, expires_at: next_week)
-          ])
+          )
           .then( -> esm.recent_recommendations_by_people(ns, ['a'], ['p1', 'p2']))
           .then( (people_recommendations) ->
             people_recommendations.length.should.equal 1
