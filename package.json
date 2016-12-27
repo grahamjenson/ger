@@ -14,7 +14,7 @@
     "author": "Graham Jenson <grahamjenson@maori.geek.nz>",
     "dependencies": {
         "bluebird": "2.9.25",
-        "knex": "0.8.6",
+        "knex": "0.12.6",
         "pg": "4.3.0",
         "lodash": "3.9.3",
         "moment": "2.8.3",
