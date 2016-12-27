@@ -343,7 +343,7 @@ class PSQLEventStoreManager
     s2q = @_history(namespace, column1, column2, 't.cvalue', al_values, limit).toString()
 
     #decay is weight * days
-    weighted_actions = "select a.weight::float * power( :event_decay_rate, - date_part('day', age( :now , x.created_at ))) from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
+    weighted_actions = "select cast(a.weight as float) * power( :event_decay_rate, - date_part('day', age( :now , x.created_at ))) from (VALUES #{a_values}) AS a (action,weight) where x.action = a.action"
 
     s1_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s1q}) as x"
     s2_weighted = "select x.#{column2}, (#{weighted_actions}) as weight from (#{s2q}) as x"
@@ -427,10 +427,10 @@ class PSQLEventStoreManager
     .then (count) -> parseInt(count[0].count)
 
   estimate_event_count: (namespace) ->
-    @_knex.raw("SELECT reltuples::bigint
+    @_knex.raw("SELECT cast(reltuples as bigint)
       AS estimate
       FROM pg_class
-      WHERE  oid = :ns ::regclass;"
+      WHERE  oid = cast(:ns as regclass);"
       ,{ns: "#{namespace}.events"})
     .then( (rows) ->
       return 0 if rows.rows.length == 0
