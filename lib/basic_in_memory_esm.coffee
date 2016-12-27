@@ -88,11 +88,9 @@ class BasicInMemoryESM
 
     ret = {}
     for x in @_find_events(namespace, search_hash_1)
-
       search_hash_2 = _.clone(search_hash)
       search_hash_2[column2] = x[column2]
       for y in @_find_events(namespace, search_hash_2)
-
         if ret[y[column1]] == undefined
           ret[y[column1]] = {
             "#{column1}": y[column1]
@@ -103,7 +101,11 @@ class BasicInMemoryESM
         else
           ret[y[column1]][column2].push(y[column2])
           ret[y[column1]].last_actioned_at = moment.max(moment(ret[y[column1]].last_actioned_at), moment(y.created_at)).toDate()
-          ret[y[column1]].last_expires_at = moment.max(moment(ret[y[column1]].last_expires_at), moment(y.expires_at)).toDate()
+
+          if ret[y[column1]].last_expires_at == null
+            ret[y[column1]].last_expires_at = y.expires_at
+          else if y.expires_at != null
+            ret[y[column1]].last_expires_at = moment.max(moment(ret[y[column1]].last_expires_at), moment(y.expires_at)).toDate()
 
     _.values(ret)
 
