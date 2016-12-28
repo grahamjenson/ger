@@ -2,6 +2,8 @@
 # Good Enough Recommendations (GER)
 <img src="./assets/ger300x200.png" align="right" alt="GER logo" />
 
+[![Build Status](https://travis-ci.org/grahamjenson/ger.svg?branch=master)](https://travis-ci.org/grahamjenson/ger)
+
 Providing good recommendations can get greater user engagement and provide an opportunity to add value that would otherwise not exist. The main reason why many applications don't provide recommendations is the difficulty in either implementing a custom engine or using an existing engine.
 
 Good Enough Recommendations (**GER**) is a recommendation engine that is scalable, easily usable and easy to integrate. GER's goal is to generate **good enough** recommendations for your application or product, so that you can provide value quickly and painlessly.

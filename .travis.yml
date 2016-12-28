@@ -1,5 +1,7 @@
+dist: trusty
+sudo: false
 addons:
-  postgresql: "9.5"
+  postgresql: "9.6"
 before_script:
   - psql -c 'create database ger_test;' -U postgres
 language: node_js
