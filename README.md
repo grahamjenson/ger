@@ -246,6 +246,7 @@ Where X is some database or store (e.g. Redis, Mongo, Cassandra ...). The way to
 
 The API for an ESM is:
 
+
 *Initialization*:
 
 1. `esm = new ESM(options)` where options is used to setup connections and such.
@@ -253,6 +254,8 @@ The API for an ESM is:
 3. `destroy(namespace)` will destroy all resources for ESM in namespace
 4. `exists(namespace)` will check if the namespace exists
 5. `list_namespaces` returns a list of namespaces
+
+
 *Events*:
 
 1. `add_events`
@@ -260,10 +263,12 @@ The API for an ESM is:
 3. `find_events`
 4. `delete_events`
 
+
 *Thing Recommendations*:
 
 1. `thing_neighbourhood`
 1. `calculate_similarities_from_thing`
+
 
 *Person Recommendations*
 
@@ -272,12 +277,14 @@ The API for an ESM is:
 1. `filter_things_by_previous_actions`
 1. `recent_recommendations_by_people`
 
+
 *Compacting*:
 
 1. pre_compact
 2. compact_people
 3. compact_things
 4. post_compact
+
 
 ## Additional Reading
 
