@@ -8,7 +8,7 @@ Providing good recommendations can get greater user engagement and provide an op
 
 Good Enough Recommendations (**GER**) is a recommendation engine that is scalable, easily usable and easy to integrate. GER's goal is to generate **good enough** recommendations for your application or product, so that you can provide value quickly and painlessly.
 
-##Quick Start Guide
+## Quick Start Guide
 
 **Note: functions from GER return a promises**
 
