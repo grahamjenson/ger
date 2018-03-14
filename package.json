@@ -17,7 +17,7 @@
         "knex": "0.12.6",
         "pg": "4.3.0",
         "lodash": "3.9.3",
-        "moment": "2.17.1",
+        "moment": "2.19.3",
         "coffee-script": "1.9.3"
     },
     "devDependencies": {
