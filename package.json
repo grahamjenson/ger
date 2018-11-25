@@ -14,15 +14,15 @@
     "author": "Graham Jenson <grahamjenson@maori.geek.nz>",
     "dependencies": {
         "bluebird": "2.9.25",
+        "coffee-script": "1.9.3",
         "knex": "0.12.6",
-        "pg": "4.3.0",
-        "lodash": "3.9.3",
+        "lodash": "4.17.5",
         "moment": "2.19.3",
-        "coffee-script": "1.9.3"
+        "pg": "^7.6.1"
     },
     "devDependencies": {
-        "mocha": "1.18.2",
-        "chai": "1.9.1"
+        "chai": "1.9.1",
+        "mocha": "^5.2.0"
     },
     "scripts": {
         "test": "mocha"
