@@ -51,7 +51,7 @@ class PSQLEventStoreManager
   exists: (namespace) ->
     @list_namespaces()
     .then((namespaces) =>
-      _.contains(namespaces, namespace)
+      _.includes(namespaces, namespace)
     )
 
   list_namespaces: () ->

@@ -291,20 +291,20 @@ class BasicInMemoryESM
       add = false
 
     if options.people
-      add = false if not _.contains(options.people, e.person)
+      add = false if not _.includes(options.people, e.person)
 
     if options.person
       add = false if options.person != e.person
 
 
     if options.actions
-      add = false if not _.contains(options.actions, e.action)
+      add = false if not _.includes(options.actions, e.action)
 
     if options.action
       add = false if options.action != e.action
 
     if options.things
-      add = false if not _.contains(options.things, e.thing)
+      add = false if not _.includes(options.things, e.thing)
 
     if options.thing
       add = false if options.thing != e.thing
