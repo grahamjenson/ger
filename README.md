@@ -299,6 +299,8 @@ Posts about (or related to) GER:
 
 ## Changelog
 
+2019-08-02 - added basic typescript typings
+
 2015-07-09 - updated readme and fixed basicmem ESM bug.
 
 2015-02-01 - fixed bug with set_namespace and added tests
