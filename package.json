@@ -28,6 +28,7 @@
         "test": "mocha"
     },
     "main": "ger.js",
+    "types": "./ger.d.ts",
     "version": "0.0.99",
     "license": "MIT",
     "repository": {
