@@ -13,22 +13,22 @@
     ],
     "author": "Graham Jenson <grahamjenson@maori.geek.nz>",
     "dependencies": {
-        "bluebird": "2.9.25",
-        "coffee-script": "1.9.3",
-        "knex": "0.16.3",
-        "lodash": "4.17.11",
-        "moment": "2.19.3",
-        "pg": "^7.6.1"
+        "bluebird": "3.7.2",
+        "coffeescript": "2.7.0",
+        "knex": "2.5.1",
+        "lodash": "4.17.21",
+        "moment": "2.29.4",
+        "pg": "8.11.3"
     },
     "devDependencies": {
         "chai": "1.9.1",
-        "mocha": "^5.2.0"
+        "mocha": "^10.2.0"
     },
     "scripts": {
         "test": "mocha"
     },
     "main": "ger.js",
-    "version": "0.0.99",
+    "version": "1.0.2",
     "license": "MIT",
     "repository": {
         "type": "git",
