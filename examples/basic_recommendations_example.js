@@ -15,21 +15,21 @@ ger.initialize_namespace('movies')
       person: 'bob', 
       action: 'likes', 
       thing: 'xmen',
-      expires_at: '2020-06-06' 
+      expires_at: '2023-10-06' 
     },
     { 
       namespace: 'movies', 
       person: 'bob', 
       action: 'likes', 
       thing: 'avengers',
-      expires_at: '2020-06-06' 
+      expires_at: '2023-10-06' 
     },
     { 
       namespace: 'movies', 
       person: 'alice', 
       action: 'likes', 
       thing: 'xmen',
-      expires_at: '2020-06-06' 
+      expires_at: '2023-10-06' 
     },
   ])
 })
