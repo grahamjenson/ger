@@ -166,7 +166,7 @@ class PSQLEventStoreManager
     one_degree_away = @_one_degree_away(namespace, 'thing', 'person', thing, actions, options)
     .orderByRaw("action_count DESC")
 
-    @_knex(one_degree_away.as('x'))
+    bb.resolve(@_knex(one_degree_away.as('x'))
     .where('x.last_expires_at', '>', options.expires_after)
     .where('x.last_actioned_at', '<=', options.current_datetime)
     .orderByRaw("x.action_count DESC")
@@ -175,7 +175,7 @@ class PSQLEventStoreManager
       for row in rows
         row.people = _.uniq(row.person) # difficult in postgres
       rows
-    )
+    ))
 
   person_neighbourhood: (namespace, person, actions, options = {}) ->
     return bb.try(-> []) if !actions or actions.length == 0
@@ -193,13 +193,13 @@ class PSQLEventStoreManager
 
     unexpired_events = @_unexpired_events(namespace, actions, options)
 
-    @_knex(one_degree_away.as('x'))
+    bb.resolve(@_knex(one_degree_away.as('x'))
     .whereExists(unexpired_events)
     .orderByRaw("x.created_at_day DESC, x.action_count DESC")
     .limit(options.neighbourhood_size)
     .then( (rows) ->
       (row.person for row in rows)
-    )
+    ))
 
 
   _unexpired_events: (namespace, actions, options) ->

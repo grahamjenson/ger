@@ -12,7 +12,7 @@ Good Enough Recommendations (**GER**) is a recommendation engine that is scalabl
 
 **Note: functions from GER return a promises**
 
-Install `ger` and `coffee-script` with `npm`:
+Install `ger` and `coffeescript` with `npm`:
 
 ```bash
 npm install ger
